@@ -18,7 +18,30 @@ export interface View {
   debug: boolean;
   /** toutes les bittes du quai, pour les dessiner même sans aussière */
   bollards: Vec[];
+  /** édition des aussières en préparation, ou null */
+  edition: EditionView | null;
 }
+
+/** Ce que le rendu montre pendant l'édition des aussières. */
+export interface EditionView {
+  /** taquets proposés, en repère bateau */
+  cleats: { name: string; pos: Vec }[];
+  /** taquet sélectionné, en attente d'une bitte */
+  selected: string | null;
+}
+
+/** Projection entre le repère monde (m) et l'écran (px CSS). */
+export interface Camera {
+  /** pixels par mètre */
+  sc: number;
+  X: (x: number) => number;
+  Y: (y: number) => number;
+  /** point écran vers point monde */
+  toWorld: (px: number, py: number) => Vec;
+}
+
+/** Rayon des cibles tactiles de l'éditeur (px CSS) : 44 px de diamètre au moins. */
+export const TOUCH_RADIUS = 22;
 
 /** Seuil au-delà duquel une aussière est affichée comme tendue (N). */
 export const TAUT_THRESHOLD = 30;
@@ -36,24 +59,32 @@ export function readPalette(el: Element): Palette {
   };
 }
 
-/** Dessine la scène. Fonction sans effet sur la simulation. */
-export function render(ctx: CanvasRenderingContext2D, s: Readonly<SimState>, v: View): void {
-  const { width: W, height: H, palette: C } = v;
-  if (W <= 0 || H <= 0) return;
+/** Caméra : quai en haut, on suit le bateau quand il s'éloigne. */
+export function camera(s: Readonly<SimState>, W: number, H: number): Camera & { cx: number; cy: number; halfW: number; halfH: number } {
   const b = s.body;
   const narrow = W < 520;
   const sc = Math.max(6, Math.min(W / (narrow ? 21 : 30), H / 17)); // pixels par mètre
   const halfW = W / 2 / sc, halfH = H / 2 / sc;
-
-  // Caméra : quai en haut, on suit le bateau quand il s'éloigne.
   let cx = 0;
   let cy = 3.2 - halfH;
   const mx = halfW * 0.55;
   if (b.x - cx > mx) cx = b.x - mx; else if (cx - b.x > mx) cx = b.x + mx;
   const lowY = cy - halfH * 0.45;
   if (b.y < lowY) cy += b.y - lowY;
-  const X = (x: number) => W / 2 + (x - cx) * sc;
-  const Y = (y: number) => H / 2 - (y - cy) * sc;
+  return {
+    sc, cx, cy, halfW, halfH,
+    X: (x: number) => W / 2 + (x - cx) * sc,
+    Y: (y: number) => H / 2 - (y - cy) * sc,
+    toWorld: (px: number, py: number): Vec => [cx + (px - W / 2) / sc, cy - (py - H / 2) / sc],
+  };
+}
+
+/** Dessine la scène. Fonction sans effet sur la simulation. */
+export function render(ctx: CanvasRenderingContext2D, s: Readonly<SimState>, v: View): void {
+  const { width: W, height: H, palette: C } = v;
+  if (W <= 0 || H <= 0) return;
+  const b = s.body;
+  const { sc, cx, cy, halfW, halfH, X, Y } = camera(s, W, H);
 
   ctx.setTransform(v.dpr, 0, 0, v.dpr, 0, 0);
   ctx.fillStyle = C.water;
@@ -76,14 +107,28 @@ export function render(ctx: CanvasRenderingContext2D, s: Readonly<SimState>, v: 
   ctx.fillStyle = C.quayEdge;
   ctx.font = `600 12px ${v.labelFont}`;
   ctx.textAlign = 'right';
-  ctx.fillText('QUAI', W - 12, Math.max(14, Y(0) - 8));
+  // Libellé au-dessus de la rangée de bittes, pour ne pas la chevaucher.
+  const yRow = v.bollards.length ? Y(v.bollards[0][1]) - Math.max(3, 0.22 * sc) - 6 : Y(0) - 8;
+  ctx.fillText('QUAI', W - 12, Math.max(14, yRow));
 
-  // Bittes
+  // Bittes : pleines si une aussière y est tournée, estompées sinon.
+  // Pendant l'édition, un taquet sélectionné met en évidence les bittes où l'on peut tourner l'aussière.
   const used = new Set(s.lines.filter((l) => l.attached).map((l) => l.bollard.join(',')));
+  const choosing = v.edition !== null && v.edition.selected !== null;
+  const rBollard = Math.max(3, 0.22 * sc);
   for (const p of v.bollards) {
+    const px = X(p[0]), py = Y(p[1]);
+    if (px < -TOUCH_RADIUS || px > W + TOUCH_RADIUS) continue;
+    if (choosing) {
+      ctx.beginPath();
+      ctx.arc(px, py, Math.max(rBollard + 5, 11), 0, Math.PI * 2);
+      ctx.strokeStyle = C.accent;
+      ctx.lineWidth = 2;
+      ctx.stroke();
+    }
     ctx.beginPath();
-    ctx.arc(X(p[0]), Y(p[1]), Math.max(3, 0.22 * sc), 0, Math.PI * 2);
-    ctx.globalAlpha = used.has(p.join(',')) ? 1 : 0.35;
+    ctx.arc(px, py, rBollard, 0, Math.PI * 2);
+    ctx.globalAlpha = used.has(p.join(',')) || choosing ? 1 : 0.35;
     ctx.fillStyle = C.bollard;
     ctx.fill();
     ctx.globalAlpha = 1;
@@ -145,6 +190,24 @@ export function render(ctx: CanvasRenderingContext2D, s: Readonly<SimState>, v: 
   for (const l of s.lines) {
     const p = toWorld(b, l.cleat);
     ctx.fillRect(X(p[0]) - 2.5, Y(p[1]) - 2.5, 5, 5);
+  }
+  // Taquets proposés par l'éditeur : un anneau, plein quand il est sélectionné.
+  if (v.edition) {
+    for (const c of v.edition.cleats) {
+      const p = toWorld(b, c.pos);
+      const sel = c.name === v.edition.selected;
+      ctx.beginPath();
+      ctx.arc(X(p[0]), Y(p[1]), sel ? 9 : 8, 0, Math.PI * 2);
+      ctx.strokeStyle = C.accent;
+      ctx.lineWidth = sel ? 3 : 2;
+      ctx.stroke();
+      if (sel) {
+        ctx.globalAlpha = 0.35;
+        ctx.fillStyle = C.accent;
+        ctx.fill();
+        ctx.globalAlpha = 1;
+      }
+    }
   }
 
   // Aussières : rouges tendues, grises molles (avec du ballant)

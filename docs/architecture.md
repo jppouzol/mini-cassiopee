@@ -90,7 +90,7 @@ Chaque situation du catalogue est un fichier JSON lisible à la main, dans `src/
   "quai": { "type": "long-side" },
   "bateau": { "x": 0, "distanceQuai": 0.05, "bordAuQuai": "babord" },
   "aussieres": [
-    { "id": "garde-av", "nom": "Garde avant", "taquet": "etrave", "bitte": -2, "mou": 0 }
+    { "id": "garde-av", "taquet": "etrave", "bitte": 0, "mou": 0 }
   ],
   "vent": { "direction": "quai", "force": "aucun" }
 }
@@ -98,7 +98,7 @@ Chaque situation du catalogue est un fichier JSON lisible à la main, dans `src/
 
 - `bordAuQuai` vaut `babord` ou `tribord`.
 - `taquet` vaut `etrave`, `arriere` (côté quai), `arriere-large` ou `maitre-bau`. L'éditeur ne propose que `etrave` et `arriere`.
-- `bitte` est la position de la bitte le long du quai, en mètres, depuis le centre du bateau au départ, positive vers l'avant. Elle doit tomber sur la rangée de bittes du quai : la position monde de la bitte (`bateau.x` plus ou moins `bitte` selon le sens de l'étrave) est un multiple de l'espacement, 2 m (`BOLLARD_SPACING` dans `src/situations/build.ts`).
+- `bitte` est la position de la bitte le long du quai, en mètres, depuis le centre du bateau au départ, positive vers l'avant. Elle doit tomber sur la rangée de bittes du quai : la position monde de la bitte (`bateau.x` plus ou moins `bitte` selon le sens de l'étrave) est un multiple de l'espacement, 2 m (`BOLLARD_SPACING` dans `src/situations/quai.ts`, avec les conversions entre position relative et position monde).
 - Deux aussières ne peuvent pas relier le même taquet à la même bitte.
 - `nom` est facultatif : absent, il est déduit de la géométrie au départ (voir l'édition ci-dessous) ; présent, c'est le nom choisi par l'auteur ou l'élève.
 - `mou` vaut 0 pour une aussière tendue au départ, ou la longueur de mou en mètres. L'éditeur ne produit que 0 (tendue) ou 0,5 (molle) ; le catalogue peut utiliser d'autres valeurs.
@@ -116,7 +116,8 @@ L'éditeur produit des situations au même format que le catalogue. Les opérati
 
 - `ajouterAussiere(situation, taquet, bitte)`, refusée avec un message lisible en cas de doublon ou de plafond atteint ;
 - `supprimerAussiere`, `basculerMou` (tendue ou 0,5 m de mou), `renommerAussiere`, `reglerPlafond` ;
-- `nomDeduit(situation, aussiere)` : traversier si l'aussière fait moins de 20° avec la perpendiculaire au bateau, sinon pointe ou garde selon que la bitte est en dehors ou en dedans du taquet le long du bateau, avant ou arrière selon le taquet, avec un numéro en cas d'homonymie. Le calcul se fait en repère bateau, ce qui le rend indépendant du bord au quai.
+- `nomDeduit(situation, aussiere)` : traversier si l'aussière fait moins de 20° avec la perpendiculaire au bateau, sinon pointe ou garde selon que la bitte est en dehors ou en dedans du taquet le long du bateau, avant ou arrière selon le taquet. Le calcul se fait en repère bateau, ce qui le rend indépendant du bord au quai. `nomsAffiches(situation)` garde les noms choisis et numérote les noms déduits identiques ; `buildState` l'utilise pour nommer les aussières de la simulation ;
+- `taquetsProposes(situation)` : les taquets offerts à l'éditeur et leur position, selon le bord au quai.
 
 L'interface conserve deux situations : la **situation d'origine** issue du catalogue et la **situation préparée** qu'elle modifie. Chaque modification, faite à l'image 0, crée une nouvelle session à partir de la situation préparée, comme le changement de vent aujourd'hui ; la session et le moteur ne changent pas. « ⏮ » revient à l'image 0 de cette session, le bouton « Situation d'origine » recopie la situation d'origine dans la situation préparée. Rien n'est stocké d'une visite à l'autre.
 

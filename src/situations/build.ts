@@ -1,9 +1,10 @@
 import type { SimState, Vec, Wind } from '../sim/types.ts';
-import { HALF_BEAM, cleatPosition, toWorld } from '../sim/geometry.ts';
+import { cleatPosition, toWorld } from '../sim/geometry.ts';
 import type { Situation, WindDirection } from './schema.ts';
+import { BOLLARD_SETBACK, bitteVersMonde, bowSign, yDepart } from './quai.ts';
+import { nomsAffiches } from './edit.ts';
 
-/** Distance de la rangée de bittes au bord du quai (m). */
-export const BOLLARD_SETBACK = 0.6;
+export { BOLLARD_SETBACK, BOLLARD_SPACING } from './quai.ts';
 
 const S2 = Math.SQRT1_2;
 
@@ -31,13 +32,13 @@ export function windVector(direction: WindDirection, bowSign: 1 | -1): Vec {
 
 /** Cap initial et côté du quai en repère bateau. */
 export function startPose(sit: Situation): { x: number; y: number; th: number; bowSign: 1 | -1 } {
-  const portToQuay = sit.bateau.bordAuQuai === 'babord';
+  const sign = bowSign(sit);
   return {
     x: sit.bateau.x,
-    y: -(HALF_BEAM + sit.bateau.distanceQuai),
+    y: yDepart(sit),
     // Bâbord au quai : étrave vers +x. Tribord au quai : étrave vers -x.
-    th: portToQuay ? 0 : Math.PI,
-    bowSign: portToQuay ? 1 : -1,
+    th: sign === 1 ? 0 : Math.PI,
+    bowSign: sign,
   };
 }
 
@@ -47,12 +48,13 @@ export function buildState(sit: Situation, windOverride?: Situation['vent']): Si
   // Avec un cap de π, le côté bâbord (+y bateau) regarde le large : le quai est à tribord.
   const quaySide: 1 | -1 = pose.bowSign === 1 ? 1 : -1;
   const body = { x: pose.x, y: pose.y, th: pose.th, vx: 0, vy: 0, w: 0 };
-  const lines = sit.aussieres.map((a) => {
+  const names = nomsAffiches(sit);
+  const lines = sit.aussieres.map((a, i) => {
     const cleat = cleatPosition(a.taquet, quaySide);
-    const bollard: Vec = [sit.bateau.x + pose.bowSign * a.bitte, BOLLARD_SETBACK];
+    const bollard: Vec = [bitteVersMonde(sit, a.bitte), BOLLARD_SETBACK];
     const cw = toWorld(body, cleat);
     const dist = Math.hypot(cw[0] - bollard[0], cw[1] - bollard[1]);
-    return { id: a.id, name: a.nom, cleat, bollard, len: dist + a.mou, attached: true, tension: 0 };
+    return { id: a.id, name: names[i], cleat, bollard, len: dist + a.mou, attached: true, tension: 0 };
   });
   const v = windOverride ?? sit.vent;
   const wind: Wind = { to: windVector(v.direction, pose.bowSign), force: v.force };

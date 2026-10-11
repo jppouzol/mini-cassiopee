@@ -4,7 +4,7 @@ import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { catalogueFiles } from './helpers.ts';
 import { parseSituation, SituationError } from '../src/situations/schema.ts';
-import { buildState } from '../src/situations/build.ts';
+import { BOLLARD_SPACING, buildState } from '../src/situations/build.ts';
 
 const DIR = join(import.meta.dirname, '..', 'src', 'situations', 'catalogue');
 const read = (f: string) => JSON.parse(readFileSync(join(DIR, f), 'utf8'));
@@ -39,4 +39,24 @@ test('une situation invalide est refusée avec un message lisible', () => {
     () => parseSituation({ ...sit, aussieres: [{ ...sit.aussieres[0], taquet: 'bossoir' }] }),
     /taquet/,
   );
+});
+
+test('les bittes du catalogue sont sur la rangée du quai', () => {
+  for (const f of catalogueFiles()) {
+    const s = buildState(parseSituation(read(f)));
+    for (const l of s.lines) {
+      const k = l.bollard[0] / BOLLARD_SPACING;
+      assert.ok(Math.abs(k - Math.round(k)) < 1e-9, `${f} : bitte à x = ${l.bollard[0]}`);
+    }
+  }
+});
+
+test('une bitte hors rangée ou un doublon taquet–bitte sont refusés', () => {
+  const sit = read('03-amarre-quatre-amarres.json');
+  const [a, b] = sit.aussieres;
+  assert.throws(() => parseSituation({ ...sit, aussieres: [{ ...a, bitte: 9.5 }] }), /rangée de bittes/);
+  assert.throws(() => parseSituation({ ...sit, aussieres: [a, { ...b, bitte: a.bitte }] }), /déjà ce taquet/);
+  // Bateau décalé de 1 m : les bittes relatives deviennent impaires.
+  assert.doesNotThrow(() => parseSituation({ ...sit, bateau: { ...sit.bateau, x: 1 }, aussieres: [{ ...a, bitte: 9 }] }));
+  assert.throws(() => parseSituation({ ...sit, aussieres: [{ ...a, nom: '' }] }), /nom/);
 });
