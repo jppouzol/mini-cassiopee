@@ -45,7 +45,7 @@ La scène se compose d'un seul bateau, d'un quai, d'aussières et du vent. Chaqu
 ### Bateau
 
 - Un modèle unique et générique, aux proportions d'un voilier de croisière de 10 m.
-- Taquets : au minimum un à l'étrave et un à l'arrière ; option pour en ajouter au maître-bau.
+- Taquets : au minimum un à l'étrave et un à l'arrière côté quai ; option pour en ajouter au maître-bau. L'éditeur ne propose que ces deux taquets tant que le maître-bau n'est pas livré (palier 3).
 - Paramètres avancés : pas d'hélice activable, avec choix du sens de rotation ; choix entre mono-safran et bi-safran.
 - Le type de quille n'est pas paramétrable.
 
@@ -54,12 +54,14 @@ La scène se compose d'un seul bateau, d'un quai, d'aussières et du vent. Chaqu
 - Amarrage le long du quai (long side) ou perpendiculaire au quai.
 - En perpendiculaire : longueur du catway réglable par rapport à la longueur du bateau.
 - Option : bateaux voisins de part et d'autre, pour tester les points de pivot et les risques de contact.
-- Points d'amarrage côté quai : position définie par la situation choisie ou ajustée dans l'éditeur.
+- Points d'amarrage côté quai : une rangée de bittes fixes, espacées de 2 m, sur toute la longueur du quai, comme sur un vrai quai. Les aussières du catalogue comme celles ajoutées dans l'éditeur sont tournées sur ces bittes ; on ne crée pas de point d'amarrage ailleurs.
 
 ### Aussières
 
-- Chaque aussière relie un taquet du bateau à un point du quai.
-- Par défaut, sa longueur est fixée à la position de départ ; elle est soit tendue, soit molle.
+- Chaque aussière relie un taquet du bateau à une bitte du quai. Un même taquet peut porter plusieurs aussières (par exemple une pointe et une garde), mais deux aussières ne peuvent pas relier le même taquet à la même bitte.
+- Par défaut, sa longueur est fixée à la position de départ ; elle est soit tendue, soit molle. Une aussière molle a 0,5 m de mou ; les situations du catalogue peuvent préciser une autre valeur.
+- Son nom est déduit de la géométrie au départ : traversier si elle fait moins de 20° avec la perpendiculaire au bateau, sinon pointe si elle part vers l'extérieur du bateau (bitte en avant du taquet d'étrave, ou en arrière du taquet arrière) et garde dans le cas inverse ; avant ou arrière selon le taquet (voir le glossaire). Un numéro départage deux aussières de même nom. L'élève peut la renommer.
+- Une situation compte au plus 6 aussières par défaut. Ce plafond est réglable entre 6 et 12 dans les options avancées de l'éditeur, sans pouvoir descendre sous le nombre d'aussières en place ; une situation du catalogue peut déclarer un plafond plus élevé.
 - Larguée, elle disparaît de la scène (considérée comme remontée à bord).
 - Palier avancé : choquer ou reprendre une aussière pendant la manœuvre, pour conserver de la tension ou créer un point de pivot.
 
@@ -132,15 +134,32 @@ Chaque situation définit : la configuration du quai (le long ou perpendiculaire
 - départ sur garde arrière ;
 - amarré perpendiculaire, sur catway court puis long.
 
+Les bittes des situations du catalogue sont placées sur la rangée de bittes fixes du quai, en vérifiant que les scénarios de référence restent démonstratifs.
+
 ### Éditeur
 
+L'éditeur agit pendant la préparation, c'est-à-dire tant que la simulation est à son instant de départ. Revenir au départ (⏮) après une manœuvre permet de modifier à nouveau la situation ; la manœuvre enregistrée est alors effacée, comme pour un changement de vent.
+
 - Déplacer le bateau le long du quai.
-- Ajouter, retirer ou déplacer une aussière entre un taquet du bateau et un point du quai.
+- Ajouter, retirer ou déplacer une aussière entre un taquet du bateau et une bitte du quai.
 - Indiquer pour chaque aussière si elle est tendue au moment de la mise en mouvement.
 - Régler la direction et la force du vent.
-- Activer les options avancées.
+- Activer les options avancées, dont le plafond d'aussières.
 
-Aucune sauvegarde ni partage de situation n'est prévu à ce stade. Le stockage local dans le navigateur est envisageable (par exemple pour retrouver la dernière situation).
+#### Ajouter et supprimer une aussière
+
+- **Ajouter** : l'élève touche un taquet sur la coque, puis une bitte sur le quai. L'aussière est créée tendue, avec un nom déduit de sa géométrie. Tant qu'un taquet est sélectionné, les bittes sont mises en évidence ; toucher ailleurs annule la sélection. La création est refusée, avec un message, si elle crée un doublon ou dépasse le plafond.
+- **Régler** : dans la liste des aussières, l'élève bascule chaque aussière entre tendue et molle, et peut la renommer.
+- **Supprimer** : en préparation, le bouton « Larguer » de la liste devient « Supprimer ». Une aussière supprimée disparaît de la situation préparée.
+- Pendant la simulation, on ne peut ni ajouter ni supprimer d'aussière : seul le largage reste possible.
+
+#### Situation préparée et situation d'origine
+
+- Les modifications de l'éditeur produisent une **situation préparée**, qui sert de point de départ : « ⏮ » y revient, sans perdre la préparation.
+- Un bouton distinct restaure la **situation d'origine** du catalogue.
+- Choisir une autre situation dans le catalogue abandonne la préparation en cours.
+
+Aucune sauvegarde ni partage de situation n'est prévu à ce stade : la situation préparée n'est pas conservée d'une visite à l'autre. Le stockage local dans le navigateur est envisageable (par exemple pour retrouver la dernière situation).
 
 ## Exigences techniques et non fonctionnelles
 
@@ -178,6 +197,7 @@ La V1 est réussie quand un élève reproduit sur son téléphone un départ sur
 
 - [ ] Positionner le bateau le long d'un quai.
 - [ ] Placer les aussières et indiquer lesquelles sont tendues au moment de la mise en mouvement.
+- [ ] Partir d'une situation du catalogue, y ajouter une aussière (taquet puis bitte) et en supprimer une avant de lancer la simulation ; le nom déduit est juste, bâbord comme tribord au quai.
 - [ ] Piloter le moteur (avant, neutre, arrière) pendant la simulation.
 - [ ] Agir sur la barre pendant la simulation.
 - [ ] Larguer chaque aussière individuellement pendant la simulation.
@@ -208,10 +228,11 @@ Les points suivants n'ont pas été tranchés et figurent dans les points ouvert
 
 | Terme | Définition dans le projet |
 | --- | --- |
-| Aussière | Cordage reliant un taquet du bateau à un point du quai |
+| Aussière | Cordage reliant un taquet du bateau à une bitte du quai |
+| Bitte | Point d'amarrage fixe sur le quai ; dans l'appli, une rangée de bittes espacées de 2 m |
 | Pointe avant / arrière | Aussière partant de l'avant (ou de l'arrière) du bateau vers l'avant (ou l'arrière) sur le quai |
 | Garde avant / arrière | Aussière partant de l'avant (ou de l'arrière) du bateau, frappée vers l'arrière (ou l'avant) sur le quai ; limite les mouvements longitudinaux |
-| Traversier | Aussière perpendiculaire au bateau, qui le tient contre le quai |
+| Traversier | Aussière perpendiculaire au bateau, qui le tient contre le quai ; dans l'appli, toute aussière à moins de 20° de la perpendiculaire au départ |
 | Larguer | Détacher une aussière ; dans l'appli, elle disparaît de la scène |
 | Choquer / reprendre | Donner du mou à une aussière / la raccourcir |
 | Point de pivot | Point autour duquel le bateau tourne à un instant donné |

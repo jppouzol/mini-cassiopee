@@ -90,22 +90,35 @@ Chaque situation du catalogue est un fichier JSON lisible à la main, dans `src/
   "quai": { "type": "long-side" },
   "bateau": { "x": 0, "distanceQuai": 0.05, "bordAuQuai": "babord" },
   "aussieres": [
-    { "id": "garde-av", "nom": "Garde avant", "taquet": "etrave", "bitte": -1.2, "mou": 0 }
+    { "id": "garde-av", "nom": "Garde avant", "taquet": "etrave", "bitte": -2, "mou": 0 }
   ],
   "vent": { "direction": "quai", "force": "aucun" }
 }
 ```
 
 - `bordAuQuai` vaut `babord` ou `tribord`.
-- `taquet` vaut `etrave`, `arriere` (côté quai), `arriere-large` ou `maitre-bau`.
-- `bitte` est la position de la bitte le long du quai, en mètres, depuis le centre du bateau au départ, positive vers l'avant.
-- `mou` vaut 0 pour une aussière tendue au départ, ou la longueur de mou en mètres.
+- `taquet` vaut `etrave`, `arriere` (côté quai), `arriere-large` ou `maitre-bau`. L'éditeur ne propose que `etrave` et `arriere`.
+- `bitte` est la position de la bitte le long du quai, en mètres, depuis le centre du bateau au départ, positive vers l'avant. Elle doit tomber sur la rangée de bittes du quai : la position monde de la bitte (`bateau.x` plus ou moins `bitte` selon le sens de l'étrave) est un multiple de l'espacement, 2 m (`BOLLARD_SPACING` dans `src/situations/build.ts`).
+- Deux aussières ne peuvent pas relier le même taquet à la même bitte.
+- `nom` est facultatif : absent, il est déduit de la géométrie au départ (voir l'édition ci-dessous) ; présent, c'est le nom choisi par l'auteur ou l'élève.
+- `mou` vaut 0 pour une aussière tendue au départ, ou la longueur de mou en mètres. L'éditeur ne produit que 0 (tendue) ou 0,5 (molle) ; le catalogue peut utiliser d'autres valeurs.
+- `plafondAussieres` est facultatif : nombre maximal d'aussières de la situation, entier de 6 à 12, 6 par défaut, jamais inférieur au nombre d'aussières déclarées.
 - `vent.direction` vaut `quai`, `large`, `avant`, `arriere` ou une combinaison (`quai-avant`, `large-arriere`…) ; `avant` et `arriere` se rapportent au cap du bateau au départ. `vent.force` vaut `aucun`, `faible` ou `soutenu`.
 - `format` permet de faire évoluer le schéma en gardant la lecture des anciennes situations.
 
 Évolutions prévues : `quai.type` accueillera `perpendiculaire` avec `longueurCatway`, les bateaux voisins s'ajouteront sous `voisins` et les effets avancés sous `options`.
 
-Une fonction de validation (`src/situations/schema.ts`) accompagne le format ; une situation invalide est refusée au chargement avec un message lisible.
+Une fonction de validation (`src/situations/schema.ts`) accompagne le format ; une situation invalide est refusée au chargement avec un message lisible. Les nouvelles règles (bitte sur la rangée, doublons, plafond, nom facultatif) restent compatibles avec le format 1 : seul le catalogue existant est recalé sur la rangée de bittes.
+
+### Édition des aussières
+
+L'éditeur produit des situations au même format que le catalogue. Les opérations sont des fonctions pures sur une `Situation` (`src/situations/edit.ts`), sans dépendance au navigateur et testables seules :
+
+- `ajouterAussiere(situation, taquet, bitte)`, refusée avec un message lisible en cas de doublon ou de plafond atteint ;
+- `supprimerAussiere`, `basculerMou` (tendue ou 0,5 m de mou), `renommerAussiere`, `reglerPlafond` ;
+- `nomDeduit(situation, aussiere)` : traversier si l'aussière fait moins de 20° avec la perpendiculaire au bateau, sinon pointe ou garde selon que la bitte est en dehors ou en dedans du taquet le long du bateau, avant ou arrière selon le taquet, avec un numéro en cas d'homonymie. Le calcul se fait en repère bateau, ce qui le rend indépendant du bord au quai.
+
+L'interface conserve deux situations : la **situation d'origine** issue du catalogue et la **situation préparée** qu'elle modifie. Chaque modification, faite à l'image 0, crée une nouvelle session à partir de la situation préparée, comme le changement de vent aujourd'hui ; la session et le moteur ne changent pas. « ⏮ » revient à l'image 0 de cette session, le bouton « Situation d'origine » recopie la situation d'origine dans la situation préparée. Rien n'est stocké d'une visite à l'autre.
 
 ## Rendu et interface
 
@@ -114,6 +127,7 @@ La scène est dessinée en Canvas 2D par un module impératif (`src/render`) ; l
 - **Canvas 2D** : un seul bateau et une dizaine de traits, à 60 images par seconde même sur un téléphone d'entrée de gamme. Pas besoin de WebGL ni de SVG.
 - **Rendu sans état** : le dessin est une fonction de l'état affiché et des préférences d'affichage. Il ne modifie jamais la simulation.
 - **Caméra** : quai en haut de l'écran, bateau suivi quand il s'éloigne. Sur téléphone, un cadrage plus serré ; le zoom à deux doigts est prévu pour répondre à la remarque du prototype sur la taille du bateau.
+- **Bittes et taquets** : la rangée de bittes est dessinée sur toute la partie visible du quai. En préparation, les taquets proposés et les bittes deviennent des cibles tactiles d'au moins 44 px, plus larges que leur dessin ; le taquet sélectionné et les bittes disponibles sont mis en évidence. Le rendu reçoit cette sélection comme une préférence d'affichage et reste sans état.
 - **Couleurs** : tirées des variables CSS du thème, clair et sombre.
 - **Disposition** : scène et commandes côte à côte sur PC et tablette en paysage ; scène en haut et commandes dessous sur téléphone, avec les commandes de manœuvre (moteur, barre, largage) accessibles au pouce sans défilement.
 - **Clavier** sur PC : raccourcis du prototype conservés.
@@ -184,8 +198,11 @@ La physique se teste par comportements attendus, pas par valeurs exactes : un r�
 | Aucune amarre, vent du quai | Le bateau dérive vers le large |
 | Tribord au quai | Le départ sur garde avant est le symétrique exact |
 | Relecture | Revenir à une image puis la rejouer redonne exactement le même état |
+| Nom déduit | Pointe, garde et traversier, avant et arrière, reconnus d'après la géométrie ; résultat identique tribord au quai |
+| Édition des aussières | Ajout et suppression ; doublon et dépassement du plafond refusés ; plafond borné entre 6 et 12 et jamais sous le nombre d'aussières |
+| Aussière ajoutée | Une garde avant ajoutée dans l'éditeur sur une situation sans amarre se comporte comme celle du catalogue |
 
-S'y ajoutent des tests de stabilité numérique (aucune valeur non finie, pas d'oscillation résiduelle) et des tests du format des situations. Le reste de l'interface se vérifie à la main sur PC, Android et iOS avant chaque version.
+S'y ajoutent des tests de stabilité numérique (aucune valeur non finie, pas d'oscillation résiduelle) et des tests du format des situations, dont le placement des bittes du catalogue sur la rangée. Le reste de l'interface se vérifie à la main sur PC, Android et iOS avant chaque version.
 
 ## Registre des décisions
 
@@ -199,6 +216,8 @@ Chaque choix structurant est noté ici avec son statut ; une décision ne change
 | Stack | TypeScript, React, Vite ; tests avec le lanceur intégré à Node.js | Décidé |
 | Rendu | Canvas 2D | Décidé |
 | Format des situations | JSON versionné, validation écrite à la main | Décidé |
+| Points d'amarrage | Rangée de bittes fixes espacées de 2 m ; catalogue recalé dessus | Décidé |
+| Édition des aussières | En préparation seulement, par fonctions pures sur la situation ; situation préparée distincte de la situation d'origine ; plafond de 6, réglable jusqu'à 12 | Décidé |
 | Hébergement | Dépôt public et GitHub Pages | Décidé |
 | Déploiement | GitHub Actions : tests sur chaque proposition, déploiement à chaque fusion | Décidé |
 | Licence du code | MIT | Décidé |
