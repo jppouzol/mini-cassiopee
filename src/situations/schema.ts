@@ -1,5 +1,7 @@
 // Format des situations (version 1). Un fichier JSON par situation du catalogue ;
-// l'éditeur produira le même format.
+// l'éditeur produit le même format.
+
+import { BOLLARD_SPACING, surLaRangee } from './quai.ts';
 
 export const WIND_DIRECTIONS = [
   'quai', 'large', 'avant', 'arriere',
@@ -9,13 +11,22 @@ export type WindDirection = (typeof WIND_DIRECTIONS)[number];
 
 export const WIND_FORCES = ['aucun', 'faible', 'soutenu'] as const;
 export const CLEATS = ['etrave', 'arriere', 'arriere-large', 'maitre-bau'] as const;
+export type Cleat = (typeof CLEATS)[number];
+
+/** Plafond d'aussières par défaut, et bornes de son réglage. */
+export const PLAFOND_DEFAUT = 6;
+export const PLAFOND_MAX = 12;
 
 export interface SituationLine {
   id: string;
-  nom: string;
+  /** nom choisi ; absent, le nom est déduit de la géométrie (voir edit.ts) */
+  nom?: string;
   /** taquet du bateau ; « arriere » est le taquet arrière côté quai */
-  taquet: (typeof CLEATS)[number];
-  /** position de la bitte le long du quai (m), depuis le centre du bateau au départ, positive vers l'avant */
+  taquet: Cleat;
+  /**
+   * position de la bitte le long du quai (m), depuis le centre du bateau au départ,
+   * positive vers l'avant ; elle doit tomber sur la rangée de bittes du quai
+   */
   bitte: number;
   /** mou au départ (m) ; 0 = aussière tendue */
   mou: number;
@@ -34,7 +45,14 @@ export interface Situation {
     bordAuQuai: 'babord' | 'tribord';
   };
   aussieres: SituationLine[];
+  /** nombre maximal d'aussières (PLAFOND_DEFAUT si absent) */
+  plafondAussieres?: number;
   vent: { direction: WindDirection; force: (typeof WIND_FORCES)[number] };
+}
+
+/** Plafond d'aussières effectif d'une situation. */
+export function plafond(sit: Pick<Situation, 'plafondAussieres'>): number {
+  return sit.plafondAussieres ?? PLAFOND_DEFAUT;
 }
 
 export class SituationError extends Error {}
@@ -71,21 +89,46 @@ export function parseSituation(input: unknown): Situation {
   const bord = oneOf(bateau.bordAuQuai, ['babord', 'tribord'] as const, `${id} : bateau.bordAuQuai`);
 
   if (!Array.isArray(input.aussieres)) throw new SituationError(`${id} : « aussieres » doit être une liste.`);
+  const placement = { bateau: { x: bateau.x, distanceQuai: bateau.distanceQuai, bordAuQuai: bord } };
   const ids = new Set<string>();
+  const liens = new Set<string>();
   const aussieres: SituationLine[] = input.aussieres.map((a: unknown, i: number) => {
     const where = `${id} : aussière n° ${i + 1}`;
-    if (!isObj(a) || !isStr(a.id) || !isStr(a.nom) || !isNum(a.bitte) || !isNum(a.mou)) {
-      throw new SituationError(`${where} doit préciser id, nom, taquet, bitte et mou.`);
+    if (!isObj(a) || !isStr(a.id) || !isNum(a.bitte) || !isNum(a.mou)) {
+      throw new SituationError(`${where} doit préciser id, taquet, bitte et mou.`);
     }
+    if (a.nom !== undefined && !isStr(a.nom)) throw new SituationError(`${where} : le nom, s'il est donné, ne peut pas être vide.`);
     if (ids.has(a.id)) throw new SituationError(`${where} : identifiant « ${a.id} » en double.`);
     if (a.mou < 0) throw new SituationError(`${where} : le mou ne peut pas être négatif.`);
+    if (!surLaRangee(placement, a.bitte)) {
+      throw new SituationError(`${where} : la bitte (${a.bitte} m) n'est pas sur la rangée de bittes du quai, espacées de ${BOLLARD_SPACING} m.`);
+    }
+    const taquet = oneOf(a.taquet, CLEATS, `${where} : taquet`);
+    const lien = `${taquet}@${a.bitte}`;
+    if (liens.has(lien)) throw new SituationError(`${where} : une autre aussière relie déjà ce taquet à cette bitte.`);
     ids.add(a.id);
-    return { id: a.id, nom: a.nom, taquet: oneOf(a.taquet, CLEATS, `${where} : taquet`), bitte: a.bitte, mou: a.mou };
+    liens.add(lien);
+    const line: SituationLine = { id: a.id, taquet, bitte: a.bitte, mou: a.mou };
+    if (a.nom !== undefined) line.nom = a.nom as string;
+    return line;
   });
+
+  let plafondAussieres: number | undefined;
+  if (input.plafondAussieres !== undefined) {
+    const p = input.plafondAussieres;
+    if (!Number.isInteger(p) || (p as number) < PLAFOND_DEFAUT || (p as number) > PLAFOND_MAX) {
+      throw new SituationError(`${id} : plafondAussieres doit être un entier de ${PLAFOND_DEFAUT} à ${PLAFOND_MAX}.`);
+    }
+    plafondAussieres = p as number;
+  }
+  const max = plafondAussieres ?? PLAFOND_DEFAUT;
+  if (aussieres.length > max) {
+    throw new SituationError(`${id} : ${aussieres.length} aussières pour un plafond de ${max}.`);
+  }
 
   const vent = input.vent;
   if (!isObj(vent)) throw new SituationError(`${id} : le champ « vent » est obligatoire.`);
-  return {
+  const sit: Situation = {
     format: 1,
     id,
     titre: input.titre as string,
@@ -98,4 +141,6 @@ export function parseSituation(input: unknown): Situation {
       force: oneOf(vent.force, WIND_FORCES, `${id} : vent.force`),
     },
   };
+  if (plafondAussieres !== undefined) sit.plafondAussieres = plafondAussieres;
+  return sit;
 }

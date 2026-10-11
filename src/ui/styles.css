@@ -101,3 +101,22 @@ kbd { font-family: var(--f-label); font-weight: 600; border: 1px solid var(--rul
   .keys { display: none; }
 }
 @media (prefers-reduced-motion: reduce) { * { scroll-behavior: auto; } }
+
+/* Édition des aussières en préparation */
+canvas.editing { cursor: pointer; }
+.count { font-family: var(--f-label); font-weight: 600; font-size: 13px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.line .name {
+  background: none; border: 0; padding: 6px 0; text-align: left; cursor: pointer; min-height: 32px;
+  min-width: 0; overflow-wrap: anywhere; line-height: 1.25;
+}
+.line .name span { color: var(--muted); font-size: 12px; }
+.line .name:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 4px; }
+.line .rename {
+  font: inherit; color: var(--ink); background: var(--bg); border: 1px solid var(--accent); border-radius: 6px;
+  padding: 5px 7px; min-width: 0; width: 100%; box-sizing: border-box;
+}
+.line .btn[aria-pressed] { min-width: 4.6em; }
+.advanced { display: flex; flex-direction: column; gap: 8px; margin-top: 10px; font-size: 14px; }
+.stepper { display: flex; align-items: center; gap: 8px; }
+.stepper .btn { min-width: 36px; min-height: 36px; padding: 0; font-size: 18px; }
+.stepper output { min-width: 2ch; text-align: center; font-family: var(--f-label); font-weight: 600; font-size: 16px; font-variant-numeric: tabular-nums; }

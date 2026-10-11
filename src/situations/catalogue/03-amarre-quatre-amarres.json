@@ -6,10 +6,10 @@
   "quai": { "type": "long-side" },
   "bateau": { "x": 0, "distanceQuai": 0.05, "bordAuQuai": "babord" },
   "aussieres": [
-    { "id": "pointe-av", "nom": "Pointe avant", "taquet": "etrave", "bitte": 10, "mou": 0 },
-    { "id": "garde-av", "nom": "Garde avant", "taquet": "etrave", "bitte": -1.2, "mou": 0 },
-    { "id": "garde-ar", "nom": "Garde arrière", "taquet": "arriere", "bitte": 0.8, "mou": 0 },
-    { "id": "pointe-ar", "nom": "Pointe arrière", "taquet": "arriere", "bitte": -10, "mou": 0 }
+    { "id": "pointe-av", "taquet": "etrave", "bitte": 10, "mou": 0 },
+    { "id": "garde-av", "taquet": "etrave", "bitte": 0, "mou": 0 },
+    { "id": "garde-ar", "taquet": "arriere", "bitte": 0, "mou": 0 },
+    { "id": "pointe-ar", "taquet": "arriere", "bitte": -10, "mou": 0 }
   ],
   "vent": { "direction": "quai", "force": "soutenu" }
 }
