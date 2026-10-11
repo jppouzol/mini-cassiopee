@@ -1,0 +1,206 @@
+# Mini Cassiopée — Architecture technique
+
+Ce document traduit les [spécifications](specifications.md) en choix techniques. Il est tenu à jour dans les demandes de fusion qui modifient l'architecture.
+
+## Synthèse
+
+Mini Cassiopée est une application web statique, sans serveur, écrite en TypeScript, dont le cœur est un moteur de simulation maison isolé de l'affichage. Les choix s'appuient sur le prototype de physique validé le 11 octobre 2026.
+
+- **Moteur de simulation maison**, en TypeScript pur, sans dépendance au navigateur. Il reprend le modèle du prototype : corps rigide 2D, pas de temps fixe, aussières en traction seule, contact simple avec le quai.
+- **Effets physiques activables** : chaque enrichissement des paliers suivants (pas d'hélice, bi-safran, fardage) est un module qu'on branche ou non, sans toucher au socle.
+- **Relecture par journal d'actions et images clés**, qui rend le retour arrière fiable et peu gourmand en mémoire.
+- **Situations décrites en JSON**, chargées par le catalogue et, à terme, produites par l'éditeur.
+- **Rendu Canvas 2D**, interface en React, construction avec Vite.
+- **Application web hébergée sur GitHub Pages** et déployée automatiquement par GitHub Actions ; installation sur téléphone et usage hors-ligne prévus.
+
+Le code est publié sous licence MIT. Seule la licence des contenus pédagogiques reste ouverte, dans le registre des décisions en fin de document.
+
+## Vue d'ensemble
+
+L'application se découpe en cinq modules ; le moteur de simulation, au centre du projet, n'en connaît aucun autre.
+
+```mermaid
+flowchart TB
+  UI["<b>Interface (React)</b><br/>Commandes, lecteur, éditeur"]
+  R["<b>Rendu (Canvas 2D)</b><br/>Bateau, aussières, pivot"]
+  S["<b>Session de manœuvre</b><br/>Journal d'actions, images clés<br/>Lecture, pause, retour arrière"]
+  M["<b>Moteur de simulation</b><br/>Forces, effets activables<br/>Point de pivot, pas fixe"]
+  SI["<b>Situations (JSON)</b><br/>Catalogue, validation du format"]
+  UI -- envoie les actions --> S
+  R -- lit l'état affiché --> S
+  S -- avance d'une image --> M
+  S -- charge une situation --> SI
+```
+
+Chaque flèche va d'un module vers ce dont il dépend. L'interface et le rendu ne touchent jamais directement au moteur : ils passent par la session, qui seule fait avancer la simulation et tient l'historique.
+
+## Moteur de simulation
+
+Le moteur est écrit sur mesure plutôt qu'adossé à une bibliothèque physique (Planck.js, Matter.js, Rapier). Le prototype a montré qu'environ 200 lignes suffisent, et un moteur maison garde la main sur ce qui compte ici : aussières en traction seule, résistance latérale répartie qui place le pivot, contact avec le quai servant de point d'appui.
+
+### Repères et unités
+
+- Unités SI : mètres, secondes, newtons, radians. L'interface convertit (degrés, nœuds) à l'affichage.
+- Repère monde : x le long du quai, y vers le quai, bord du quai en y = 0.
+- Repère bateau : x vers l'avant, y vers bâbord. Cap 0 : étrave vers +x.
+
+### Modèle
+
+- Corps rigide plan à trois degrés de liberté (x, y, cap), masses différentes en longitudinal et en latéral pour tenir compte de l'eau entraînée.
+- Intégration d'Euler semi-implicite à pas fixe de 1/240 s, quatre sous-pas par image de 1/60 s. Le pas ne dépend jamais de la fréquence d'affichage.
+- Forces du socle : moteur, safran (flux d'hélice en marche avant et erre), résistances longitudinale et latérale, vent au centre, aussières, contact et frottement sur le quai.
+- Point de pivot calculé à chaque image : point de l'axe dont la vitesse latérale est nulle, lissé et masqué quand le bateau translate sans tourner.
+
+### Effets activables
+
+Chaque force est un **effet** (`src/sim/effects.ts`) : une fonction qui reçoit l'état et les paramètres, et ajoute une force et un moment. Le socle en active une liste fixe, dans un ordre fixe ; les paliers suivants ajouteront des effets optionnels, déclarés dans la situation :
+
+| Effet | Palier | Principe |
+| --- | --- | --- |
+| Pas d'hélice | 2 | Poussée latérale à l'arrière, surtout en marche arrière, sens selon la rotation de l'hélice |
+| Bi-safran | 2 | Safrans hors du flux d'hélice : effet de barre seulement avec de l'erre |
+| Fardage de l'étrave | 2 | Point d'application du vent avancé : le vent fait abattre l'avant |
+| Aussière réglable | 3 | Longueur de l'aussière modifiable pendant la manœuvre |
+
+### Paramètres
+
+Les constantes physiques (poussée, efficacité de barre, résistances, vent, raideur des aussières) sont regroupées dans un seul jeu de paramètres (`src/sim/params.ts`), versionné avec le code. Les valeurs du prototype en sont le point de départ. Un panneau de réglages, accessible en ajoutant `#reglages` à l'adresse de l'application, permet de les affiner.
+
+## Historique et relecture
+
+Une manœuvre est enregistrée comme une situation de départ plus un journal horodaté des actions de l'élève, complété d'images clés de l'état (`src/session/session.ts`). C'est ce qui permet pause, pas à pas et retour arrière sans conserver chaque image.
+
+- **Journal d'actions** : chaque action (moteur, barre, largage) est notée avec le numéro d'image où elle s'applique.
+- **Images clés** : l'état complet est sauvegardé toutes les 60 images (1 s). Pour afficher l'image n, on repart de l'image clé précédente et on resimule au plus 59 images, ce qui reste imperceptible.
+- **Embranchement** : une action faite après un retour arrière efface la suite du journal et des images clés, puis la manœuvre repart de ce point.
+- **Mémoire** : un état tient en moins de 200 octets ; un quart d'heure de manœuvre représente environ 900 images clés, soit moins de 200 ko.
+
+La resimulation exige que le moteur soit déterministe sur un même appareil : pas de hasard, pas de dépendance à l'horloge, ordre de calcul fixe. Une relecture ne sort jamais de l'appareil, donc les écarts infimes de calcul entre navigateurs ne posent pas de problème.
+
+## Format des situations
+
+Chaque situation du catalogue est un fichier JSON lisible à la main, dans `src/situations/catalogue/`. Le moteur ne connaît que ce format, ce qui découple le catalogue, l'éditeur et une éventuelle fonction de partage future.
+
+```json
+{
+  "format": 1,
+  "id": "depart-garde-avant",
+  "titre": "Départ sur garde avant",
+  "description": "Seule la garde avant est tournée. Marche avant : l'étrave s'appuie sur le quai et l'arrière décolle.",
+  "quai": { "type": "long-side" },
+  "bateau": { "x": 0, "distanceQuai": 0.05, "bordAuQuai": "babord" },
+  "aussieres": [
+    { "id": "garde-av", "nom": "Garde avant", "taquet": "etrave", "bitte": -1.2, "mou": 0 }
+  ],
+  "vent": { "direction": "quai", "force": "aucun" }
+}
+```
+
+- `bordAuQuai` vaut `babord` ou `tribord`.
+- `taquet` vaut `etrave`, `arriere` (côté quai), `arriere-large` ou `maitre-bau`.
+- `bitte` est la position de la bitte le long du quai, en mètres, depuis le centre du bateau au départ, positive vers l'avant.
+- `mou` vaut 0 pour une aussière tendue au départ, ou la longueur de mou en mètres.
+- `vent.direction` vaut `quai`, `large`, `avant`, `arriere` ou une combinaison (`quai-avant`, `large-arriere`…) ; `avant` et `arriere` se rapportent au cap du bateau au départ. `vent.force` vaut `aucun`, `faible` ou `soutenu`.
+- `format` permet de faire évoluer le schéma en gardant la lecture des anciennes situations.
+
+Évolutions prévues : `quai.type` accueillera `perpendiculaire` avec `longueurCatway`, les bateaux voisins s'ajouteront sous `voisins` et les effets avancés sous `options`.
+
+Une fonction de validation (`src/situations/schema.ts`) accompagne le format ; une situation invalide est refusée au chargement avec un message lisible.
+
+## Rendu et interface
+
+La scène est dessinée en Canvas 2D par un module impératif (`src/render`) ; les commandes autour sont des composants React (`src/ui`). Les deux ne se parlent qu'à travers la session.
+
+- **Canvas 2D** : un seul bateau et une dizaine de traits, à 60 images par seconde même sur un téléphone d'entrée de gamme. Pas besoin de WebGL ni de SVG.
+- **Rendu sans état** : le dessin est une fonction de l'état affiché et des préférences d'affichage. Il ne modifie jamais la simulation.
+- **Caméra** : quai en haut de l'écran, bateau suivi quand il s'éloigne. Sur téléphone, un cadrage plus serré ; le zoom à deux doigts est prévu pour répondre à la remarque du prototype sur la taille du bateau.
+- **Couleurs** : tirées des variables CSS du thème, clair et sombre.
+- **Disposition** : scène et commandes côte à côte sur PC et tablette en paysage ; scène en haut et commandes dessous sur téléphone, avec les commandes de manœuvre (moteur, barre, largage) accessibles au pouce sans défilement.
+- **Clavier** sur PC : raccourcis du prototype conservés.
+- **Accessibilité** : commandes utilisables au clavier, contrastes suffisants dans les deux thèmes, état des aussières indiqué par la couleur et par un libellé.
+
+## Stack, outillage et organisation du code
+
+La stack reste courte et courante, pour que le projet soit facile à reprendre par d'autres.
+
+| Rôle | Choix | Raison |
+| --- | --- | --- |
+| Langage | TypeScript | Typage du modèle et du format des situations |
+| Interface | React | Stack déjà maîtrisée ; le panneau de commandes reste petit |
+| Construction | Vite | Démarrage rapide, sortie statique, extension PWA disponible |
+| Tests | Lanceur de tests de Node.js | Aucune dépendance, tests du moteur sans navigateur ni installation |
+| Validation des situations | Validation écrite à la main | Format petit : messages d'erreur lisibles sans dépendance |
+| Hors-ligne | vite-plugin-pwa (à venir) | Manifeste et service worker générés |
+
+Aucune autre dépendance d'exécution n'est prévue. Le poste de développement n'a besoin que de Node.js 22.18 ou plus récent et de Git, installables sans droits d'administrateur sous Windows (archive Node.js décompressée dans le dossier utilisateur, Git en version portable).
+
+```text
+mini-cassiopee/
+  src/
+    sim/          moteur : modèle, effets, intégration, pivot (aucune dépendance au navigateur)
+    session/      journal d'actions, images clés, lecture
+    situations/   format JSON, validation, catalogue
+    render/       dessin Canvas et caméra
+    ui/           composants React : commandes, lecteur, éditeur
+  tests/          scénarios de référence
+  docs/           spécifications et architecture
+```
+
+La règle de dépendance est stricte : `sim` ne dépend de rien, `session` dépend de `sim`, `render` et `ui` dépendent de `session`. Le moteur reste ainsi testable seul et réutilisable.
+
+## Hors-ligne, hébergement et licence
+
+L'application est un ensemble de fichiers statiques, destiné à être installable sur l'écran d'accueil et utilisable sans réseau après une première visite.
+
+### Hors-ligne (à venir)
+
+- Manifeste d'application web : nom, icônes, affichage plein écran, orientation libre.
+- Service worker qui met en cache tous les fichiers à la première visite, puis les sert sans réseau. Une nouvelle version est récupérée en arrière-plan et proposée au lancement suivant.
+- Stockage local du navigateur pour les préférences (affichage, dernière situation ouverte). Rien d'indispensable n'y est stocké.
+
+### Hébergement et déploiement
+
+Le dépôt et l'application sont hébergés sur GitHub : le code dans un dépôt public, l'application sur GitHub Pages (<https://jppouzol.github.io/mini-cassiopee/>), gratuitement. Le workflow `.github/workflows/ci.yml` lance les tests, la vérification des types et la construction à chaque demande de fusion, puis déploie l'application à chaque fusion dans `main`.
+
+Codeberg a été écarté comme hébergement principal parce que l'environnement de développement assisté n'y a pas accès, ce qui obligerait à transférer chaque livraison à la main. Un miroir Codeberg reste possible à tout moment ; le projet ne contient ni données personnelles ni comptes, l'enjeu de souveraineté est donc faible.
+
+### Licence
+
+Licence MIT pour le code. Pour les situations du catalogue et les textes pédagogiques, CC0 reste proposée afin qu'un club puisse les reprendre sans formalité.
+
+## Tests et qualité
+
+La physique se teste par comportements attendus, pas par valeurs exactes : un réglage des paramètres ne doit pas casser un test, un changement de comportement si.
+
+| Scénario de référence | Comportement vérifié |
+| --- | --- |
+| Repos, sans vent | Le bateau ne bouge pas |
+| Garde avant, marche avant | L'étrave reste en appui, le pivot passe à l'avant, l'arrière s'écarte du quai |
+| Garde avant, avec barre côté quai | Le pivot est plus rapide que sans barre |
+| Garde avant, phase 2 | Moteur arrière et garde larguée : le bateau se dégage sans toucher le quai |
+| Garde arrière, marche arrière | Le pivot passe à l'arrière, l'étrave s'écarte |
+| Quatre amarres, vent soutenu du quai | Le bateau se déplace de moins de 20 cm |
+| Quatre amarres, vent du large | Le bateau est plaqué contre le quai, les aussières sont molles |
+| Aucune amarre, vent du quai | Le bateau dérive vers le large |
+| Tribord au quai | Le départ sur garde avant est le symétrique exact |
+| Relecture | Revenir à une image puis la rejouer redonne exactement le même état |
+
+S'y ajoutent des tests de stabilité numérique (aucune valeur non finie, pas d'oscillation résiduelle) et des tests du format des situations. Le reste de l'interface se vérifie à la main sur PC, Android et iOS avant chaque version.
+
+## Registre des décisions
+
+Chaque choix structurant est noté ici avec son statut ; une décision ne change qu'en mettant à jour cette ligne.
+
+| Décision | Choix | Statut |
+| --- | --- | --- |
+| Application sans serveur | Fichiers statiques, tout dans le navigateur | Décidé |
+| Moteur physique | Moteur maison issu du prototype | Décidé |
+| Relecture | Journal d'actions et images clés toutes les secondes | Décidé |
+| Stack | TypeScript, React, Vite ; tests avec le lanceur intégré à Node.js | Décidé |
+| Rendu | Canvas 2D | Décidé |
+| Format des situations | JSON versionné, validation écrite à la main | Décidé |
+| Hébergement | Dépôt public et GitHub Pages | Décidé |
+| Déploiement | GitHub Actions : tests sur chaque proposition, déploiement à chaque fusion | Décidé |
+| Licence du code | MIT | Décidé |
+| Licence des contenus | CC0 proposée pour les situations et textes pédagogiques | Ouvert |
+| Documentation de référence | `docs/` dans le dépôt fait foi, mise à jour avec le code | Décidé |

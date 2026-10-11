@@ -39,6 +39,7 @@ src/
   render/       dessin de la scène sur Canvas
   ui/           interface React
 tests/          scénarios de référence, exécutés avec le lanceur de tests de Node.js
+docs/           spécifications et architecture (documents de référence)
 ```
 
 `sim` ne dépend de rien ; `session` dépend de `sim` ; `render` et `ui` passent par `session`.
@@ -50,6 +51,10 @@ Créer un fichier JSON dans `src/situations/catalogue/` sur le modèle des fichi
 ### Cycle de développement
 
 Chaque évolution passe par une branche et une demande de fusion. Les tests et la construction tournent automatiquement sur chaque demande ; chaque fusion dans `main` déploie la nouvelle version sur GitHub Pages.
+
+## Documentation
+
+Les [spécifications](docs/specifications.md) et l'[architecture technique](docs/architecture.md) sont les documents de référence du projet. Elles sont mises à jour dans les mêmes demandes de fusion que le code.
 
 ## Licence
 
