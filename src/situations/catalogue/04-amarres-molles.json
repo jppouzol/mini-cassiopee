@@ -1,0 +1,15 @@
+{
+  "format": 1,
+  "id": "amarres-molles",
+  "titre": "Amarres molles, vent du quai",
+  "description": "Les quatre amarres ont du mou. Le vent écarte le bateau du quai jusqu'à ce que les aussières reprennent l'effort.",
+  "quai": { "type": "long-side" },
+  "bateau": { "x": 0, "distanceQuai": 0.05, "bordAuQuai": "babord" },
+  "aussieres": [
+    { "id": "pointe-av", "nom": "Pointe avant", "taquet": "etrave", "bitte": 10, "mou": 0.6 },
+    { "id": "garde-av", "nom": "Garde avant", "taquet": "etrave", "bitte": -1.2, "mou": 0.4 },
+    { "id": "garde-ar", "nom": "Garde arrière", "taquet": "arriere", "bitte": 0.8, "mou": 0.4 },
+    { "id": "pointe-ar", "nom": "Pointe arrière", "taquet": "arriere", "bitte": -10, "mou": 0.6 }
+  ],
+  "vent": { "direction": "quai", "force": "faible" }
+}

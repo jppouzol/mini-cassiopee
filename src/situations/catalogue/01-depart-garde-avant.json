@@ -1,0 +1,12 @@
+{
+  "format": 1,
+  "id": "depart-garde-avant",
+  "titre": "Départ sur garde avant",
+  "description": "Seule la garde avant est tournée. Marche avant : l'étrave s'appuie sur le quai et l'arrière décolle. Puis marche arrière et garde larguée pour se dégager.",
+  "quai": { "type": "long-side" },
+  "bateau": { "x": 0, "distanceQuai": 0.05, "bordAuQuai": "babord" },
+  "aussieres": [
+    { "id": "garde-av", "nom": "Garde avant", "taquet": "etrave", "bitte": -1.2, "mou": 0 }
+  ],
+  "vent": { "direction": "quai", "force": "aucun" }
+}
