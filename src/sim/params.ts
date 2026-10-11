@@ -1,7 +1,7 @@
 import type { Params } from './types.ts';
 
 /**
- * Paramètres physiques par défaut, issus du prototype validé le 11 octobre 2026.
+ * Paramètres physiques par défaut.
  * Volontairement qualitatifs : ils donnent des translations et des pivots plausibles,
  * pas des valeurs réelles.
  */

@@ -4,9 +4,9 @@ Ce document traduit les [spécifications](specifications.md) en choix techniques
 
 ## Synthèse
 
-Mini Cassiopée est une application web statique, sans serveur, écrite en TypeScript, dont le cœur est un moteur de simulation maison isolé de l'affichage. Les choix s'appuient sur le prototype de physique validé le 11 octobre 2026.
+Mini Cassiopée est une application web statique, sans serveur, écrite en TypeScript, dont le cœur est un moteur de simulation maison isolé de l'affichage.
 
-- **Moteur de simulation maison**, en TypeScript pur, sans dépendance au navigateur. Il reprend le modèle du prototype : corps rigide 2D, pas de temps fixe, aussières en traction seule, contact simple avec le quai.
+- **Moteur de simulation maison**, en TypeScript pur, sans dépendance au navigateur : corps rigide 2D, pas de temps fixe, aussières en traction seule, contact simple avec le quai.
 - **Effets physiques activables** : chaque enrichissement des paliers suivants (pas d'hélice, bi-safran, fardage) est un module qu'on branche ou non, sans toucher au socle.
 - **Relecture par journal d'actions et images clés**, qui rend le retour arrière fiable et peu gourmand en mémoire.
 - **Situations décrites en JSON**, chargées par le catalogue et, à terme, produites par l'éditeur.
@@ -36,7 +36,7 @@ Chaque flèche va d'un module vers ce dont il dépend. L'interface et le rendu n
 
 ## Moteur de simulation
 
-Le moteur est écrit sur mesure plutôt qu'adossé à une bibliothèque physique (Planck.js, Matter.js, Rapier). Le prototype a montré qu'environ 200 lignes suffisent, et un moteur maison garde la main sur ce qui compte ici : aussières en traction seule, résistance latérale répartie qui place le pivot, contact avec le quai servant de point d'appui.
+Le moteur est écrit sur mesure plutôt qu'adossé à une bibliothèque physique (Planck.js, Matter.js, Rapier). Environ 200 lignes suffisent, et un moteur maison garde la main sur ce qui compte ici : aussières en traction seule, résistance latérale répartie qui place le pivot, contact avec le quai servant de point d'appui.
 
 ### Repères et unités
 
@@ -64,7 +64,7 @@ Chaque force est un **effet** (`src/sim/effects.ts`) : une fonction qui reçoit 
 
 ### Paramètres
 
-Les constantes physiques (poussée, efficacité de barre, résistances, vent, raideur des aussières) sont regroupées dans un seul jeu de paramètres (`src/sim/params.ts`), versionné avec le code. Les valeurs du prototype en sont le point de départ. Un panneau de réglages, accessible en ajoutant `#reglages` à l'adresse de l'application, permet de les affiner.
+Les constantes physiques (poussée, efficacité de barre, résistances, vent, raideur des aussières) sont regroupées dans un seul jeu de paramètres (`src/sim/params.ts`), versionné avec le code. Un panneau de réglages, accessible en ajoutant `#reglages` à l'adresse de l'application, permet de les affiner.
 
 ## Historique et relecture
 
@@ -127,11 +127,11 @@ La scène est dessinée en Canvas 2D par un module impératif (`src/render`) ; l
 
 - **Canvas 2D** : un seul bateau et une dizaine de traits, à 60 images par seconde même sur un téléphone d'entrée de gamme. Pas besoin de WebGL ni de SVG.
 - **Rendu sans état** : le dessin est une fonction de l'état affiché et des préférences d'affichage. Il ne modifie jamais la simulation.
-- **Caméra** : quai en haut de l'écran, bateau suivi quand il s'éloigne. Sur téléphone, un cadrage plus serré ; le zoom à deux doigts est prévu pour répondre à la remarque du prototype sur la taille du bateau.
+- **Caméra** : quai en haut de l'écran, bateau suivi quand il s'éloigne. Sur téléphone, un cadrage plus serré ; le zoom à deux doigts est prévu, car le bateau paraît petit sur un téléphone.
 - **Bittes et taquets** : la rangée de bittes est dessinée sur toute la partie visible du quai. En préparation, les taquets proposés et les bittes deviennent des cibles tactiles d'au moins 44 px, plus larges que leur dessin ; le taquet sélectionné et les bittes disponibles sont mis en évidence. Le rendu reçoit cette sélection comme une préférence d'affichage et reste sans état.
 - **Couleurs** : tirées des variables CSS du thème, clair et sombre.
 - **Disposition** : scène et commandes côte à côte sur PC et tablette en paysage ; scène en haut et commandes dessous sur téléphone, avec les commandes de manœuvre (moteur, barre, largage) accessibles au pouce sans défilement.
-- **Clavier** sur PC : raccourcis du prototype conservés.
+- **Clavier** sur PC : raccourcis pour la lecture, le moteur, la barre, le largage et le pas à pas, rappelés en bas du panneau de commandes.
 - **Accessibilité** : commandes utilisables au clavier, contrastes suffisants dans les deux thèmes, état des aussières indiqué par la couleur et par un libellé.
 
 ## Stack, outillage et organisation du code
@@ -212,7 +212,7 @@ Chaque choix structurant est noté ici avec son statut ; une décision ne change
 | Décision | Choix | Statut |
 | --- | --- | --- |
 | Application sans serveur | Fichiers statiques, tout dans le navigateur | Décidé |
-| Moteur physique | Moteur maison issu du prototype | Décidé |
+| Moteur physique | Moteur maison | Décidé |
 | Relecture | Journal d'actions et images clés toutes les secondes | Décidé |
 | Stack | TypeScript, React, Vite ; tests avec le lanceur intégré à Node.js | Décidé |
 | Rendu | Canvas 2D | Décidé |
