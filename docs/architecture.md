@@ -110,14 +110,15 @@ Chaque situation du catalogue est un fichier JSON lisible à la main, dans `src/
 
 Une fonction de validation (`src/situations/schema.ts`) accompagne le format ; une situation invalide est refusée au chargement avec un message lisible. Les nouvelles règles (bitte sur la rangée, doublons, plafond, nom facultatif) restent compatibles avec le format 1 : seul le catalogue existant est recalé sur la rangée de bittes.
 
-### Édition des aussières
+### Édition de la situation
 
 L'éditeur produit des situations au même format que le catalogue. Les opérations sont des fonctions pures sur une `Situation` (`src/situations/edit.ts`), sans dépendance au navigateur et testables seules :
 
 - `ajouterAussiere(situation, taquet, bitte)`, refusée avec un message lisible en cas de doublon ou de plafond atteint ;
 - `supprimerAussiere`, `basculerMou` (tendue ou 0,5 m de mou), `renommerAussiere`, `reglerPlafond` ;
 - `nomDeduit(situation, aussiere)` : traversier si l'aussière fait moins de 20° avec la perpendiculaire au bateau, sinon pointe ou garde selon que la bitte est en dehors ou en dedans du taquet le long du bateau, avant ou arrière selon le taquet. Le calcul se fait en repère bateau, ce qui le rend indépendant du bord au quai. `nomsAffiches(situation)` garde les noms choisis et numérote les noms déduits identiques ; `buildState` l'utilise pour nommer les aussières de la simulation ;
-- `taquetsProposes(situation)` : les taquets offerts à l'éditeur et leur position, selon le bord au quai.
+- `taquetsProposes(situation)` : les taquets offerts à l'éditeur et leur position, selon le bord au quai ;
+- `deplacerBateau(situation, origine, x)` : place le bateau en `x`, arrondi au pas de 0,5 m (`PAS_DEPLACEMENT`) et borné à 4 m (`DEPLACEMENT_MAX`) autour de la position de la situation d'origine. Les aussières gardent leur bitte dans le repère monde : leur `bitte` relative est recalculée, et la longueur et le nom déduit suivent à la construction de l'état. La fonction renvoie la même situation quand la position ne change pas, ce qui évite une session inutile pendant un glisser.
 
 L'interface conserve deux situations : la **situation d'origine** issue du catalogue et la **situation préparée** qu'elle modifie. Chaque modification, faite à l'image 0, crée une nouvelle session à partir de la situation préparée, comme le changement de vent aujourd'hui ; la session et le moteur ne changent pas. « ⏮ » revient à l'image 0 de cette session, le bouton « Situation d'origine » recopie la situation d'origine dans la situation préparée. Rien n'est stocké d'une visite à l'autre.
 
@@ -129,9 +130,10 @@ La scène est dessinée en Canvas 2D par un module impératif (`src/render`) ; l
 - **Rendu sans état** : le dessin est une fonction de l'état affiché et des préférences d'affichage. Il ne modifie jamais la simulation.
 - **Caméra** : quai en haut de l'écran, bateau suivi quand il s'éloigne. Sur téléphone, un cadrage plus serré ; le zoom à deux doigts est prévu, car le bateau paraît petit sur un téléphone.
 - **Bittes et taquets** : la rangée de bittes est dessinée sur toute la partie visible du quai. En préparation, les taquets proposés et les bittes deviennent des cibles tactiles d'au moins 44 px, plus larges que leur dessin ; le taquet sélectionné et les bittes disponibles sont mis en évidence. Le rendu reçoit cette sélection comme une préférence d'affichage et reste sans état.
+- **Glisser le bateau** : en préparation, la scène tranche le geste au relâcher. Si le doigt a bougé de moins de 8 px, c'est un toucher sur la cible la plus proche ; au-delà, un geste commencé sur la coque ou un taquet déplace le bateau. Le déplacement est mesuré depuis le début du geste et converti en mètres, puis l'interface appelle `deplacerBateau` avec la position visée : des événements rapprochés ne font pas dériver le bateau.
 - **Couleurs** : tirées des variables CSS du thème, clair et sombre.
 - **Disposition** : scène et commandes côte à côte sur PC et tablette en paysage ; scène en haut et commandes dessous sur téléphone, avec les commandes de manœuvre (moteur, barre, largage) accessibles au pouce sans défilement.
-- **Clavier** sur PC : raccourcis pour la lecture, le moteur, la barre, le largage et le pas à pas, rappelés en bas du panneau de commandes.
+- **Clavier** sur PC : raccourcis pour la lecture, le moteur, la barre, le largage, le pas à pas et, en préparation, le déplacement du bateau (Maj + flèches gauche et droite), rappelés en bas du panneau de commandes.
 - **Accessibilité** : commandes utilisables au clavier, contrastes suffisants dans les deux thèmes, état des aussières indiqué par la couleur et par un libellé.
 
 ## Stack, outillage et organisation du code
@@ -202,6 +204,8 @@ La physique se teste par comportements attendus, pas par valeurs exactes : un r�
 | Nom déduit | Pointe, garde et traversier, avant et arrière, reconnus d'après la géométrie ; résultat identique tribord au quai |
 | Édition des aussières | Ajout et suppression ; doublon et dépassement du plafond refusés ; plafond borné entre 6 et 12 et jamais sous le nombre d'aussières |
 | Aussière ajoutée | Une garde avant ajoutée dans l'éditeur sur une situation sans amarre se comporte comme celle du catalogue |
+| Déplacement du bateau | Bittes inchangées dans le repère monde, bâbord comme tribord au quai ; pas de 0,5 m et bornes de ±4 m ; une garde devient traversier, un nom choisi est gardé ; traversier arrière possible bateau décalé de 1 m |
+| Rangée périodique | Bateau et aussières décalés de 2 m : la manœuvre est identique, à la translation près |
 
 S'y ajoutent des tests de stabilité numérique (aucune valeur non finie, pas d'oscillation résiduelle) et des tests du format des situations, dont le placement des bittes du catalogue sur la rangée. Le reste de l'interface se vérifie à la main sur PC, Android et iOS avant chaque version.
 
@@ -219,6 +223,7 @@ Chaque choix structurant est noté ici avec son statut ; une décision ne change
 | Format des situations | JSON versionné, validation écrite à la main | Décidé |
 | Points d'amarrage | Rangée de bittes fixes espacées de 2 m ; catalogue recalé dessus | Décidé |
 | Édition des aussières | En préparation seulement, par fonctions pures sur la situation ; situation préparée distincte de la situation d'origine ; plafond de 6, réglable jusqu'à 12 | Décidé |
+| Déplacement du bateau | En préparation, au doigt ou pas à pas, par pas de 0,5 m et à ±4 m de l'origine ; les aussières restent sur leurs bittes | Décidé |
 | Hébergement | Dépôt public et GitHub Pages | Décidé |
 | Déploiement | GitHub Actions : tests sur chaque proposition, déploiement à chaque fusion | Décidé |
 | Licence du code | MIT | Décidé |

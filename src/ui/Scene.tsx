@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, type PointerEvent } from 'react';
 import type { Body, SimState, Vec } from '../sim/types.ts';
-import { toWorld } from '../sim/geometry.ts';
+import { HULL, toWorld } from '../sim/geometry.ts';
 import { TOUCH_RADIUS, camera, readPalette, render, type EditionView } from '../render/renderer.ts';
 
 /** Ce que l'élève a touché sur la scène pendant l'édition. */
@@ -16,11 +16,46 @@ interface Props {
   bollards: Vec[];
   edition: EditionView | null;
   onPick: (p: Pick) => void;
+  /** Début d'un glisser du bateau pendant l'édition. */
+  onDragStart: () => void;
+  /** Glisser en cours : déplacement du doigt le long du quai depuis le début du geste (m). */
+  onDrag: (dx: number) => void;
+}
+
+/** Au-delà de ce déplacement du doigt (px), un toucher devient un glisser. */
+const DRAG_THRESHOLD = 8;
+
+/** Geste en cours sur la scène pendant l'édition. */
+interface Gesture {
+  pointer: number;
+  px: number;
+  py: number;
+  /** Cible sous le doigt au toucher, retenue si le doigt ne bouge pas. */
+  pick: Pick;
+  /** Le geste a commencé sur la coque ou un taquet : il peut déplacer le bateau. */
+  onBoat: boolean;
+  moved: boolean;
+  dragging: boolean;
+}
+
+/** Vrai si le point monde est sur la coque (test pair-impair sur le contour, en repère bateau). */
+function onHull(body: Body, w: Vec): boolean {
+  const c = Math.cos(body.th), s = Math.sin(body.th);
+  const dx = w[0] - body.x, dy = w[1] - body.y;
+  const x = c * dx + s * dy, y = -s * dx + c * dy;
+  let inside = false;
+  for (let i = 0, j = HULL.length - 1; i < HULL.length; j = i++) {
+    const [xi, yi] = HULL[i], [xj, yj] = HULL[j];
+    if ((yi > y) !== (yj > y) && x < ((xj - xi) * (y - yi)) / (yj - yi) + xi) inside = !inside;
+  }
+  return inside;
 }
 
 /** Toile de la scène : redessinée à chaque rendu, à chaque redimensionnement et à chaque changement de thème. */
-export function Scene({ state, ghost, debug, bollards, edition, onPick }: Props) {
+export function Scene({ state, ghost, debug, bollards, edition, onPick, onDragStart, onDrag }: Props) {
   const ref = useRef<HTMLCanvasElement>(null);
+  const gesture = useRef<Gesture | null>(null);
+  const [dragging, setDragging] = useState(false);
   const [size, setSize] = useState({ w: 0, h: 0, dpr: 1 });
   const [themeTick, setThemeTick] = useState(0);
 
@@ -62,7 +97,8 @@ export function Scene({ state, ghost, debug, bollards, edition, onPick }: Props)
     });
   });
 
-  // Toucher pendant l'édition : la cible la plus proche dans le rayon tactile, taquet ou bitte.
+  // Toucher pendant l'édition : un toucher bref choisit la cible la plus proche dans le rayon
+  // tactile (taquet ou bitte) ; un glisser commencé sur le bateau le déplace le long du quai.
   const onPointerDown = (e: PointerEvent<HTMLCanvasElement>) => {
     if (!edition) return;
     const r = e.currentTarget.getBoundingClientRect();
@@ -79,14 +115,43 @@ export function Scene({ state, ghost, debug, bollards, edition, onPick }: Props)
       const d = Math.hypot(cam.X(b[0]) - px, cam.Y(b[1]) - py);
       if (d < bestD) { bestD = d; best = { kind: 'bollard', x: b[0] }; }
     }
-    onPick(best);
+    const boat = best.kind === 'cleat' || (best.kind === 'none' && onHull(state.body, cam.toWorld(px, py)));
+    gesture.current = { pointer: e.pointerId, px, py, pick: best, onBoat: boat, moved: false, dragging: false };
+    e.currentTarget.setPointerCapture?.(e.pointerId);
+  };
+
+  const onPointerMove = (e: PointerEvent<HTMLCanvasElement>) => {
+    const g = gesture.current;
+    if (!g || g.pointer !== e.pointerId || !edition) return;
+    const r = e.currentTarget.getBoundingClientRect();
+    const px = e.clientX - r.left, py = e.clientY - r.top;
+    if (!g.moved && Math.hypot(px - g.px, py - g.py) > DRAG_THRESHOLD) {
+      g.moved = true;
+      if (g.onBoat) {
+        g.dragging = true;
+        setDragging(true);
+        onDragStart();
+      }
+    }
+    // Le déplacement est mesuré depuis le début du geste : la position visée ne dérive pas.
+    if (g.dragging) onDrag((px - g.px) / camera(state, r.width, r.height).sc);
+  };
+
+  const endGesture = (e: PointerEvent<HTMLCanvasElement>, cancelled: boolean) => {
+    const g = gesture.current;
+    if (!g || g.pointer !== e.pointerId) return;
+    gesture.current = null;
+    setDragging(false);
+    if (!cancelled && !g.moved && edition) onPick(g.pick);
   };
 
   void themeTick;
   return (
-    <canvas ref={ref} onPointerDown={onPointerDown} className={edition ? 'editing' : undefined}
+    <canvas ref={ref} onPointerDown={onPointerDown} onPointerMove={onPointerMove}
+      onPointerUp={(e) => endGesture(e, false)} onPointerCancel={(e) => endGesture(e, true)}
+      className={edition ? (dragging ? 'editing dragging' : 'editing') : undefined}
       aria-label={edition
-        ? 'Vue de dessus du bateau amarré au quai. Touchez un taquet du bateau, puis une bitte du quai, pour ajouter une aussière.'
+        ? 'Vue de dessus du bateau amarré au quai. Touchez un taquet du bateau, puis une bitte du quai, pour ajouter une aussière. Faites glisser le bateau pour le déplacer le long du quai.'
         : 'Vue de dessus du bateau amarré au quai'} />
   );
 }

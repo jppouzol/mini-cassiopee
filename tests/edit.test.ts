@@ -4,11 +4,11 @@ import assert from 'node:assert/strict';
 import { line, loadSituation, run } from './helpers.ts';
 import { buildState } from '../src/situations/build.ts';
 import {
-  EditionError, MOU_MOLLE, ajouterAussiere, basculerMou, nomDeduit, nomsAffiches,
-  reglerPlafond, renommerAussiere, supprimerAussiere,
+  DEPLACEMENT_MAX, EditionError, MOU_MOLLE, ajouterAussiere, basculerMou, deplacerBateau,
+  nomDeduit, nomsAffiches, reglerPlafond, renommerAussiere, supprimerAussiere,
 } from '../src/situations/edit.ts';
 import { parseSituation, type Situation } from '../src/situations/schema.ts';
-import { bitteDepuisMonde } from '../src/situations/quai.ts';
+import { bitteDepuisMonde, bitteVersMonde } from '../src/situations/quai.ts';
 
 /** Situation de départ sur garde avant, sans aucune aussière. */
 const vide = (): Situation => ({ ...loadSituation('depart-garde-avant'), aussieres: [] });
@@ -123,4 +123,67 @@ test('conversion des positions de bitte, bâbord et tribord au quai', () => {
   const sit = { ...vide(), bateau: { ...vide().bateau, x: 3 } };
   assert.equal(bitteDepuisMonde(sit, 4), 1);
   assert.equal(bitteDepuisMonde(tribord(sit), 4), -1);
+});
+
+test('déplacer le bateau : les aussières restent sur leurs bittes, bâbord et tribord au quai', () => {
+  for (const sit of [loadSituation('amarre-quatre-amarres'), tribord(loadSituation('amarre-quatre-amarres'))]) {
+    const avant = sit.aussieres.map((a) => bitteVersMonde(sit, a.bitte));
+    const moved = deplacerBateau(sit, sit, 2.5);
+    assert.equal(moved.bateau.x, 2.5);
+    assert.deepEqual(moved.aussieres.map((a) => bitteVersMonde(moved, a.bitte)), avant);
+    assert.deepEqual(moved.aussieres.map((a) => a.mou), sit.aussieres.map((a) => a.mou), 'le mou est conservé');
+    // La situation produite reste valide : toutes les bittes sont sur la rangée.
+    assert.deepEqual(parseSituation(JSON.parse(JSON.stringify(moved))), moved);
+  }
+});
+
+test('déplacer le bateau : pas de 0,5 m et bornes autour de la position d’origine', () => {
+  const origine = loadSituation('depart-garde-avant');
+  assert.equal(deplacerBateau(origine, origine, 1.3).bateau.x, 1.5);
+  assert.equal(deplacerBateau(origine, origine, -0.2).bateau.x, 0);
+  assert.equal(deplacerBateau(origine, origine, 0.1), origine, 'position inchangée : même situation');
+  assert.equal(deplacerBateau(origine, origine, 50).bateau.x, DEPLACEMENT_MAX);
+  assert.equal(deplacerBateau(origine, origine, -50).bateau.x, -DEPLACEMENT_MAX);
+  // Les bornes se comptent depuis l'origine, pas depuis la position courante.
+  const loin = deplacerBateau(origine, origine, 4);
+  assert.equal(deplacerBateau(loin, origine, 4.5), loin);
+});
+
+test('déplacer le bateau : le nom déduit suit la géométrie, un nom choisi est gardé', () => {
+  let sit = loadSituation('amarre-quatre-amarres');
+  sit = renommerAussiere(sit, 'pointe-ar', 'Ma pointe');
+  const moved = deplacerBateau(sit, sit, -4);
+  // L'étrave arrive presque au droit de la bitte de la garde avant : elle devient traversier.
+  assert.deepEqual(nomsAffiches(moved), ['Pointe avant', 'Traversier avant', 'Garde arrière', 'Ma pointe']);
+});
+
+test('déplacer le bateau : un traversier arrière devient possible', () => {
+  const sit = deplacerBateau(vide(), vide(), 1);
+  // Taquet arrière à x = -3,75 : la bitte -4 n'est qu'à 0,25 m le long du bateau.
+  const avecTraversiers = ajouterAussiere(ajouterAussiere(sit, 'arriere', bitteDepuisMonde(sit, -4)), 'etrave', bitteDepuisMonde(sit, 6));
+  assert.deepEqual(nomsAffiches(avecTraversiers), ['Traversier arrière', 'Traversier avant']);
+});
+
+test('bateau décalé de 2 m, mêmes aussières relatives : manœuvre identique (rangée périodique)', () => {
+  // Décaler bateau et aussières d'un espacement de bittes ne change rien au problème posé.
+  const sit = loadSituation('depart-garde-avant');
+  const ref = buildState(sit);
+  const decale = buildState({ ...sit, bateau: { ...sit.bateau, x: 2 } });
+  ref.engine = 1;
+  decale.engine = 1;
+  run(ref, 8);
+  run(decale, 8);
+  assert.ok(Math.abs(decale.body.x - 2 - ref.body.x) < 1e-9);
+  assert.ok(Math.abs(decale.body.y - ref.body.y) < 1e-9);
+  assert.ok(Math.abs(decale.body.th - ref.body.th) < 1e-9);
+  assert.ok(Math.abs(line(decale, 'garde-av').tension - line(ref, 'garde-av').tension) < 1e-3);
+});
+
+test('déplacer le bateau allonge une garde restée sur sa bitte', () => {
+  // Glissé de 2 m vers l'avant, le taquet d'étrave s'éloigne de 2 m de la bitte de la garde.
+  const sit = loadSituation('depart-garde-avant');
+  const ref = buildState(sit);
+  const moved = buildState(deplacerBateau(sit, sit, 2));
+  assert.equal(moved.lines[0].name, 'Garde avant');
+  assert.ok(moved.lines[0].len > ref.lines[0].len + 1.5);
 });
