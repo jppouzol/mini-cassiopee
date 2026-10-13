@@ -7,7 +7,7 @@ Ce document traduit les [spécifications](specifications.md) en choix techniques
 Mini Cassiopée est une application web statique, sans serveur, écrite en TypeScript, dont le cœur est un moteur de simulation maison isolé de l'affichage.
 
 - **Moteur de simulation maison**, en TypeScript pur, sans dépendance au navigateur : corps rigide 2D, pas de temps fixe, aussières en traction seule, contact simple avec le quai.
-- **Effets physiques activables** : chaque enrichissement des paliers suivants (pas d'hélice, bi-safran, fardage) est un module qu'on branche ou non, sans toucher au socle.
+- **Effets physiques activables** : chaque enrichissement envisagé (pas d'hélice, bi-safran, fardage) est un module qu'on branche ou non, sans toucher au socle.
 - **Relecture par journal d'actions et images clés**, qui rend le retour arrière fiable et peu gourmand en mémoire.
 - **Situations décrites en JSON**, chargées par le catalogue et, à terme, produites par l'éditeur.
 - **Rendu Canvas 2D**, interface en React, construction avec Vite.
@@ -53,14 +53,14 @@ Le moteur est écrit sur mesure plutôt qu'adossé à une bibliothèque physique
 
 ### Effets activables
 
-Chaque force est un **effet** (`src/sim/effects.ts`) : une fonction qui reçoit l'état et les paramètres, et ajoute une force et un moment. Le socle en active une liste fixe, dans un ordre fixe ; les paliers suivants ajouteront des effets optionnels, déclarés dans la situation :
+Chaque force est un **effet** (`src/sim/effects.ts`) : une fonction qui reçoit l'état et les paramètres, et ajoute une force et un moment. Le socle en active une liste fixe, dans un ordre fixe ; les enrichissements à venir ajouteront des effets optionnels, déclarés dans la situation :
 
-| Effet | Palier | Principe |
-| --- | --- | --- |
-| Pas d'hélice | 2 | Poussée latérale à l'arrière, surtout en marche arrière, sens selon la rotation de l'hélice |
-| Bi-safran | 2 | Safrans hors du flux d'hélice : effet de barre seulement avec de l'erre |
-| Fardage de l'étrave | 2 | Point d'application du vent avancé : le vent fait abattre l'avant |
-| Aussière réglable | 3 | Longueur de l'aussière modifiable pendant la manœuvre |
+| Effet | Principe |
+| --- | --- |
+| Pas d'hélice | Poussée latérale à l'arrière, surtout en marche arrière, sens selon la rotation de l'hélice |
+| Bi-safran | Safrans hors du flux d'hélice : effet de barre seulement avec de l'erre |
+| Fardage de l'étrave | Point d'application du vent avancé : le vent fait abattre l'avant |
+| Aussière réglable | Longueur de l'aussière modifiable pendant la manœuvre |
 
 ### Paramètres
 
@@ -223,4 +223,5 @@ Chaque choix structurant est noté ici avec son statut ; une décision ne change
 | Déploiement | GitHub Actions : tests sur chaque proposition, déploiement à chaque fusion | Décidé |
 | Licence du code | MIT | Décidé |
 | Licence des contenus | CC0 proposée pour les situations et textes pédagogiques | Ouvert |
+| Pilotage des évolutions | Pas de paliers ni de jalons ; backlog dans les issues GitHub, une issue par évolution | Décidé |
 | Documentation de référence | `docs/` dans le dépôt fait foi, mise à jour avec le code | Décidé |

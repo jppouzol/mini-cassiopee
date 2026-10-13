@@ -2,8 +2,8 @@ import type { Body, Effect, Forces, Vec } from './types.ts';
 import { CONTACT_POINTS, SLICES, pointVelocity, toWorld } from './geometry.ts';
 
 // Chaque effet est une fonction pure de l'état et des paramètres, qui ajoute
-// une force et un moment. Le socle en active une liste fixe ; les paliers
-// suivants ajouteront des effets optionnels (pas d'hélice, bi-safran, fardage…).
+// une force et un moment. Le socle en active une liste fixe ; les enrichissements
+// à venir ajouteront des effets optionnels (pas d'hélice, bi-safran, fardage…).
 
 /** Ajoute une force exprimée en repère bateau, appliquée au point (px, py) du bateau. */
 function addBody(f: Forces, b: Body, fbx: number, fby: number, px: number, py: number): void {
@@ -56,7 +56,7 @@ export const hydrodynamics: Effect = (s, p, f) => {
   f.m += -p.yawL * b.w;
 };
 
-/** Vent appliqué au centre du bateau (le fardage de l'étrave viendra au palier 2). */
+/** Vent appliqué au centre du bateau (le fardage de l'étrave viendra plus tard). */
 export const wind: Effect = (s, p, f) => {
   const force = s.wind.force === 'faible' ? p.windFaible : s.wind.force === 'soutenu' ? p.windSoutenu : 0;
   if (force === 0) return;

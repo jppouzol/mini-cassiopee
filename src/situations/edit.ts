@@ -9,7 +9,7 @@ import {
   type Cleat, type Situation, type SituationLine,
 } from './schema.ts';
 
-/** Taquets proposés dans l'éditeur (le maître-bau arrivera au palier 3). */
+/** Taquets proposés dans l'éditeur (le maître-bau viendra plus tard). */
 export const TAQUETS_EDITABLES: readonly Cleat[] = ['etrave', 'arriere'];
 
 /** Taquets proposés, avec leur position en repère bateau selon le bord au quai. */
