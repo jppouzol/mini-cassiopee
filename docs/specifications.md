@@ -20,7 +20,7 @@ Ces principes arbitrent toutes les décisions de conception, en particulier lors
 2. **Des principes, pas un bateau réel.** La physique est qualitativement correcte : le bateau part dans le bon sens, pivote autour du bon point, avec des ordres de grandeur plausibles. Aucune valeur réelle (kN, nœuds) n'est affichée ni garantie.
 3. **Le point de pivot est l'information centrale.** C'est ce que l'outil doit rendre visible avant tout.
 4. **La complexité est optionnelle.** Chaque enrichissement (pas d'hélice, bi-safran, bateaux voisins, choquer une aussière…) s'active dans des paramètres avancés ; désactivé, le comportement de base reste inchangé.
-5. **Construction par paliers.** On livre un socle utilisable, puis on enrichit au fur et à mesure, sans basculer dans une simulation fine.
+5. **Enrichissement progressif.** On livre un socle utilisable, puis on ajoute des fonctionnalités une à une, sans ordre imposé ni palier, et sans basculer dans une simulation fine.
 6. **Mobile d'abord.** L'outil doit être utilisable au port ou à bord, sur un téléphone, sans autre matériel.
 
 ## Utilisateurs et cas d'usage
@@ -45,7 +45,7 @@ La scène se compose d'un seul bateau, d'un quai, d'aussières et du vent. Chaqu
 ### Bateau
 
 - Un modèle unique et générique, aux proportions d'un voilier de croisière de 10 m.
-- Taquets : au minimum un à l'étrave et un à l'arrière côté quai ; option pour en ajouter au maître-bau. L'éditeur ne propose que ces deux taquets tant que le maître-bau n'est pas livré (palier 3).
+- Taquets : au minimum un à l'étrave et un à l'arrière côté quai ; option pour en ajouter au maître-bau. L'éditeur ne propose que ces deux taquets tant que le maître-bau n'est pas livré.
 - Paramètres avancés : pas d'hélice activable, avec choix du sens de rotation ; choix entre mono-safran et bi-safran.
 - Le type de quille n'est pas paramétrable.
 
@@ -63,13 +63,13 @@ La scène se compose d'un seul bateau, d'un quai, d'aussières et du vent. Chaqu
 - Son nom est déduit de la géométrie au départ : traversier si elle fait moins de 20° avec la perpendiculaire au bateau, sinon pointe si elle part vers l'extérieur du bateau (bitte en avant du taquet d'étrave, ou en arrière du taquet arrière) et garde dans le cas inverse ; avant ou arrière selon le taquet (voir le glossaire). Un numéro départage deux aussières de même nom. L'élève peut la renommer.
 - Une situation compte au plus 6 aussières par défaut. Ce plafond est réglable entre 6 et 12 dans les options avancées de l'éditeur, sans pouvoir descendre sous le nombre d'aussières en place ; une situation du catalogue peut déclarer un plafond plus élevé.
 - Larguée, elle disparaît de la scène (considérée comme remontée à bord).
-- Palier avancé : choquer ou reprendre une aussière pendant la manœuvre, pour conserver de la tension ou créer un point de pivot.
+- Enrichissement envisagé : choquer ou reprendre une aussière pendant la manœuvre, pour conserver de la tension ou créer un point de pivot.
 
 ### Vent
 
 - Direction et force fixées pendant la préparation, constantes pendant la simulation.
 - Force exprimée de façon qualitative, par exemple faible ou soutenu, avec un effet plus ou moins marqué sur le bateau.
-- Palier avancé : appui du vent sur l'étrave provoquant un pivot (effet de fardage).
+- Enrichissement envisagé : appui du vent sur l'étrave provoquant un pivot (effet de fardage).
 
 ## Modèle de simulation
 
@@ -89,13 +89,13 @@ L'application a deux modes : la **préparation**, où l'on règle la situation, 
 
 ### Pendant la simulation
 
-| Commande | Valeurs | Palier |
+| Commande | Valeurs | Disponibilité |
 | --- | --- | --- |
 | Moteur | Avant, neutre, arrière (sans réglage de puissance) | Socle |
 | Larguer une aussière | Individuellement, à tout moment | Socle |
-| Barre | Angle de barre, côté bâbord ou tribord | V1 |
+| Barre | Angle de barre, côté bâbord ou tribord | Socle |
 | Ne rien faire | Laisser agir le vent seul | Socle |
-| Choquer ou reprendre une aussière | Allonger ou raccourcir pendant la manœuvre | Avancé |
+| Choquer ou reprendre une aussière | Allonger ou raccourcir pendant la manœuvre | Envisagé |
 
 ### Contrôle du déroulement
 
@@ -114,7 +114,7 @@ L'écran de simulation est une vue de dessus 2D, la plus épurée possible, dans
 
 - le bateau, le quai et, en option, le catway et les bateaux voisins ;
 - les aussières, avec un code couleur tendue / molle ;
-- la position de la commande moteur (avant, neutre, arrière) et, à partir de la V1, l'angle de barre ;
+- la position de la commande moteur (avant, neutre, arrière) et l'angle de barre ;
 - la direction et la force du vent ;
 - quand le bateau pivote : le point de pivot marqué sur la coque et une flèche de rotation à une extrémité du bateau.
 
@@ -176,24 +176,26 @@ Aucune sauvegarde ni partage de situation n'est prévu à ce stade : la situatio
 | Licence | Code sous licence MIT, diffusion et redistribution libres |
 | Données personnelles | Aucune collecte, aucun compte utilisateur |
 
-## Feuille de route par paliers
+## Évolutions
 
-Le projet avance par paliers : la V1 livre un socle utilisable et l'action de la barre, puis chaque palier ajoute des options sans changer le comportement de base.
+Le socle est livré : amarrage le long du quai, aussières fixes, moteur avant, neutre et arrière, largage individuel, barre, vent faible ou soutenu, tension des aussières et point de pivot, pause, pas à pas et retour arrière, catalogue et éditeur.
 
-```mermaid
-flowchart LR
-  V1["<b>V1 — Socle et barre</b><br/>Long side, aussières fixes<br/>Moteur avant, neutre, arrière<br/>Largage individuel<br/>Action de la barre<br/>Vent faible ou soutenu<br/>Tension et point de pivot<br/>Pause, pas à pas, retour<br/>Catalogue et éditeur"]
-  J{{"Jalon : départ sur garde reproduit"}}
-  P2["<b>Palier 2 — Physique</b><br/>Pas d'hélice et son sens<br/>Mono ou bi-safran<br/>Pivot du vent sur l'étrave"]
-  P3["<b>Palier 3 — Scènes</b><br/>Amarrage perpendiculaire<br/>Longueur de catway<br/>Bateaux voisins<br/>Taquet au maître-bau<br/>Choquer, reprendre<br/>Aides visuelles en option"]
-  V1 --> J --> P2 --> P3
-```
+Le projet s'enrichit ensuite progressivement, une fonctionnalité à la fois, sans paliers ni jalons : l'ordre suit les envies et les retours des élèves. Le backlog est tenu dans les issues GitHub du dépôt ; chaque issue devient une branche et une demande de fusion, qui met à jour ce document si elle change le périmètre.
 
-La V1 est validée par le jalon du départ sur garde (voir les critères d'acceptation). L'ordre des paliers 2 et 3 est une proposition, à ajuster selon les retours des élèves.
+Enrichissements envisagés, chacun optionnel et sans effet sur le comportement de base :
 
-## Critères d'acceptation de la V1
+- pas d'hélice et son sens de rotation ;
+- mono ou bi-safran ;
+- pivot du vent sur l'étrave (fardage) ;
+- amarrage perpendiculaire et longueur de catway ;
+- bateaux voisins ;
+- taquet au maître-bau ;
+- choquer et reprendre une aussière pendant la manœuvre ;
+- aides visuelles en option (trajectoire, flèches de forces, position fantôme).
 
-La V1 est réussie quand un élève reproduit sur son téléphone un départ sur garde complet, en deux phases, et que le bateau se comporte comme le bateau en tissu.
+## Critères d'acceptation du socle
+
+Le socle est réussi quand un élève reproduit sur son téléphone un départ sur garde complet, en deux phases, et que le bateau se comporte comme le bateau en tissu.
 
 - [ ] Positionner le bateau le long d'un quai.
 - [ ] Placer les aussières et indiquer lesquelles sont tendues au moment de la mise en mouvement.
@@ -207,8 +209,6 @@ La V1 est réussie quand un élève reproduit sur son téléphone un départ sur
 - [ ] Phase 2 : moteur dans l'autre sens, garde larguée, le bateau se dégage du quai.
 - [ ] Vérification d'amarrage : sans commande, avec du vent, l'amarrage tient et les aussières qui travaillent sont visibles.
 - [ ] Fonctionnement sur PC, Android et iOS.
-
-Restent hors V1 : pas d'hélice, choix mono/bi-safran, choquer ou reprendre une aussière, pivot par le vent sur l'étrave, bateaux voisins.
 
 ## Hors périmètre
 
@@ -247,7 +247,7 @@ Les points suivants n'ont pas été tranchés et figurent dans les points ouvert
 - [ ] Courant, houle et marnage : à exclure définitivement ou à garder comme enrichissements lointains ?
 - [ ] Manœuvres sans quai (mouillage, bouée) : dans ou hors du projet ?
 - [ ] Licence des contenus pédagogiques (situations, textes) : CC0 proposée.
-- [ ] Contenu définitif du catalogue de situations de la V1, à valider avec la monitrice.
+- [ ] Contenu définitif du catalogue de situations, à valider avec la monitrice.
 - [ ] Réglage de la barre : quelques positions fixes ou un angle continu ?
 - [ ] Défenses : à représenter un jour, ou le contact simple avec le quai suffit-il ?
-- [ ] Aides visuelles optionnelles (trajectoire, flèches de forces, position fantôme) : lesquelles retenir, et à quel palier ?
+- [ ] Aides visuelles optionnelles (trajectoire, flèches de forces, position fantôme) : lesquelles retenir ?
