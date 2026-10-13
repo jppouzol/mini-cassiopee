@@ -146,6 +146,16 @@ L'éditeur agit pendant la préparation, c'est-à-dire tant que la simulation es
 - Régler la direction et la force du vent.
 - Activer les options avancées, dont le plafond d'aussières.
 
+#### Déplacer le bateau
+
+- **Geste** : l'élève fait glisser la coque au doigt le long du quai. Un toucher bref garde son rôle (choisir un taquet) ; dès que le doigt bouge, c'est un déplacement, et la sélection en cours est annulée. Deux boutons ◀ ▶ font le même réglage pas à pas, ainsi que Maj + flèches gauche et droite sur PC.
+- **Pas et bornes** : la position change par pas de 0,5 m, à 4 m au plus de part et d'autre de la position de la situation d'origine. Le bateau reste ainsi entier à l'écran sans que la vue bouge.
+- **Aussières** : elles restent tournées sur leurs bittes, comme les fils punaisés quand on fait glisser le tissu. Leur longueur et leur nom déduit suivent la nouvelle géométrie, si bien qu'une garde peut devenir traversier ; le mou et un nom choisi par l'élève sont conservés.
+- **Affichage** : aucune valeur chiffrée. Les bittes servent de repère et la liste des aussières montre les noms à jour.
+- La rangée de bittes se répète tous les 2 m : seule compte la position du bateau par rapport aux bittes. Décalé de 1 m par rapport aux situations du catalogue, le bateau peut recevoir à la fois un traversier avant et un traversier arrière.
+- « Situation d'origine » remet le bateau à sa place ; « ⏮ » garde la position choisie.
+- Le choix du bord au quai et l'écart au quai au départ ne sont pas proposés par l'éditeur à ce stade.
+
 #### Ajouter et supprimer une aussière
 
 - **Ajouter** : l'élève touche un taquet sur la coque, puis une bitte sur le quai. L'aussière est créée tendue, avec un nom déduit de sa géométrie. Tant qu'un taquet est sélectionné, les bittes sont mises en évidence ; toucher ailleurs annule la sélection. La création est refusée, avec un message, si elle crée un doublon ou dépasse le plafond.
@@ -197,7 +207,7 @@ Enrichissements envisagés, chacun optionnel et sans effet sur le comportement d
 
 Le socle est réussi quand un élève reproduit sur son téléphone un départ sur garde complet, en deux phases, et que le bateau se comporte comme le bateau en tissu.
 
-- [ ] Positionner le bateau le long d'un quai.
+- [ ] Positionner le bateau le long d'un quai, au doigt ou pas à pas, les aussières restant sur leurs bittes.
 - [ ] Placer les aussières et indiquer lesquelles sont tendues au moment de la mise en mouvement.
 - [ ] Partir d'une situation du catalogue, y ajouter une aussière (taquet puis bitte) et en supprimer une avant de lancer la simulation ; le nom déduit est juste, bâbord comme tribord au quai.
 - [ ] Piloter le moteur (avant, neutre, arrière) pendant la simulation.

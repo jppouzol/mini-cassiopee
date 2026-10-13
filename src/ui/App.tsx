@@ -3,8 +3,8 @@ import { Session, type Action } from '../session/session.ts';
 import { BOLLARD_SETBACK, buildState } from '../situations/build.ts';
 import { CATALOGUE } from '../situations/catalogue.ts';
 import {
-  EditionError, ajouterAussiere, basculerMou, reglerPlafond, renommerAussiere,
-  supprimerAussiere, taquetsProposes,
+  DEPLACEMENT_MAX, EditionError, PAS_DEPLACEMENT, ajouterAussiere, basculerMou, deplacerBateau,
+  reglerPlafond, renommerAussiere, supprimerAussiere, taquetsProposes,
 } from '../situations/edit.ts';
 import { bitteDepuisMonde, bittesEntre } from '../situations/quai.ts';
 import {
@@ -138,6 +138,7 @@ export function App() {
     if (!preparing) return;
     try {
       const next = f(preparee);
+      if (next === preparee) return;
       setPreparee(next);
       newSession(next);
       setNotice(null);
@@ -159,6 +160,23 @@ export function App() {
     setNotice(null);
     newSession(sit);
   };
+
+  // Déplacer le bateau le long du quai, au doigt (position visée depuis le début du geste) ou par pas.
+  const dragFrom = useRef<number | null>(null);
+  const onDragStart = () => {
+    if (!preparing) return;
+    dragFrom.current = preparee.bateau.x;
+    setSelected(null);
+    setNotice(null);
+  };
+  const onDrag = (dx: number) => {
+    const x0 = dragFrom.current;
+    if (x0 !== null) edit((sit) => deplacerBateau(sit, origine, x0 + dx));
+  };
+  const moveBoat = (sens: 1 | -1) => edit((sit) => deplacerBateau(sit, origine, sit.bateau.x + sens * PAS_DEPLACEMENT));
+  // Copie pour les raccourcis clavier, dont l'écouteur n'est pas recréé à chaque rendu.
+  const moveBoatRef = useRef(moveBoat);
+  moveBoatRef.current = moveBoat;
 
   // Toucher sur la scène : un taquet, puis une bitte.
   const onPick = (p: Pick) => {
@@ -197,6 +215,12 @@ export function App() {
       if (!ses) return;
       const cur = ses.state;
       const deg = rudderToDeg(cur.rudder);
+      // Maj + flèches : déplacer le bateau pendant la préparation (les flèches seules pilotent).
+      if (e.shiftKey && (e.code === 'ArrowLeft' || e.code === 'ArrowRight')) {
+        moveBoatRef.current(e.code === 'ArrowLeft' ? -1 : 1);
+        e.preventDefault();
+        return;
+      }
       switch (e.code) {
         case 'Space': setPlaying((p) => !p); break;
         case 'Escape': setSelected(null); setNotice(null); break;
@@ -230,6 +254,7 @@ export function App() {
   const showTuning = typeof location !== 'undefined' && location.hash === '#reglages';
   const max = plafond(preparee);
   const modified = preparee !== origine;
+  const xMin = origine.bateau.x - DEPLACEMENT_MAX, xMax = origine.bateau.x + DEPLACEMENT_MAX;
   const status = playing
     ? (session.atEnd ? 'Simulation' : 'Relecture')
     : selected ? 'Touchez une bitte du quai'
@@ -240,7 +265,7 @@ export function App() {
       <div className="stage">
         <div className="scene">
           <Scene state={s} ghost={ghost ? session.initialState.body : null} debug={debug} bollards={BOLLARD_ROW}
-            edition={edition} onPick={onPick} />
+            edition={edition} onPick={onPick} onDragStart={onDragStart} onDrag={onDrag} />
           <div className="badge">{status}</div>
         </div>
         <div className="player">
@@ -274,6 +299,16 @@ export function App() {
                 title="Revenir à la situation telle qu'elle est dans le catalogue">Situation d’origine</button>
             </div>
           )}
+          <div className="row">
+            <span>Bateau le long du quai</span>
+            <div className="stepper push-right" role="group" aria-label="Position du bateau le long du quai">
+              <button className="btn" disabled={!preparing || preparee.bateau.x <= xMin}
+                aria-label="Déplacer le bateau vers la gauche" title="Vers la gauche (Maj + ←)" onClick={() => moveBoat(-1)}>◀</button>
+              <button className="btn" disabled={!preparing || preparee.bateau.x >= xMax}
+                aria-label="Déplacer le bateau vers la droite" title="Vers la droite (Maj + →)" onClick={() => moveBoat(1)}>▶</button>
+            </div>
+          </div>
+          {preparing && <p className="hint">Faites glisser le bateau ou utilisez ◀ ▶ : les aussières restent tournées sur leurs bittes.</p>}
           <select id="wind-direction" value={wind.direction} disabled={!preparing} aria-label="Direction du vent"
             onChange={(e) => changeWind({ ...wind, direction: e.target.value as WindDirection })}>
             {WIND_DIRECTIONS.map((d) => <option key={d} value={d}>{WIND_LABELS[d]}</option>)}
@@ -399,6 +434,7 @@ export function App() {
 
         <p className="keys">
           <kbd>Espace</kbd> lecture · <kbd>↑</kbd><kbd>↓</kbd> moteur · <kbd>←</kbd><kbd>→</kbd> barre · <kbd>C</kbd> centrer ·
+          {' '}<kbd>Maj</kbd>+<kbd>←</kbd><kbd>→</kbd> bateau ·
           {' '}<kbd>1</kbd>–<kbd>9</kbd> larguer · <kbd>,</kbd><kbd>.</kbd> pas à pas · <kbd>R</kbd> départ · <kbd>Échap</kbd> annuler
         </p>
       </aside>

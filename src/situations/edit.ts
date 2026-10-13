@@ -3,7 +3,7 @@
 // EditionError au message lisible. Aucune dépendance au navigateur.
 
 import { HALF_BEAM, cleatPosition } from '../sim/geometry.ts';
-import { BOLLARD_SETBACK, surLaRangee } from './quai.ts';
+import { BOLLARD_SETBACK, bitteDepuisMonde, bitteVersMonde, surLaRangee } from './quai.ts';
 import {
   PLAFOND_DEFAUT, PLAFOND_MAX, plafond,
   type Cleat, type Situation, type SituationLine,
@@ -107,6 +107,35 @@ export function reglerPlafond(sit: Situation, valeur: number): Situation {
     return reste;
   }
   return { ...sit, plafondAussieres: p };
+}
+
+/** Pas du déplacement du bateau le long du quai (m). */
+export const PAS_DEPLACEMENT = 0.5;
+/** Écart maximal du bateau à sa position d'origine (m) : il reste entier à l'écran sans bouger la caméra. */
+export const DEPLACEMENT_MAX = 4;
+
+/**
+ * Place le bateau à l'abscisse `x` le long du quai, arrondie au pas et bornée
+ * autour de sa position dans la situation d'origine. Les aussières restent
+ * tournées sur leurs bittes, comme les fils punaisés quand on fait glisser le
+ * tissu : leur position relative au bateau est recalculée, leur longueur et
+ * leur nom déduit suivent. Renvoie la même situation si la position ne change pas.
+ */
+export function deplacerBateau(sit: Situation, origine: Pick<Situation, 'bateau'>, x: number): Situation {
+  const x0 = origine.bateau.x;
+  const ecart = Math.round((x - x0) / PAS_DEPLACEMENT) * PAS_DEPLACEMENT;
+  const nx = arrondi(x0 + Math.min(DEPLACEMENT_MAX, Math.max(-DEPLACEMENT_MAX, ecart)));
+  if (nx === sit.bateau.x) return sit;
+  const bateau = { ...sit.bateau, x: nx };
+  return {
+    ...sit,
+    bateau,
+    aussieres: sit.aussieres.map((a) => ({ ...a, bitte: bitteDepuisMonde({ bateau }, bitteVersMonde(sit, a.bitte)) })),
+  };
+}
+
+function arrondi(v: number): number {
+  return Math.round(v * 100) / 100 + 0;
 }
 
 function modifier(sit: Situation, id: string, f: (a: SituationLine) => SituationLine): Situation {
