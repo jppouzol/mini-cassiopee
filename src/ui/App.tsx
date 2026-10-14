@@ -50,7 +50,8 @@ function cleatLabel(sit: Situation, cleat: Cleat): string {
   const auQuai = sit.bateau.bordAuQuai === 'babord' ? 'bâbord' : 'tribord';
   const auLarge = auQuai === 'bâbord' ? 'tribord' : 'bâbord';
   switch (cleat) {
-    case 'etrave': return "le taquet d'étrave";
+    case 'etrave': return `le taquet d'étrave ${auQuai}`;
+    case 'etrave-large': return `le taquet d'étrave ${auLarge}`;
     case 'arriere': return `le taquet arrière ${auQuai}`;
     case 'arriere-large': return `le taquet arrière ${auLarge}`;
     case 'maitre-bau': return `le taquet de maître-bau ${auQuai}`;

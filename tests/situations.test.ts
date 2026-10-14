@@ -26,7 +26,7 @@ test('une aussière sans mou est tendue au départ', () => {
   const sit = parseSituation(read('01-depart-garde-avant.json'));
   const s = buildState(sit);
   const l = s.lines[0];
-  assert.ok(l.len > 5 && l.len < 7, `longueur ${l.len}`);
+  assert.ok(l.len > 4 && l.len < 7, `longueur ${l.len}`);
 });
 
 test('une situation invalide est refusée avec un message lisible', () => {

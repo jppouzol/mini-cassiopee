@@ -13,10 +13,10 @@ import {
 } from './schema.ts';
 
 /**
- * Taquets proposés dans l'éditeur : l'étrave, proche de l'axe, et l'arrière sur chaque bord,
- * côté support et côté large (le maître-bau viendra plus tard).
+ * Taquets proposés dans l'éditeur, quelle que soit la situation : deux à l'étrave et
+ * deux à l'arrière, côté support et côté large (le maître-bau viendra plus tard).
  */
-export const TAQUETS_EDITABLES: readonly Cleat[] = ['etrave', 'arriere', 'arriere-large'];
+export const TAQUETS_EDITABLES: readonly Cleat[] = ['etrave', 'etrave-large', 'arriere', 'arriere-large'];
 
 /** Taquets proposés, avec leur position en repère bateau selon le bord au quai. */
 export function taquetsProposes(sit: Pick<Situation, 'bateau'>): { name: Cleat; pos: [number, number] }[] {
@@ -54,20 +54,10 @@ export function nomDeduit(sit: Placement, a: Pick<SituationLine, 'taquet' | 'bit
   return `${pointe ? 'Pointe' : 'Garde'} ${bout}`;
 }
 
-/**
- * Bord d'une aussière : celui de son taquet, ou, pour le taquet d'étrave, proche de
- * l'axe, celui où se trouve sa bitte. Null si la bitte est dans l'axe de l'étrave.
- */
-export function bordAussiere(sit: Placement, a: Pick<SituationLine, 'taquet' | 'bitte' | 'sur'>): 'bâbord' | 'tribord' | null {
-  // Côté, dans le repère du bateau tourné vers le support : +1 vers le support, -1 vers le large.
-  let cote: number;
-  if (a.taquet === 'etrave') {
-    const ecart = bitteRepereBateau(sit, a)[1] - cleatPosition('etrave', 1)[1];
-    cote = Math.abs(ecart) < 1e-6 ? 0 : Math.sign(ecart);
-  } else {
-    cote = Math.sign(cleatPosition(a.taquet, 1)[1]);
-  }
-  if (cote === 0) return null;
+/** Bord d'une aussière : celui de son taquet, bâbord ou tribord. */
+export function bordAussiere(sit: Placement, a: Pick<SituationLine, 'taquet'>): 'bâbord' | 'tribord' {
+  // Côté du taquet dans le repère du bateau tourné vers le support : +1 vers le support, -1 vers le large.
+  const cote = Math.sign(cleatPosition(a.taquet, 1)[1]);
   return cote * quaySide(sit) > 0 ? 'bâbord' : 'tribord';
 }
 
@@ -85,7 +75,7 @@ export function nomsAffiches(sit: Pick<Situation, 'quai' | 'bateau' | 'aussieres
   const parBord = new Set<string>();
   for (const [n, idx] of groupes) {
     const b = idx.map((i) => bords[i]);
-    if (idx.length > 1 && b.every((x) => x !== null) && new Set(b).size === b.length) parBord.add(n);
+    if (idx.length > 1 && new Set(b).size === b.length) parBord.add(n);
   }
   const vus = new Map<string, number>();
   return sit.aussieres.map((a, i) => {

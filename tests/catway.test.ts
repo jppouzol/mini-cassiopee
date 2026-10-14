@@ -250,7 +250,7 @@ test('éditeur : ajouter une aussière sur le catway ou sur le quai, voisins ref
   assert.deepEqual(nomsAffiches(avec), ['Garde avant', 'Pointe avant']);
   // Cul à quai : une pointe arrière depuis chaque taquet arrière, proposés tous deux par l'éditeur.
   const cul = sansAmarre(sortieAvant());
-  assert.deepEqual(taquetsProposes(cul).map((c) => c.name), ['etrave', 'arriere', 'arriere-large']);
+  assert.deepEqual(taquetsProposes(cul).map((c) => c.name), ['etrave', 'etrave-large', 'arriere', 'arriere-large']);
   const deux = ajouterAussiere(ajouterAussiere(cul, 'arriere', 2, 'quai'), 'arriere-large', -2, 'quai');
   assert.deepEqual(nomsAffiches(deux), ['Pointe arrière bâbord', 'Pointe arrière tribord']);
   assert.deepEqual(buildState(deux).lines.map((l) => l.bollard), [[-0.5, 0.6], [-4.5, 0.6]]);
@@ -291,7 +291,7 @@ test('catalogue : chaque aussière part vers l’extérieur du bateau, du bord d
     const s = buildState(sit);
     for (const l of s.lines) {
       // Écart latéral de la bitte, en repère bateau, compté du côté du taquet : au-delà du taquet.
-      const cote = Math.abs(l.cleat[1]) < 0.5 ? Math.sign(toLocal(s.body, l.bollard)[1]) : Math.sign(l.cleat[1]);
+      const cote = Math.sign(l.cleat[1]);
       const lateral = cote * toLocal(s.body, l.bollard)[1];
       assert.ok(lateral > Math.abs(l.cleat[1]) + 0.3, `${sit.id}, ${l.name} : la bitte n'est pas à l'extérieur du taquet`);
     }

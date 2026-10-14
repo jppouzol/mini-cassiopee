@@ -192,7 +192,7 @@ test('nom par bord : deux aussières de même nom sur deux bords, sinon un numé
   const garde = loadSituation('depart-garde-avant');
   const sit = { ...garde, aussieres: [] };
   // Le long du quai aussi, l'éditeur propose le taquet arrière des deux bords.
-  assert.deepEqual(taquetsProposes(sit).map((c) => c.name), ['etrave', 'arriere', 'arriere-large']);
+  assert.deepEqual(taquetsProposes(sit).map((c) => c.name), ['etrave', 'etrave-large', 'arriere', 'arriere-large']);
   const deux = ajouterAussiere(ajouterAussiere(sit, 'arriere', -8), 'arriere-large', -10);
   assert.deepEqual(nomsAffiches(deux), ['Pointe arrière bâbord', 'Pointe arrière tribord']);
   assert.deepEqual(nomsAffiches({ ...deux, bateau: { ...deux.bateau, bordAuQuai: 'tribord' } }), ['Pointe arrière tribord', 'Pointe arrière bâbord']);
