@@ -3,10 +3,10 @@
 // EditionError au message lisible. Aucune dépendance au navigateur.
 
 import { HALF_BEAM, cleatPosition } from '../sim/geometry.ts';
-import { BOLLARD_SETBACK, bitteDepuisMonde, bitteVersMonde, surLaRangee } from './quai.ts';
+import { BOLLARD_SETBACK, bitteDepuisMonde, bitteVersMonde, bowSign, surLaRangee } from './quai.ts';
 import {
-  PLAFOND_DEFAUT, PLAFOND_MAX, plafond,
-  type Cleat, type Situation, type SituationLine,
+  ECART_VOISIN_MIN, PLAFOND_DEFAUT, PLAFOND_MAX, plafond,
+  type Cleat, type CoteVoisin, type Situation, type SituationLine,
 } from './schema.ts';
 
 /** Taquets proposés dans l'éditeur (le maître-bau viendra plus tard). */
@@ -122,24 +122,96 @@ export const PAS_DEPLACEMENT = 0.5;
 /** Écart maximal du bateau à sa position d'origine (m) : il reste entier à l'écran sans bouger la caméra. */
 export const DEPLACEMENT_MAX = 4;
 
+/** Avance du bateau depuis sa position d'origine, comptée vers l'étrave (m). */
+function avance(sit: Pick<Situation, 'bateau'>, origine: Pick<Situation, 'bateau'>): number {
+  return bowSign(sit) * (sit.bateau.x - origine.bateau.x);
+}
+
+/**
+ * Positions extrêmes (x monde) où l'élève peut placer le bateau : au plus
+ * DEPLACEMENT_MAX de sa position d'origine, et sans s'approcher d'un voisin à
+ * moins de ECART_VOISIN_MIN. Bornes alignées sur le pas de déplacement.
+ */
+export function bornesDeplacement(sit: Situation, origine: Pick<Situation, 'bateau'>): [number, number] {
+  const x0 = origine.bateau.x;
+  const sens = bowSign(sit);
+  let lo = x0 - DEPLACEMENT_MAX, hi = x0 + DEPLACEMENT_MAX;
+  // Course possible vers l'étrave (voisin avant) et vers le tableau (voisin arrière), en monde.
+  const versAvant = sit.voisins?.avant !== undefined ? sit.voisins.avant - ECART_VOISIN_MIN : Infinity;
+  const versArriere = sit.voisins?.arriere !== undefined ? sit.voisins.arriere - ECART_VOISIN_MIN : Infinity;
+  const versPlus = sens === 1 ? versAvant : versArriere;
+  const versMoins = sens === 1 ? versArriere : versAvant;
+  hi = Math.min(hi, sit.bateau.x + versPlus);
+  lo = Math.max(lo, sit.bateau.x - versMoins);
+  const e = 1e-9;
+  return [
+    arrondi(x0 + Math.ceil((lo - x0) / PAS_DEPLACEMENT - e) * PAS_DEPLACEMENT),
+    arrondi(x0 + Math.floor((hi - x0) / PAS_DEPLACEMENT + e) * PAS_DEPLACEMENT),
+  ];
+}
+
 /**
  * Place le bateau à l'abscisse `x` le long du quai, arrondie au pas et bornée
- * autour de sa position dans la situation d'origine. Les aussières restent
- * tournées sur leurs bittes, comme les fils punaisés quand on fait glisser le
- * tissu : leur position relative au bateau est recalculée, leur longueur et
- * leur nom déduit suivent. Renvoie la même situation si la position ne change pas.
+ * autour de sa position dans la situation d'origine et par les voisins (voir
+ * bornesDeplacement). Les aussières restent tournées sur leurs bittes, comme
+ * les fils punaisés quand on fait glisser le tissu : leur position relative au
+ * bateau est recalculée, leur longueur et leur nom déduit suivent. Les voisins
+ * restent en place, comme d'autres bouts de tissu sur la table : leur écart
+ * change. Renvoie la même situation si la position ne change pas.
  */
 export function deplacerBateau(sit: Situation, origine: Pick<Situation, 'bateau'>, x: number): Situation {
   const x0 = origine.bateau.x;
-  const ecart = Math.round((x - x0) / PAS_DEPLACEMENT) * PAS_DEPLACEMENT;
-  const nx = arrondi(x0 + Math.min(DEPLACEMENT_MAX, Math.max(-DEPLACEMENT_MAX, ecart)));
+  const [lo, hi] = bornesDeplacement(sit, origine);
+  const vise = x0 + Math.round((x - x0) / PAS_DEPLACEMENT) * PAS_DEPLACEMENT;
+  const nx = arrondi(Math.min(hi, Math.max(lo, vise)));
   if (nx === sit.bateau.x) return sit;
   const bateau = { ...sit.bateau, x: nx };
-  return {
+  const next: Situation = {
     ...sit,
     bateau,
     aussieres: sit.aussieres.map((a) => ({ ...a, bitte: bitteDepuisMonde({ bateau }, bitteVersMonde(sit, a.bitte)) })),
   };
+  if (sit.voisins) {
+    const d = bowSign(sit) * (nx - sit.bateau.x);
+    const v: Partial<Record<CoteVoisin, number>> = {};
+    if (sit.voisins.avant !== undefined) v.avant = arrondi(sit.voisins.avant - d);
+    if (sit.voisins.arriere !== undefined) v.arriere = arrondi(sit.voisins.arriere + d);
+    next.voisins = v;
+  }
+  return next;
+}
+
+/** Écarts proposés pour un voisin dans l'éditeur (m) : serré et large. */
+export const ECARTS_VOISIN = { serre: 1, large: 3 } as const;
+
+/**
+ * Écart d'un voisin mesuré depuis la place d'origine du bateau, ou null sans
+ * voisin de ce côté. C'est la valeur que règle l'éditeur : elle ne change pas
+ * quand on fait glisser le bateau.
+ */
+export function ecartVoisin(sit: Situation, origine: Pick<Situation, 'bateau'>, cote: CoteVoisin): number | null {
+  const e = sit.voisins?.[cote];
+  if (e === undefined) return null;
+  return arrondi(e + (cote === 'avant' ? 1 : -1) * avance(sit, origine));
+}
+
+/**
+ * Place un voisin d'un côté, à l'écart donné de la place d'origine du bateau,
+ * ou le retire (null). Refusé si le bateau, déplacé, est trop près de cette place.
+ */
+export function reglerVoisin(sit: Situation, origine: Pick<Situation, 'bateau'>, cote: CoteVoisin, ecart: number | null): Situation {
+  const { voisins: anciens, ...reste } = sit;
+  const voisins: Partial<Record<CoteVoisin, number>> = { ...anciens };
+  if (ecart === null) {
+    delete voisins[cote];
+  } else {
+    const relatif = arrondi(ecart - (cote === 'avant' ? 1 : -1) * avance(sit, origine));
+    if (relatif < ECART_VOISIN_MIN) {
+      throw new EditionError(`Pas assez de place ${cote === 'avant' ? 'devant' : 'derrière'} le bateau pour ce voisin : ramenez le bateau vers sa place d’origine.`);
+    }
+    voisins[cote] = relatif;
+  }
+  return Object.keys(voisins).length > 0 ? { ...reste, voisins } : reste;
 }
 
 function arrondi(v: number): number {

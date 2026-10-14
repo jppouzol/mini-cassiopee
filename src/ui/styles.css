@@ -3,7 +3,7 @@
   --bg: #e9eff1; --panel: #f7fafb; --ink: #12232b; --muted: #5b6d75; --rule: #cbd7db;
   --water: #d6e4e8; --water-grid: #c7d8dd; --quay: #bdb5a8; --quay-edge: #847b6e; --bollard: #3a3530;
   --hull: #ffffff; --hull-edge: #12232b; --accent: #1b5f86; --accent-soft: #d3e4ee;
-  --taut: #c4462f; --slack: #7f98a4; --ghost: #12232b;
+  --taut: #c4462f; --slack: #7f98a4; --ghost: #12232b; --neighbor: #e4ecef; --alert: #d0021b;
   --f-body: "Atkinson Hyperlegible", "Segoe UI", system-ui, sans-serif;
   --f-label: "Barlow Semi Condensed", "Arial Narrow", system-ui, sans-serif;
   color-scheme: light;
@@ -13,14 +13,14 @@
     --bg: #0e1a1f; --panel: #142229; --ink: #e2ebee; --muted: #93a6ae; --rule: #2a3d45;
     --water: #112830; --water-grid: #17323b; --quay: #4b4841; --quay-edge: #77705f; --bollard: #d8d2c6;
     --hull: #eef3f5; --hull-edge: #0e1a1f; --accent: #6bb8dd; --accent-soft: #1d3a49;
-    --taut: #f07a5c; --slack: #6b8590; --ghost: #e2ebee; color-scheme: dark;
+    --taut: #f07a5c; --slack: #6b8590; --ghost: #e2ebee; --neighbor: #2a3f48; --alert: #ff4d5e; color-scheme: dark;
   }
 }
 :root[data-theme="dark"] {
   --bg: #0e1a1f; --panel: #142229; --ink: #e2ebee; --muted: #93a6ae; --rule: #2a3d45;
   --water: #112830; --water-grid: #17323b; --quay: #4b4841; --quay-edge: #77705f; --bollard: #d8d2c6;
   --hull: #eef3f5; --hull-edge: #0e1a1f; --accent: #6bb8dd; --accent-soft: #1d3a49;
-  --taut: #f07a5c; --slack: #6b8590; --ghost: #e2ebee; color-scheme: dark;
+  --taut: #f07a5c; --slack: #6b8590; --ghost: #e2ebee; --neighbor: #2a3f48; --alert: #ff4d5e; color-scheme: dark;
 }
 
 html, body, #root { height: 100%; }
@@ -122,6 +122,7 @@ canvas.editing.dragging { cursor: grabbing; }
 }
 .line .btn[aria-pressed] { min-width: 4.6em; }
 .advanced { display: flex; flex-direction: column; gap: 8px; margin-top: 10px; font-size: 14px; }
+.voisin { display: flex; flex-direction: column; gap: 4px; margin-top: 4px; }
 .stepper { display: flex; align-items: center; gap: 8px; }
 .stepper .btn { min-width: 36px; min-height: 36px; padding: 0; font-size: 18px; }
 .stepper output { min-width: 2ch; text-align: center; font-family: var(--f-label); font-weight: 600; font-size: 16px; font-variant-numeric: tabular-nums; }

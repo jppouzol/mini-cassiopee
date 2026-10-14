@@ -53,7 +53,7 @@ La scène se compose d'un seul bateau, d'un quai, d'aussières et du vent. Chaqu
 
 - Amarrage le long du quai (long side) ou perpendiculaire au quai.
 - En perpendiculaire : longueur du catway réglable par rapport à la longueur du bateau.
-- Option : bateaux voisins de part et d'autre, pour tester les points de pivot et les risques de contact.
+- Option : bateaux voisins de part et d'autre, pour tester les points de pivot et les risques de contact. Le long du quai, un voisin peut être amarré devant, un autre derrière, chacun réglé à part : aucun, serré ou large. Ils ont la même coque, le même cap et le même écart au quai que le bateau, et restent immobiles. Sans voisin, rien ne change.
 - Points d'amarrage côté quai : une rangée de bittes fixes, espacées de 2 m, sur toute la longueur du quai, comme sur un vrai quai. Les aussières du catalogue comme celles ajoutées dans l'éditeur sont tournées sur ces bittes ; on ne crée pas de point d'amarrage ailleurs.
 
 ### Aussières
@@ -76,10 +76,11 @@ La scène se compose d'un seul bateau, d'un quai, d'aussières et du vent. Chaqu
 
 La simulation est en deux dimensions, vue de dessus, et vise un comportement qualitativement juste plutôt qu'une précision physique.
 
-- **Forces prises en compte dans le socle** : poussée du moteur (avant ou arrière, intensité unique), effort de la barre sur le safran quand le bateau a de l'erre ou que le flux de l'hélice passe sur le safran, force du vent, retenue des aussières tendues, contact avec le quai.
+- **Forces prises en compte dans le socle** : poussée du moteur (avant ou arrière, intensité unique), effort de la barre sur le safran quand le bateau a de l'erre ou que le flux de l'hélice passe sur le safran, force du vent, retenue des aussières tendues, contact avec le quai et, s'il y en a, avec les bateaux voisins.
 - **Mouvements** : translation dans le plan et rotation autour d'un axe vertical. Le point de pivot résulte des aussières tendues et des points de contact.
 - **Aussières** : longueur maximale fixe ; une aussière ne retient que lorsqu'elle est tendue, jamais en compression.
 - **Contact avec le quai** : traitement simple qui empêche le bateau de traverser le quai et peut servir de point d'appui ; les défenses ne sont pas modélisées dans le socle.
+- **Contact avec un voisin** : même traitement que le quai, coque contre coque. Le voisin, immobile, arrête le bateau et peut servir de point d'appui (l'étrave contre son tableau, par exemple).
 - **Amortissement** : le bateau ralentit naturellement dans l'eau, pour éviter des oscillations ou des glissements irréalistes.
 - **Effets avancés, désactivés par défaut** : pas d'hélice selon le sens de rotation, différence mono/bi-safran, pivot sous l'effet du vent sur l'étrave.
 - **Reproductibilité** : à conditions de départ et actions identiques, la simulation produit le même résultat. C'est la condition du pas à pas et du retour arrière.
@@ -120,7 +121,8 @@ L'écran de simulation est une vue de dessus 2D, la plus épurée possible, dans
 - les aussières, avec un code couleur tendue / molle ;
 - la position de la commande moteur (avant, neutre, arrière) et l'angle de barre ;
 - la direction et la force du vent ;
-- quand le bateau pivote : le point de pivot marqué sur la coque et une flèche de rotation à une extrémité du bateau.
+- quand le bateau pivote : le point de pivot marqué sur la coque et une flèche de rotation à une extrémité du bateau ;
+- quand le bateau touche un voisin : le contour du voisin en rouge et un anneau rouge sur chaque point de contact, tant que le contact dure.
 
 Rien d'autre n'est affiché par défaut. Toute aide visuelle supplémentaire (trajectoire, flèches de forces, position fantôme de départ) devra être optionnelle.
 
@@ -136,7 +138,8 @@ Chaque situation définit : la configuration du quai (le long ou perpendiculaire
 - même situation avec vent du quai, puis vent du large ;
 - départ sur garde avant ;
 - départ sur garde arrière ;
-- amarré perpendiculaire, sur catway court puis long.
+- amarré perpendiculaire, sur catway court puis long ;
+- départ sur garde avant entre deux bateaux serrés : sans garde, la barre ne suffit pas à déborder l'étrave, qui vient toucher le voisin de devant.
 
 Les bittes des situations du catalogue sont placées sur la rangée de bittes fixes du quai, en vérifiant que les scénarios de référence restent démonstratifs.
 
@@ -148,12 +151,13 @@ L'éditeur agit pendant la préparation, c'est-à-dire tant que la simulation es
 - Ajouter, retirer ou déplacer une aussière entre un taquet du bateau et une bitte du quai.
 - Indiquer pour chaque aussière si elle est tendue au moment de la mise en mouvement, et si elle file dès ce moment.
 - Régler la direction et la force du vent.
-- Activer les options avancées, dont le plafond d'aussières.
+- Activer les options avancées, dont le plafond d'aussières et les bateaux voisins.
 
 #### Déplacer le bateau
 
 - **Geste** : l'élève fait glisser la coque au doigt le long du quai. Un toucher bref garde son rôle (choisir un taquet) ; dès que le doigt bouge, c'est un déplacement, et la sélection en cours est annulée. Deux boutons ◀ ▶ font le même réglage pas à pas, ainsi que Maj + flèches gauche et droite sur PC.
-- **Pas et bornes** : la position change par pas de 0,5 m, à 4 m au plus de part et d'autre de la position de la situation d'origine. Le bateau reste ainsi entier à l'écran sans que la vue bouge.
+- **Pas et bornes** : la position change par pas de 0,5 m, à 4 m au plus de part et d'autre de la position de la situation d'origine. Le bateau reste ainsi entier à l'écran sans que la vue bouge. S'il y a des voisins, le bateau s'arrête à 0,5 m au moins de chacun.
+- **Voisins** : ils restent en place, comme d'autres bouts de tissu sur la table ; seul l'écart change.
 - **Aussières** : elles restent tournées sur leurs bittes, comme les fils punaisés quand on fait glisser le tissu. Leur longueur et leur nom déduit suivent la nouvelle géométrie, si bien qu'une garde peut devenir traversier ; le mou et un nom choisi par l'élève sont conservés.
 - **Affichage** : aucune valeur chiffrée. Les bittes servent de repère et la liste des aussières montre les noms à jour.
 - La rangée de bittes se répète tous les 2 m : seule compte la position du bateau par rapport aux bittes. Décalé de 1 m par rapport aux situations du catalogue, le bateau peut recevoir à la fois un traversier avant et un traversier arrière.
@@ -166,6 +170,12 @@ L'éditeur agit pendant la préparation, c'est-à-dire tant que la simulation es
 - **Régler** : dans la liste des aussières, l'élève bascule chaque aussière entre tendue et molle, et entre bloquée et choquée (elle file dès la mise en mouvement) ; il peut aussi la renommer.
 - **Supprimer** : en préparation, le bouton « Larguer » de la liste devient « Supprimer ». Une aussière supprimée disparaît de la situation préparée.
 - Pendant la simulation, on ne peut ni ajouter ni supprimer d'aussière : seuls le choquer et le largage restent possibles.
+
+#### Bateaux voisins
+
+- **Réglage** : dans les options avancées, « Voisin devant » et « Voisin derrière » valent chacun aucun, serré ou large. L'écart se compte depuis la place d'origine du bateau ; aucune valeur chiffrée n'est affichée.
+- **Place** : un voisin est refusé, avec un message, si le bateau, déplacé, est trop près de la place qu'il occuperait.
+- Comme le reste de la situation, les voisins se règlent en préparation ; « Situation d'origine » les remet comme dans le catalogue.
 
 #### Situation préparée et situation d'origine
 
@@ -192,7 +202,7 @@ Aucune sauvegarde ni partage de situation n'est prévu à ce stade : la situatio
 
 ## Évolutions
 
-Le socle est livré : amarrage le long du quai, aussières fixes, moteur avant, neutre et arrière, largage individuel, barre, vent faible ou soutenu, tension des aussières et point de pivot, pause, pas à pas et retour arrière, catalogue et éditeur. Depuis, l'élève peut aussi choquer une aussière.
+Le socle est livré : amarrage le long du quai, aussières fixes, moteur avant, neutre et arrière, largage individuel, barre, vent faible ou soutenu, tension des aussières et point de pivot, pause, pas à pas et retour arrière, catalogue et éditeur. Depuis, l'élève peut aussi choquer une aussière et placer des bateaux voisins devant et derrière.
 
 Le projet s'enrichit ensuite progressivement, une fonctionnalité à la fois, sans paliers ni jalons : l'ordre suit les envies et les retours des élèves. Le backlog est tenu dans les issues GitHub du dépôt ; chaque issue devient une branche et une demande de fusion, qui met à jour ce document si elle change le périmètre.
 
@@ -201,8 +211,7 @@ Enrichissements envisagés, chacun optionnel et sans effet sur le comportement d
 - pas d'hélice et son sens de rotation ;
 - mono ou bi-safran ;
 - pivot du vent sur l'étrave (fardage) ;
-- amarrage perpendiculaire et longueur de catway ;
-- bateaux voisins ;
+- amarrage perpendiculaire et longueur de catway, avec ses voisins de part et d'autre ;
 - taquet au maître-bau ;
 - reprendre une aussière pendant la manœuvre ;
 - freiner une aussière qu'on choque ;
@@ -265,5 +274,5 @@ Les points suivants n'ont pas été tranchés et figurent dans les points ouvert
 - [ ] Licence des contenus pédagogiques (situations, textes) : CC0 proposée.
 - [ ] Contenu définitif du catalogue de situations, à valider avec la monitrice.
 - [ ] Réglage de la barre : quelques positions fixes ou un angle continu ?
-- [ ] Défenses : à représenter un jour, ou le contact simple avec le quai suffit-il ?
+- [ ] Défenses : à représenter un jour, ou le contact simple avec le quai et les voisins suffit-il ?
 - [ ] Aides visuelles optionnelles (trajectoire, flèches de forces, position fantôme) : lesquelles retenir ?

@@ -4,7 +4,7 @@ import { HULL, toWorld } from '../sim/geometry.ts';
 export interface Palette {
   water: string; grid: string; quay: string; quayEdge: string; bollard: string;
   hull: string; hullEdge: string; accent: string; taut: string; slack: string;
-  ink: string; muted: string; ghost: string;
+  ink: string; muted: string; ghost: string; neighbor: string; alert: string;
 }
 
 export interface View {
@@ -56,6 +56,7 @@ export function readPalette(el: Element): Palette {
     water: g('--water'), grid: g('--water-grid'), quay: g('--quay'), quayEdge: g('--quay-edge'),
     bollard: g('--bollard'), hull: g('--hull'), hullEdge: g('--hull-edge'), accent: g('--accent'),
     taut: g('--taut'), slack: g('--slack'), ink: g('--ink'), muted: g('--muted'), ghost: g('--ghost'),
+    neighbor: g('--neighbor'), alert: g('--alert'),
   };
 }
 
@@ -142,6 +143,17 @@ export function render(ctx: CanvasRenderingContext2D, s: Readonly<SimState>, v: 
     });
     ctx.closePath();
   };
+
+  // Bateaux voisins, immobiles : estompés, et contour d'alerte tant que le bateau les touche.
+  for (const nb of s.neighbors) {
+    const touched = nb.contacts.length > 0;
+    hullPath(nb);
+    ctx.fillStyle = C.neighbor;
+    ctx.fill();
+    ctx.strokeStyle = touched ? C.alert : C.slack;
+    ctx.lineWidth = touched ? 3 : 1.4;
+    ctx.stroke();
+  }
 
   // Position de départ
   if (v.ghost) {
@@ -245,6 +257,21 @@ export function render(ctx: CanvasRenderingContext2D, s: Readonly<SimState>, v: 
     ctx.fill();
   }
 
+  // Contacts avec un voisin : un anneau d'alerte autour du point touché.
+  ctx.strokeStyle = C.alert;
+  ctx.fillStyle = C.alert;
+  ctx.lineWidth = 2;
+  for (const nb of s.neighbors) {
+    for (const c of nb.contacts) {
+      ctx.beginPath();
+      ctx.arc(X(c[0]), Y(c[1]), 7, 0, Math.PI * 2);
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.arc(X(c[0]), Y(c[1]), 2.5, 0, Math.PI * 2);
+      ctx.fill();
+    }
+  }
+
   // Point de pivot et flèche de rotation à l'extrémité opposée
   if (s.pivot !== null) {
     const xp = s.pivot;
@@ -269,8 +296,8 @@ export function render(ctx: CanvasRenderingContext2D, s: Readonly<SimState>, v: 
     ctx.beginPath(); ctx.arc(X(P[0]), Y(P[1]), 3, 0, Math.PI * 2); ctx.fillStyle = C.accent; ctx.fill();
   }
 
-  // Vent
-  const ox = W - 56, oy = Math.max(60, Y(0) + 48);
+  // Vent, en bas à droite en face de l'échelle : la rangée de bateaux le long du quai reste dégagée.
+  const ox = W - 56, oy = H - 52;
   ctx.textAlign = 'center';
   ctx.font = `600 12px ${v.labelFont}`;
   if (s.wind.force === 'aucun') {
