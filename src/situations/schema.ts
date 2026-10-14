@@ -1,16 +1,34 @@
 // Format des situations (version 1). Un fichier JSON par situation du catalogue ;
 // l'éditeur produit le même format.
 
-import { BOLLARD_SPACING, surLaRangee } from './quai.ts';
+import { BOLLARD_SPACING, ECART_QUAI_MIN, LONGUEUR_CATWAY, surLaRangee, type BoutAuQuai, type TypeQuai } from './quai.ts';
+import { HALF_LENGTH } from '../sim/geometry.ts';
 
+/** Directions du vent le long du quai : du quai, du large, de l'avant ou de l'arrière du bateau. */
 export const WIND_DIRECTIONS = [
   'quai', 'large', 'avant', 'arriere',
   'quai-avant', 'quai-arriere', 'large-avant', 'large-arriere',
 ] as const;
-export type WindDirection = (typeof WIND_DIRECTIONS)[number];
+/**
+ * Directions du vent en perpendiculaire, en repères du port : du catway, du large
+ * (côté opposé au catway), du quai, du chenal (bout opposé au quai).
+ */
+export const WIND_DIRECTIONS_CATWAY = [
+  'catway', 'large', 'quai', 'chenal',
+  'catway-quai', 'catway-chenal', 'large-quai', 'large-chenal',
+] as const;
+export type WindDirection = (typeof WIND_DIRECTIONS)[number] | (typeof WIND_DIRECTIONS_CATWAY)[number];
+
+/** Directions du vent proposées pour un type de quai. */
+export function directionsVent(type: TypeQuai): readonly WindDirection[] {
+  return type === 'perpendiculaire' ? WIND_DIRECTIONS_CATWAY : WIND_DIRECTIONS;
+}
+
+export const TYPES_QUAI = ['long-side', 'perpendiculaire'] as const;
+export const BOUTS_AU_QUAI = ['etrave', 'arriere'] as const;
 
 export const WIND_FORCES = ['aucun', 'faible', 'soutenu'] as const;
-export const CLEATS = ['etrave', 'arriere', 'arriere-large', 'maitre-bau'] as const;
+export const CLEATS = ['etrave', 'etrave-large', 'arriere', 'arriere-large', 'maitre-bau'] as const;
 export type Cleat = (typeof CLEATS)[number];
 
 /** Côtés du bateau où l'on peut placer un voisin, le long du quai. */
@@ -28,11 +46,18 @@ export interface SituationLine {
   id: string;
   /** nom choisi ; absent, le nom est déduit de la géométrie (voir edit.ts) */
   nom?: string;
-  /** taquet du bateau ; « arriere » est le taquet arrière côté quai */
+  /** taquet du bateau ; « arriere » est le taquet arrière côté quai (ou catway) */
   taquet: Cleat;
   /**
-   * position de la bitte le long du quai (m), depuis le centre du bateau au départ,
-   * positive vers l'avant ; elle doit tomber sur la rangée de bittes du quai
+   * en perpendiculaire, « quai » pour une bitte de la rangée du quai ; absent, la
+   * bitte est sur la rangée du support (le quai le long du quai, le catway en perpendiculaire)
+   */
+  sur?: 'quai';
+  /**
+   * position de la bitte le long du support (m), depuis le centre du bateau au départ,
+   * positive vers l'avant ; elle doit tomber sur la rangée de bittes du support.
+   * Bitte du quai en perpendiculaire : position le long du quai depuis l'axe du bateau,
+   * positive vers le catway
    */
   bitte: number;
   /** mou au départ (m) ; 0 = aussière tendue */
@@ -46,12 +71,20 @@ export interface Situation {
   id: string;
   titre: string;
   description: string;
-  quai: { type: 'long-side' };
+  /** long du quai, ou perpendiculaire, le long d'un catway */
+  quai: { type: TypeQuai };
   bateau: {
+    /**
+     * position du centre le long du support (m) : abscisse monde le long du quai ;
+     * en perpendiculaire, distance au bord du quai, comptée le long du catway
+     */
     x: number;
-    /** écart entre le flanc et le bord du quai (m) */
+    /** écart entre le flanc et le support : bord du quai ou flanc du catway (m) */
     distanceQuai: number;
+    /** flanc tourné vers le support */
     bordAuQuai: 'babord' | 'tribord';
+    /** en perpendiculaire seulement : bout du bateau tourné vers le quai */
+    boutAuQuai?: BoutAuQuai;
   };
   aussieres: SituationLine[];
   /** nombre maximal d'aussières (PLAFOND_DEFAUT si absent) */
@@ -94,7 +127,8 @@ export function parseSituation(input: unknown): Situation {
   const id = input.id as string;
   const quai = input.quai;
   if (!isObj(quai)) throw new SituationError(`${id} : le champ « quai » est obligatoire.`);
-  oneOf(quai.type, ['long-side'] as const, `${id} : quai.type`);
+  const type = oneOf(quai.type, TYPES_QUAI, `${id} : quai.type`);
+  const perp = type === 'perpendiculaire';
 
   const bateau = input.bateau;
   if (!isObj(bateau) || !isNum(bateau.x) || !isNum(bateau.distanceQuai)) {
@@ -102,9 +136,20 @@ export function parseSituation(input: unknown): Situation {
   }
   if (bateau.distanceQuai < 0) throw new SituationError(`${id} : bateau.distanceQuai ne peut pas être négatif.`);
   const bord = oneOf(bateau.bordAuQuai, ['babord', 'tribord'] as const, `${id} : bateau.bordAuQuai`);
+  let bout: BoutAuQuai | undefined;
+  if (perp) {
+    bout = oneOf(bateau.boutAuQuai, BOUTS_AU_QUAI, `${id} : en perpendiculaire, bateau.boutAuQuai`);
+    if (bateau.x - HALF_LENGTH < ECART_QUAI_MIN - 1e-9) {
+      throw new SituationError(`${id} : le bout du bateau doit rester à ${ECART_QUAI_MIN} m au moins du quai (bateau.x ≥ ${HALF_LENGTH + ECART_QUAI_MIN}).`);
+    }
+  } else if (bateau.boutAuQuai !== undefined) {
+    throw new SituationError(`${id} : bateau.boutAuQuai ne sert qu'en perpendiculaire.`);
+  }
+  const navire: Situation['bateau'] = { x: bateau.x, distanceQuai: bateau.distanceQuai, bordAuQuai: bord };
+  if (bout) navire.boutAuQuai = bout;
 
   if (!Array.isArray(input.aussieres)) throw new SituationError(`${id} : « aussieres » doit être une liste.`);
-  const placement = { bateau: { x: bateau.x, distanceQuai: bateau.distanceQuai, bordAuQuai: bord } };
+  const placement = { quai: { type }, bateau: navire };
   const ids = new Set<string>();
   const liens = new Set<string>();
   const aussieres: SituationLine[] = input.aussieres.map((a: unknown, i: number) => {
@@ -116,15 +161,23 @@ export function parseSituation(input: unknown): Situation {
     if (ids.has(a.id)) throw new SituationError(`${where} : identifiant « ${a.id} » en double.`);
     if (a.file !== undefined && typeof a.file !== 'boolean') throw new SituationError(`${where} : « file » vaut true ou false.`);
     if (a.mou < 0) throw new SituationError(`${where} : le mou ne peut pas être négatif.`);
-    if (!surLaRangee(placement, a.bitte)) {
-      throw new SituationError(`${where} : la bitte (${a.bitte} m) n'est pas sur la rangée de bittes du quai, espacées de ${BOLLARD_SPACING} m.`);
+    if (a.sur !== undefined) {
+      if (!perp) throw new SituationError(`${where} : « sur » ne sert qu'en perpendiculaire.`);
+      oneOf(a.sur, ['quai'] as const, `${where} : sur`);
+    }
+    const sur = a.sur === 'quai' ? 'quai' as const : undefined;
+    if (!surLaRangee(placement, { bitte: a.bitte, sur })) {
+      throw new SituationError(perp && !sur
+        ? `${where} : la bitte (${a.bitte} m) n'est pas sur la rangée de bittes du catway, espacées de ${BOLLARD_SPACING} m depuis le quai sur ${LONGUEUR_CATWAY} m.`
+        : `${where} : la bitte (${a.bitte} m) n'est pas sur la rangée de bittes du quai, espacées de ${BOLLARD_SPACING} m.`);
     }
     const taquet = oneOf(a.taquet, CLEATS, `${where} : taquet`);
-    const lien = `${taquet}@${a.bitte}`;
+    const lien = `${taquet}@${sur ?? ''}${a.bitte}`;
     if (liens.has(lien)) throw new SituationError(`${where} : une autre aussière relie déjà ce taquet à cette bitte.`);
     ids.add(a.id);
     liens.add(lien);
     const line: SituationLine = { id: a.id, taquet, bitte: a.bitte, mou: a.mou };
+    if (sur) line.sur = sur;
     if (a.nom !== undefined) line.nom = a.nom as string;
     if (a.file === true) line.file = true;
     return line;
@@ -150,11 +203,11 @@ export function parseSituation(input: unknown): Situation {
     id,
     titre: input.titre as string,
     description: input.description as string,
-    quai: { type: 'long-side' },
-    bateau: { x: bateau.x, distanceQuai: bateau.distanceQuai, bordAuQuai: bord },
+    quai: { type },
+    bateau: navire,
     aussieres,
     vent: {
-      direction: oneOf(vent.direction, WIND_DIRECTIONS, `${id} : vent.direction`),
+      direction: oneOf(vent.direction, directionsVent(type), `${id} : vent.direction`),
       force: oneOf(vent.force, WIND_FORCES, `${id} : vent.force`),
     },
   };
@@ -162,6 +215,7 @@ export function parseSituation(input: unknown): Situation {
 
   if (input.voisins !== undefined) {
     const v = input.voisins;
+    if (perp) throw new SituationError(`${id} : les voisins ne sont proposés que le long du quai.`);
     if (!isObj(v)) throw new SituationError(`${id} : « voisins » doit être un objet ({ "avant": écart, "arriere": écart }).`);
     const voisins: Partial<Record<CoteVoisin, number>> = {};
     for (const k of Object.keys(v)) {

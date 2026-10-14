@@ -71,10 +71,14 @@ export const CONTACT_POINTS: readonly Vec[] = (() => {
 /** Abscisses des tranches de coque pour la résistance latérale répartie. */
 export const SLICES: readonly number[] = Array.from({ length: 10 }, (_, i) => -4.5 + i);
 
-/** Taquets, en repère bateau. Côté +1 = bâbord, -1 = tribord. */
+/**
+ * Taquets, en repère bateau. Côté +1 = bâbord, -1 = tribord. Deux à l'étrave et deux
+ * à l'arrière, un sur chaque bord : côté quai (ou catway) et côté large.
+ */
 export function cleatPosition(name: string, quaySide: 1 | -1): Vec {
   switch (name) {
-    case 'etrave': return [4.5, 0.15 * quaySide];
+    case 'etrave': return [4.5, 0.4 * quaySide];
+    case 'etrave-large': return [4.5, -0.4 * quaySide];
     case 'arriere': return [-4.75, 1.2 * quaySide];
     case 'arriere-large': return [-4.75, -1.2 * quaySide];
     case 'maitre-bau': return [0, 1.55 * quaySide];
@@ -82,7 +86,7 @@ export function cleatPosition(name: string, quaySide: 1 | -1): Vec {
   }
 }
 
-export const CLEAT_NAMES = ['etrave', 'arriere', 'arriere-large', 'maitre-bau'] as const;
+export const CLEAT_NAMES = ['etrave', 'etrave-large', 'arriere', 'arriere-large', 'maitre-bau'] as const;
 
 /** Point du bateau exprimé dans le repère monde. */
 export function toWorld(b: Pick<Body, 'x' | 'y' | 'th'>, p: Vec): Vec {

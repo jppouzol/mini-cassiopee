@@ -6,7 +6,8 @@ import { TOUCH_RADIUS, camera, readPalette, render, type EditionView } from '../
 /** Ce que l'élève a touché sur la scène pendant l'édition. */
 export type Pick =
   | { kind: 'cleat'; name: string }
-  | { kind: 'bollard'; x: number }
+  /** bitte du quai ou du catway, en repère monde */
+  | { kind: 'bollard'; p: Vec }
   | { kind: 'none' };
 
 interface Props {
@@ -14,12 +15,14 @@ interface Props {
   ghost: Body | null;
   debug: boolean;
   bollards: Vec[];
+  /** bittes dessinées mais jamais proposées (celles de l'autre catway) */
+  otherBollards: Vec[];
   edition: EditionView | null;
   onPick: (p: Pick) => void;
   /** Début d'un glisser du bateau pendant l'édition. */
   onDragStart: () => void;
-  /** Glisser en cours : déplacement du doigt le long du quai depuis le début du geste (m). */
-  onDrag: (dx: number) => void;
+  /** Glisser en cours : déplacement du doigt depuis le début du geste, en repère monde (m). */
+  onDrag: (dx: number, dy: number) => void;
 }
 
 /** Au-delà de ce déplacement du doigt (px), un toucher devient un glisser. */
@@ -52,7 +55,7 @@ function onHull(body: Body, w: Vec): boolean {
 }
 
 /** Toile de la scène : redessinée à chaque rendu, à chaque redimensionnement et à chaque changement de thème. */
-export function Scene({ state, ghost, debug, bollards, edition, onPick, onDragStart, onDrag }: Props) {
+export function Scene({ state, ghost, debug, bollards, otherBollards, edition, onPick, onDragStart, onDrag }: Props) {
   const ref = useRef<HTMLCanvasElement>(null);
   const gesture = useRef<Gesture | null>(null);
   const [dragging, setDragging] = useState(false);
@@ -93,12 +96,13 @@ export function Scene({ state, ghost, debug, bollards, edition, onPick, onDragSt
       ghost,
       debug,
       bollards,
+      otherBollards,
       edition,
     });
   });
 
   // Toucher pendant l'édition : un toucher bref choisit la cible la plus proche dans le rayon
-  // tactile (taquet ou bitte) ; un glisser commencé sur le bateau le déplace le long du quai.
+  // tactile (taquet ou bitte) ; un glisser commencé sur le bateau le déplace le long du quai ou du catway.
   const onPointerDown = (e: PointerEvent<HTMLCanvasElement>) => {
     if (!edition) return;
     const r = e.currentTarget.getBoundingClientRect();
@@ -113,7 +117,7 @@ export function Scene({ state, ghost, debug, bollards, edition, onPick, onDragSt
     }
     for (const b of bollards) {
       const d = Math.hypot(cam.X(b[0]) - px, cam.Y(b[1]) - py);
-      if (d < bestD) { bestD = d; best = { kind: 'bollard', x: b[0] }; }
+      if (d < bestD) { bestD = d; best = { kind: 'bollard', p: b }; }
     }
     const boat = best.kind === 'cleat' || (best.kind === 'none' && onHull(state.body, cam.toWorld(px, py)));
     gesture.current = { pointer: e.pointerId, px, py, pick: best, onBoat: boat, moved: false, dragging: false };
@@ -134,7 +138,10 @@ export function Scene({ state, ghost, debug, bollards, edition, onPick, onDragSt
       }
     }
     // Le déplacement est mesuré depuis le début du geste : la position visée ne dérive pas.
-    if (g.dragging) onDrag((px - g.px) / camera(state, r.width, r.height).sc);
+    if (g.dragging) {
+      const sc = camera(state, r.width, r.height).sc;
+      onDrag((px - g.px) / sc, -(py - g.py) / sc);
+    }
   };
 
   const endGesture = (e: PointerEvent<HTMLCanvasElement>, cancelled: boolean) => {
@@ -151,7 +158,7 @@ export function Scene({ state, ghost, debug, bollards, edition, onPick, onDragSt
       onPointerUp={(e) => endGesture(e, false)} onPointerCancel={(e) => endGesture(e, true)}
       className={edition ? (dragging ? 'editing dragging' : 'editing') : undefined}
       aria-label={edition
-        ? 'Vue de dessus du bateau amarré au quai. Touchez un taquet du bateau, puis une bitte du quai, pour ajouter une aussière. Faites glisser le bateau pour le déplacer le long du quai.'
-        : 'Vue de dessus du bateau amarré au quai'} />
+        ? `Vue de dessus du bateau amarré ${state.catways.length ? 'le long d’un catway' : 'au quai'}. Touchez un taquet du bateau, puis une bitte du quai${state.catways.length ? ' ou du catway' : ''}, pour ajouter une aussière. Faites glisser le bateau pour le déplacer le long du ${state.catways.length ? 'catway' : 'quai'}.`
+        : `Vue de dessus du bateau amarré ${state.catways.length ? 'le long d’un catway' : 'au quai'}`} />
   );
 }

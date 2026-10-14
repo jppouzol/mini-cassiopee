@@ -1,0 +1,15 @@
+{
+  "format": 1,
+  "id": "catway-sortie-arriere",
+  "titre": "Sur catway : sortie en marche arrière",
+  "description": "Étrave au quai, bâbord le long du catway. Larguez les aussières, puis marche arrière : le bateau recule le long du catway vers le chenal. La barre n'agit qu'une fois le bateau lancé.",
+  "quai": { "type": "perpendiculaire" },
+  "bateau": { "x": 6, "distanceQuai": 0.3, "bordAuQuai": "babord", "boutAuQuai": "etrave" },
+  "aussieres": [
+    { "id": "pointe-av", "taquet": "etrave", "sur": "quai", "bitte": 2, "mou": 0 },
+    { "id": "pointe-av-large", "taquet": "etrave-large", "sur": "quai", "bitte": -2, "mou": 0 },
+    { "id": "garde-av", "taquet": "etrave", "bitte": 2.7, "mou": 0 },
+    { "id": "garde-ar", "taquet": "arriere", "bitte": -0.4, "mou": 0 }
+  ],
+  "vent": { "direction": "catway", "force": "aucun" }
+}

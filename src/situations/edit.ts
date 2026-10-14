@@ -2,15 +2,21 @@
 // Fonctions pures : chacune renvoie une nouvelle situation, ou lève une
 // EditionError au message lisible. Aucune dépendance au navigateur.
 
-import { HALF_BEAM, cleatPosition } from '../sim/geometry.ts';
-import { BOLLARD_SETBACK, bitteDepuisMonde, bitteVersMonde, bowSign, surLaRangee } from './quai.ts';
+import { HALF_LENGTH, cleatPosition } from '../sim/geometry.ts';
+import {
+  ECART_QUAI_MIN, bitteDepuisSupport, bitteRepereBateau, bitteVersSupport, bowSign, perpendiculaire, quaySide, surLaRangee,
+  type Placement,
+} from './quai.ts';
 import {
   ECART_VOISIN_MIN, PLAFOND_DEFAUT, PLAFOND_MAX, plafond,
   type Cleat, type CoteVoisin, type Situation, type SituationLine,
 } from './schema.ts';
 
-/** Taquets proposés dans l'éditeur (le maître-bau viendra plus tard). */
-export const TAQUETS_EDITABLES: readonly Cleat[] = ['etrave', 'arriere'];
+/**
+ * Taquets proposés dans l'éditeur, quelle que soit la situation : deux à l'étrave et
+ * deux à l'arrière, côté support et côté large (le maître-bau viendra plus tard).
+ */
+export const TAQUETS_EDITABLES: readonly Cleat[] = ['etrave', 'etrave-large', 'arriere', 'arriere-large'];
 
 /** Taquets proposés, avec leur position en repère bateau selon le bord au quai. */
 export function taquetsProposes(sit: Pick<Situation, 'bateau'>): { name: Cleat; pos: [number, number] }[] {
@@ -28,14 +34,16 @@ export class EditionError extends Error {}
 
 /**
  * Nom déduit de la géométrie au départ, sans numéro.
- * Le calcul se fait en repère bateau (le long du bateau et vers le quai) :
- * il ne dépend donc pas du bord au quai.
+ * Le calcul se fait en repère bateau (le long du bateau et vers le support) :
+ * il ne dépend donc pas du bord au quai. En perpendiculaire, il s'applique tel
+ * quel aux bittes du catway et à celles du quai.
  */
-export function nomDeduit(sit: Pick<Situation, 'bateau'>, a: Pick<SituationLine, 'taquet' | 'bitte'>): string {
+export function nomDeduit(sit: Placement, a: Pick<SituationLine, 'taquet' | 'bitte' | 'sur'>): string {
   const [xc, yc] = cleatPosition(a.taquet, 1);
-  // Écart le long du bateau (positif vers l'avant) et écart vers le quai, du taquet à la bitte.
-  const along = a.bitte - xc;
-  const across = BOLLARD_SETBACK + HALF_BEAM + sit.bateau.distanceQuai - yc;
+  const [xb, yb] = bitteRepereBateau(sit, a);
+  // Écart le long du bateau (positif vers l'avant) et écart vers le support, du taquet à la bitte.
+  const along = xb - xc;
+  const across = yb - yc;
   const angle = (Math.atan2(Math.abs(along), Math.abs(across)) * 180) / Math.PI;
   const avant = xc > 0;
   const bout = a.taquet === 'maitre-bau' ? 'au maître-bau' : avant ? 'avant' : 'arrière';
@@ -46,29 +54,51 @@ export function nomDeduit(sit: Pick<Situation, 'bateau'>, a: Pick<SituationLine,
   return `${pointe ? 'Pointe' : 'Garde'} ${bout}`;
 }
 
+/** Bord d'une aussière : celui de son taquet, bâbord ou tribord. */
+export function bordAussiere(sit: Placement, a: Pick<SituationLine, 'taquet'>): 'bâbord' | 'tribord' {
+  // Côté du taquet dans le repère du bateau tourné vers le support : +1 vers le support, -1 vers le large.
+  const cote = Math.sign(cleatPosition(a.taquet, 1)[1]);
+  return cote * quaySide(sit) > 0 ? 'bâbord' : 'tribord';
+}
+
 /**
  * Noms affichés de toutes les aussières, dans l'ordre de la situation.
- * Un nom choisi est gardé tel quel ; les noms déduits identiques sont numérotés.
+ * Un nom choisi est gardé tel quel. Des noms déduits identiques sont départagés par
+ * leur bord quand chacune est sur un bord différent (« Pointe arrière bâbord » et
+ * « Pointe arrière tribord ») ; sinon, ils sont numérotés.
  */
-export function nomsAffiches(sit: Pick<Situation, 'bateau' | 'aussieres'>): string[] {
+export function nomsAffiches(sit: Pick<Situation, 'quai' | 'bateau' | 'aussieres'>): string[] {
   const deduits = sit.aussieres.map((a) => (a.nom ? null : nomDeduit(sit, a)));
-  const total = new Map<string, number>();
-  for (const n of deduits) if (n) total.set(n, (total.get(n) ?? 0) + 1);
+  const bords = sit.aussieres.map((a) => bordAussiere(sit, a));
+  const groupes = new Map<string, number[]>();
+  deduits.forEach((n, i) => { if (n) groupes.set(n, [...(groupes.get(n) ?? []), i]); });
+  const parBord = new Set<string>();
+  for (const [n, idx] of groupes) {
+    const b = idx.map((i) => bords[i]);
+    if (idx.length > 1 && new Set(b).size === b.length) parBord.add(n);
+  }
   const vus = new Map<string, number>();
   return sit.aussieres.map((a, i) => {
     const n = deduits[i];
     if (!n) return a.nom as string;
-    if ((total.get(n) ?? 0) < 2) return n;
+    if ((groupes.get(n)?.length ?? 0) < 2) return n;
+    if (parBord.has(n)) return `${n} ${bords[i]}`;
     const k = (vus.get(n) ?? 0) + 1;
     vus.set(n, k);
     return `${n} ${k}`;
   });
 }
 
-/** Ajoute une aussière tendue entre un taquet et une bitte (position relative au bateau). */
-export function ajouterAussiere(sit: Situation, taquet: Cleat, bitte: number): Situation {
-  if (!surLaRangee(sit, bitte)) throw new EditionError('Cette position ne correspond à aucune bitte du quai.');
-  if (sit.aussieres.some((a) => a.taquet === taquet && a.bitte === bitte)) {
+/**
+ * Ajoute une aussière tendue entre un taquet et une bitte (position relative au bateau ;
+ * en perpendiculaire, `sur` = 'quai' désigne une bitte du quai plutôt que du catway).
+ */
+export function ajouterAussiere(sit: Situation, taquet: Cleat, bitte: number, sur?: 'quai'): Situation {
+  if (sur && !perpendiculaire(sit)) throw new EditionError('Cette position ne correspond à aucune bitte du quai.');
+  if (!surLaRangee(sit, { bitte, sur })) {
+    throw new EditionError(`Cette position ne correspond à aucune bitte du ${perpendiculaire(sit) && !sur ? 'catway' : 'quai'}.`);
+  }
+  if (sit.aussieres.some((a) => a.taquet === taquet && a.bitte === bitte && a.sur === sur)) {
     throw new EditionError('Une aussière relie déjà ce taquet à cette bitte.');
   }
   const max = plafond(sit);
@@ -77,7 +107,9 @@ export function ajouterAussiere(sit: Situation, taquet: Cleat, bitte: number): S
   }
   let n = sit.aussieres.length + 1;
   while (sit.aussieres.some((a) => a.id === `aussiere-${n}`)) n++;
-  return { ...sit, aussieres: [...sit.aussieres, { id: `aussiere-${n}`, taquet, bitte, mou: 0 }] };
+  const nouvelle: SituationLine = { id: `aussiere-${n}`, taquet, bitte, mou: 0 };
+  if (sur) nouvelle.sur = sur;
+  return { ...sit, aussieres: [...sit.aussieres, nouvelle] };
 }
 
 export function supprimerAussiere(sit: Situation, id: string): Situation {
@@ -117,20 +149,21 @@ export function reglerPlafond(sit: Situation, valeur: number): Situation {
   return { ...sit, plafondAussieres: p };
 }
 
-/** Pas du déplacement du bateau le long du quai (m). */
+/** Pas du déplacement du bateau le long du quai ou du catway (m). */
 export const PAS_DEPLACEMENT = 0.5;
 /** Écart maximal du bateau à sa position d'origine (m) : il reste entier à l'écran sans bouger la caméra. */
 export const DEPLACEMENT_MAX = 4;
 
 /** Avance du bateau depuis sa position d'origine, comptée vers l'étrave (m). */
-function avance(sit: Pick<Situation, 'bateau'>, origine: Pick<Situation, 'bateau'>): number {
+function avance(sit: Placement, origine: Pick<Situation, 'bateau'>): number {
   return bowSign(sit) * (sit.bateau.x - origine.bateau.x);
 }
 
 /**
- * Positions extrêmes (x monde) où l'élève peut placer le bateau : au plus
- * DEPLACEMENT_MAX de sa position d'origine, et sans s'approcher d'un voisin à
- * moins de ECART_VOISIN_MIN. Bornes alignées sur le pas de déplacement.
+ * Positions extrêmes (le long du support) où l'élève peut placer le bateau : au plus
+ * DEPLACEMENT_MAX de sa position d'origine, sans s'approcher d'un voisin à moins de
+ * ECART_VOISIN_MIN, ni, en perpendiculaire, du quai à moins de ECART_QUAI_MIN.
+ * Bornes alignées sur le pas de déplacement.
  */
 export function bornesDeplacement(sit: Situation, origine: Pick<Situation, 'bateau'>): [number, number] {
   const x0 = origine.bateau.x;
@@ -143,6 +176,8 @@ export function bornesDeplacement(sit: Situation, origine: Pick<Situation, 'bate
   const versMoins = sens === 1 ? versArriere : versAvant;
   hi = Math.min(hi, sit.bateau.x + versPlus);
   lo = Math.max(lo, sit.bateau.x - versMoins);
+  // En perpendiculaire, la position est comptée depuis le bord du quai : le bout du bateau s'arrête avant.
+  if (perpendiculaire(sit)) lo = Math.max(lo, HALF_LENGTH + ECART_QUAI_MIN);
   const e = 1e-9;
   return [
     arrondi(x0 + Math.ceil((lo - x0) / PAS_DEPLACEMENT - e) * PAS_DEPLACEMENT),
@@ -151,13 +186,15 @@ export function bornesDeplacement(sit: Situation, origine: Pick<Situation, 'bate
 }
 
 /**
- * Place le bateau à l'abscisse `x` le long du quai, arrondie au pas et bornée
- * autour de sa position dans la situation d'origine et par les voisins (voir
- * bornesDeplacement). Les aussières restent tournées sur leurs bittes, comme
- * les fils punaisés quand on fait glisser le tissu : leur position relative au
- * bateau est recalculée, leur longueur et leur nom déduit suivent. Les voisins
- * restent en place, comme d'autres bouts de tissu sur la table : leur écart
- * change. Renvoie la même situation si la position ne change pas.
+ * Place le bateau à la position `x` le long du support (quai ou catway), arrondie
+ * au pas et bornée autour de sa position dans la situation d'origine, par les
+ * voisins et par le quai (voir bornesDeplacement). Les aussières restent tournées
+ * sur leurs bittes, comme les fils punaisés quand on fait glisser le tissu : leur
+ * position relative au bateau est recalculée, leur longueur et leur nom déduit
+ * suivent. En perpendiculaire, l'axe du bateau ne bouge pas le long du quai : les
+ * bittes du quai gardent leur position relative. Les voisins restent en place,
+ * comme d'autres bouts de tissu sur la table : leur écart change. Renvoie la même
+ * situation si la position ne change pas.
  */
 export function deplacerBateau(sit: Situation, origine: Pick<Situation, 'bateau'>, x: number): Situation {
   const x0 = origine.bateau.x;
@@ -169,7 +206,9 @@ export function deplacerBateau(sit: Situation, origine: Pick<Situation, 'bateau'
   const next: Situation = {
     ...sit,
     bateau,
-    aussieres: sit.aussieres.map((a) => ({ ...a, bitte: bitteDepuisMonde({ bateau }, bitteVersMonde(sit, a.bitte)) })),
+    aussieres: sit.aussieres.map((a) => (a.sur === 'quai'
+      ? a
+      : { ...a, bitte: bitteDepuisSupport({ ...sit, bateau }, bitteVersSupport(sit, a.bitte)) })),
   };
   if (sit.voisins) {
     const d = bowSign(sit) * (nx - sit.bateau.x);
@@ -200,6 +239,7 @@ export function ecartVoisin(sit: Situation, origine: Pick<Situation, 'bateau'>, 
  * ou le retire (null). Refusé si le bateau, déplacé, est trop près de cette place.
  */
 export function reglerVoisin(sit: Situation, origine: Pick<Situation, 'bateau'>, cote: CoteVoisin, ecart: number | null): Situation {
+  if (perpendiculaire(sit)) throw new EditionError('Les voisins ne sont proposés que le long du quai.');
   const { voisins: anciens, ...reste } = sit;
   const voisins: Partial<Record<CoteVoisin, number>> = { ...anciens };
   if (ecart === null) {
