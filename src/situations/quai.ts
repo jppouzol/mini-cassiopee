@@ -214,6 +214,31 @@ export function xVoisin(sit: Placement, cote: 'avant' | 'arriere', ecart: number
   return sit.bateau.x + bowSign(sit) * sens * (2 * HALF_LENGTH + ecart);
 }
 
+/**
+ * En perpendiculaire, écart entre la coque du bateau et celle d'un voisin côté large,
+ * amarré contre le second catway au même écart que le bateau contre le sien (m).
+ * Les deux places se partagent l'intervalle entre les catways.
+ */
+export function ecartVoisinLarge(sit: Placement): number {
+  return arrondi(ECART_CATWAYS - 2 * (sit.bateau.distanceQuai + 2 * HALF_BEAM));
+}
+
+/**
+ * Position et cap d'un voisin. Le long du quai (avant, arriere) : même coque, même cap
+ * et même écart au quai que le bateau, à l'écart donné de son étrave ou de son tableau.
+ * En perpendiculaire (catway, large) : étrave au quai, à la distance donnée du bord du
+ * quai, et au même écart de son catway que le bateau du sien ; côté catway, de l'autre
+ * flanc du catway du bateau ; côté large, contre le second catway.
+ */
+export function poseVoisin(sit: Placement, cote: 'avant' | 'arriere' | 'catway' | 'large', valeur: number): { x: number; y: number; th: number } {
+  if (cote === 'avant' || cote === 'arriere') return { x: xVoisin(sit, cote, valeur), y: poseDepart(sit).y, th: cap(sit) };
+  const recul = DEMI_LARGEUR_CATWAY + sit.bateau.distanceQuai + HALF_BEAM;
+  const x = cote === 'catway'
+    ? X_CATWAY - (xAxe(sit) - X_CATWAY)
+    : axesCatways(sit)[1] + versCatway(sit) * recul;
+  return { x: arrondi(x), y: -(valeur + HALF_LENGTH), th: Math.PI / 2 };
+}
+
 /** Arrondi au centimètre, pour des valeurs lisibles dans les situations. */
 function arrondi(v: number): number {
   return Math.round(v * 100) / 100 + 0;

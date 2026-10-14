@@ -1,7 +1,9 @@
 // Format des situations (version 1). Un fichier JSON par situation du catalogue ;
 // l'éditeur produit le même format.
 
-import { BOLLARD_SPACING, ECART_QUAI_MIN, LONGUEUR_CATWAY, surLaRangee, type BoutAuQuai, type TypeQuai } from './quai.ts';
+import {
+  BOLLARD_SPACING, ECART_QUAI_MIN, LONGUEUR_CATWAY, ecartVoisinLarge, surLaRangee, type BoutAuQuai, type TypeQuai,
+} from './quai.ts';
 import { HALF_LENGTH } from '../sim/geometry.ts';
 
 /** Directions du vent le long du quai : du quai, du large, de l'avant ou de l'arrière du bateau. */
@@ -33,10 +35,27 @@ export type Cleat = (typeof CLEATS)[number];
 
 /** Côtés du bateau où l'on peut placer un voisin, le long du quai. */
 export const COTES_VOISIN = ['avant', 'arriere'] as const;
-export type CoteVoisin = (typeof COTES_VOISIN)[number];
+/**
+ * Côtés du bateau où l'on peut placer un voisin en perpendiculaire : de l'autre flanc
+ * du catway du bateau, et côté large, contre le second catway.
+ */
+export const COTES_VOISIN_CATWAY = ['catway', 'large'] as const;
+export type CoteVoisin = (typeof COTES_VOISIN)[number] | (typeof COTES_VOISIN_CATWAY)[number];
 /** Écart minimal et maximal entre le bateau et un voisin au départ (m). */
 export const ECART_VOISIN_MIN = 0.5;
 export const ECART_VOISIN_MAX = 20;
+/** En perpendiculaire, distance maximale entre l'étrave d'un voisin et le bord du quai (m). */
+export const ETRAVE_VOISIN_MAX = 5;
+
+/** Côtés où l'on peut placer un voisin selon le type de quai. */
+export function cotesVoisin(type: TypeQuai): readonly CoteVoisin[] {
+  return type === 'perpendiculaire' ? COTES_VOISIN_CATWAY : COTES_VOISIN;
+}
+
+/** Libellé d'un côté de voisin dans les messages. */
+const NOM_COTE: Record<CoteVoisin, string> = {
+  avant: 'avant', arriere: 'arrière', catway: 'côté catway', large: 'côté large',
+};
 
 /** Plafond d'aussières par défaut, et bornes de son réglage. */
 export const PLAFOND_DEFAUT = 6;
@@ -91,9 +110,11 @@ export interface Situation {
   plafondAussieres?: number;
   vent: { direction: WindDirection; force: (typeof WIND_FORCES)[number] };
   /**
-   * bateaux voisins, amarrés le long du même quai : écart (m) entre l'étrave
-   * (avant) ou le tableau arrière (arriere) du bateau au départ et le voisin ;
-   * un côté absent n'a pas de voisin
+   * bateaux voisins ; un côté absent n'a pas de voisin. Le long du quai, amarrés
+   * le long du même quai : écart (m) entre l'étrave (avant) ou le tableau arrière
+   * (arriere) du bateau au départ et le voisin. En perpendiculaire, de l'autre
+   * flanc du catway (catway) ou contre le second catway (large), étrave au quai :
+   * distance (m) entre l'étrave du voisin et le bord du quai.
    */
   voisins?: Partial<Record<CoteVoisin, number>>;
 }
@@ -215,14 +236,21 @@ export function parseSituation(input: unknown): Situation {
 
   if (input.voisins !== undefined) {
     const v = input.voisins;
-    if (perp) throw new SituationError(`${id} : les voisins ne sont proposés que le long du quai.`);
-    if (!isObj(v)) throw new SituationError(`${id} : « voisins » doit être un objet ({ "avant": écart, "arriere": écart }).`);
+    const forme = perp ? '{ "catway": distance, "large": distance }' : '{ "avant": écart, "arriere": écart }';
+    if (!isObj(v)) throw new SituationError(`${id} : « voisins » doit être un objet (${forme}).`);
     const voisins: Partial<Record<CoteVoisin, number>> = {};
     for (const k of Object.keys(v)) {
-      const cote = oneOf(k, COTES_VOISIN, `${id} : chaque côté de « voisins »`);
+      const cote = oneOf(k, cotesVoisin(type), `${id} : chaque côté de « voisins »`);
       const e = v[k];
-      if (!isNum(e) || e < ECART_VOISIN_MIN || e > ECART_VOISIN_MAX) {
-        throw new SituationError(`${id} : l'écart du voisin ${cote === 'avant' ? 'avant' : 'arrière'} doit être un nombre de ${ECART_VOISIN_MIN} à ${ECART_VOISIN_MAX} m.`);
+      if (perp) {
+        if (!isNum(e) || e < ECART_QUAI_MIN || e > ETRAVE_VOISIN_MAX) {
+          throw new SituationError(`${id} : l'étrave du voisin ${NOM_COTE[cote]} doit être à ${ECART_QUAI_MIN} à ${ETRAVE_VOISIN_MAX} m du quai.`);
+        }
+        if (cote === 'large' && ecartVoisinLarge(sit) < ECART_VOISIN_MIN) {
+          throw new SituationError(`${id} : le bateau est trop loin de son catway pour un voisin côté large.`);
+        }
+      } else if (!isNum(e) || e < ECART_VOISIN_MIN || e > ECART_VOISIN_MAX) {
+        throw new SituationError(`${id} : l'écart du voisin ${NOM_COTE[cote]} doit être un nombre de ${ECART_VOISIN_MIN} à ${ECART_VOISIN_MAX} m.`);
       }
       voisins[cote] = e;
     }

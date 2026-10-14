@@ -52,19 +52,19 @@ La scène se compose d'un seul bateau, d'un quai, d'aussières et du vent. Chaqu
 ### Quai et environnement
 
 - Amarrage le long du quai (long side) ou perpendiculaire au quai, le long d'un catway. Le type d'amarrage est fixé par la situation du catalogue ; l'éditeur ne le change pas.
-- Option : bateaux voisins de part et d'autre, pour tester les points de pivot et les risques de contact. Le long du quai, un voisin peut être amarré devant, un autre derrière, chacun réglé à part : aucun, serré ou large. Ils ont la même coque, le même cap et le même écart au quai que le bateau, et restent immobiles. Sans voisin, rien ne change.
+- Option : bateaux voisins de part et d'autre, pour tester les points de pivot et les risques de contact. Le long du quai, un voisin peut être amarré devant, un autre derrière, chacun réglé à part : aucun, serré ou large. Ils ont la même coque, le même cap et le même écart au quai que le bateau, et restent immobiles. En perpendiculaire, voir ci-dessous. Sans voisin, rien ne change.
 - Points d'amarrage côté quai : une rangée de bittes fixes, espacées de 2 m, sur toute la longueur du quai, comme sur un vrai quai. Les aussières du catalogue comme celles ajoutées dans l'éditeur sont tournées sur ces bittes, ou sur celles du catway ; on ne crée pas de point d'amarrage ailleurs.
 
 #### Amarrage perpendiculaire
 
 - **Catway** : petit ponton perpendiculaire au quai, long des 2/3 du bateau. Sa longueur n'est pas réglable à ce stade.
-- **Second catway** : côté large, à 8 m de bord à bord du premier, il encadre avec lui deux places côte à côte, comme dans un port. Il est dessiné vide (pas de bateau dessus) ; s'il est touché, il arrête le bateau comme le premier.
+- **Second catway** : côté large, à 8 m de bord à bord du premier, il encadre avec lui deux places côte à côte, comme dans un port. Il est dessiné vide, sauf voisin côté large ; s'il est touché, il arrête le bateau comme le premier.
 - **Sens** : le bateau a l'étrave ou l'arrière au quai, et son flanc bâbord ou tribord le long du catway, selon la situation. Son autre bout dépasse du catway, côté chenal.
 - **Bittes du catway** : deux sur l'axe de chaque catway, l'une au milieu, l'autre près du bout. Seules celles du catway du bateau reçoivent des aussières ; celles du second catway servent à la place voisine.
 - **Bittes du quai** : une dans l'alignement de chaque bord de catway, puis tous les 2 m, entre les catways comme au-delà. On peut y tourner une aussière depuis le bout du bateau qui fait face au quai.
 - **Contact** : le catway arrête le bateau comme le quai et peut lui servir d'appui ; le bout du bateau peut aussi venir toucher le quai.
 - **Repères du port** : le catway est d'un côté du bateau, le large de l'autre ; le quai est à un bout, le chenal à l'autre.
-- Les bateaux voisins ne sont pas proposés en perpendiculaire à ce stade.
+- **Voisins** : deux places voisines, chacune occupée ou non, réglées à part. **Côté catway**, le voisin est amarré de l'autre flanc du catway du bateau, qui sépare les deux coques. **Côté large**, il occupe la seconde place entre les deux catways, contre le second catway : rien ne sépare les coques, à 0,6 m l'une de l'autre. Chaque voisin a la même coque que le bateau, le même écart à son catway, l'étrave au quai quel que soit le bout au quai du bateau (tête-bêche si le bateau a l'arrière au quai) et son bout côté quai aligné sur celui du bateau dans la situation d'origine. Il reste immobile et se comporte comme le long du quai : il arrête le bateau, peut lui servir d'appui, et le contact est signalé de même.
 
 ### Aussières
 
@@ -154,7 +154,8 @@ Chaque situation définit : la configuration du quai (le long ou perpendiculaire
 - départ sur garde avant entre deux bateaux serrés : sans garde, la barre ne suffit pas à déborder l'étrave, qui vient toucher le voisin de devant ;
 - sur catway, arrière au quai, vent soutenu du catway, sans commande : vérification d'amarrage, l'avant qui dépasse du catway est le plus exposé ;
 - sur catway, étrave au quai : sortie en marche arrière ;
-- sur catway, arrière au quai : sortie en marche avant.
+- sur catway, arrière au quai : sortie en marche avant ;
+- sur catway, étrave au quai, voisin côté large, vent soutenu du catway et du quai : tout largué, la sortie en marche arrière pousse le bateau sur le voisin ; en larguant les pointes et en reculant sur les deux gardes du catway, l'arrière remonte au vent, puis le bateau sort sans contact une fois les gardes larguées.
 
 Sur catway, le bout au quai porte deux pointes, une vers chaque bord, en plus des gardes tournées sur le catway. Comme sur un vrai bateau, chaque aussière du catalogue part vers l'extérieur du bateau, du bord de son taquet : sa bitte est plus écartée de l'axe que le taquet, et les deux pointes s'ouvrent en V.
 
@@ -191,9 +192,9 @@ L'éditeur agit pendant la préparation, c'est-à-dire tant que la simulation es
 
 #### Bateaux voisins
 
-- **Réglage** : dans les options avancées, « Voisin devant » et « Voisin derrière » valent chacun aucun, serré ou large. L'écart se compte depuis la place d'origine du bateau ; aucune valeur chiffrée n'est affichée.
-- **Place** : un voisin est refusé, avec un message, si le bateau, déplacé, est trop près de la place qu'il occuperait.
-- Le réglage des voisins n'est proposé que le long du quai.
+- **Réglage le long du quai** : dans les options avancées, « Voisin devant » et « Voisin derrière » valent chacun aucun, serré ou large. L'écart se compte depuis la place d'origine du bateau ; aucune valeur chiffrée n'est affichée.
+- **Réglage en perpendiculaire** : « Voisin côté catway » et « Voisin côté large » valent chacun aucun ou présent ; leur place découle des catways.
+- **Place** : le long du quai, un voisin est refusé, avec un message, si le bateau, déplacé, est trop près de la place qu'il occuperait. En perpendiculaire, glisser le bateau le long du catway ne le rapproche pas des voisins : leur réglage ne limite pas le déplacement.
 - Comme le reste de la situation, les voisins se règlent en préparation ; « Situation d'origine » les remet comme dans le catalogue.
 
 #### Situation préparée et situation d'origine
@@ -221,7 +222,7 @@ Aucune sauvegarde ni partage de situation n'est prévu à ce stade : la situatio
 
 ## Évolutions
 
-Le socle est livré : amarrage le long du quai, aussières fixes, moteur avant, neutre et arrière, largage individuel, barre, vent faible ou soutenu, tension des aussières et point de pivot, pause, pas à pas et retour arrière, catalogue et éditeur. Depuis, l'élève peut aussi choquer une aussière, placer des bateaux voisins devant et derrière, et manœuvrer un bateau amarré perpendiculaire au quai, le long d'un catway.
+Le socle est livré : amarrage le long du quai, aussières fixes, moteur avant, neutre et arrière, largage individuel, barre, vent faible ou soutenu, tension des aussières et point de pivot, pause, pas à pas et retour arrière, catalogue et éditeur. Depuis, l'élève peut aussi choquer une aussière, placer des bateaux voisins devant et derrière, et manœuvrer un bateau amarré perpendiculaire au quai, le long d'un catway, avec ses voisins de part et d'autre.
 
 Le projet s'enrichit ensuite progressivement, une fonctionnalité à la fois, sans paliers ni jalons : l'ordre suit les envies et les retours des élèves. Le backlog est tenu dans les issues GitHub du dépôt ; chaque issue devient une branche et une demande de fusion, qui met à jour ce document si elle change le périmètre.
 
@@ -231,7 +232,6 @@ Enrichissements envisagés, chacun optionnel et sans effet sur le comportement d
 - mono ou bi-safran ;
 - pivot du vent sur l'étrave (fardage) ;
 - longueur de catway réglable ;
-- bateaux voisins en amarrage perpendiculaire ;
 - taquet au maître-bau ;
 - reprendre une aussière pendant la manœuvre ;
 - freiner une aussière qu'on choque ;

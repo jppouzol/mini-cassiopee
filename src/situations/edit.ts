@@ -4,11 +4,12 @@
 
 import { HALF_LENGTH, cleatPosition } from '../sim/geometry.ts';
 import {
-  ECART_QUAI_MIN, bitteDepuisSupport, bitteRepereBateau, bitteVersSupport, bowSign, perpendiculaire, quaySide, surLaRangee,
+  ECART_QUAI_MIN, bitteDepuisSupport, bitteRepereBateau, bitteVersSupport, bowSign, ecartVoisinLarge, perpendiculaire,
+  quaySide, surLaRangee,
   type Placement,
 } from './quai.ts';
 import {
-  ECART_VOISIN_MIN, PLAFOND_DEFAUT, PLAFOND_MAX, plafond,
+  ECART_VOISIN_MIN, PLAFOND_DEFAUT, PLAFOND_MAX, cotesVoisin, plafond,
   type Cleat, type CoteVoisin, type Situation, type SituationLine,
 } from './schema.ts';
 
@@ -193,8 +194,9 @@ export function bornesDeplacement(sit: Situation, origine: Pick<Situation, 'bate
  * position relative au bateau est recalculée, leur longueur et leur nom déduit
  * suivent. En perpendiculaire, l'axe du bateau ne bouge pas le long du quai : les
  * bittes du quai gardent leur position relative. Les voisins restent en place,
- * comme d'autres bouts de tissu sur la table : leur écart change. Renvoie la même
- * situation si la position ne change pas.
+ * comme d'autres bouts de tissu sur la table : le long du quai, leur écart change ;
+ * en perpendiculaire, leur distance au quai ne dépend pas du bateau et ne change
+ * pas. Renvoie la même situation si la position ne change pas.
  */
 export function deplacerBateau(sit: Situation, origine: Pick<Situation, 'bateau'>, x: number): Situation {
   const x0 = origine.bateau.x;
@@ -210,7 +212,7 @@ export function deplacerBateau(sit: Situation, origine: Pick<Situation, 'bateau'
       ? a
       : { ...a, bitte: bitteDepuisSupport({ ...sit, bateau }, bitteVersSupport(sit, a.bitte)) })),
   };
-  if (sit.voisins) {
+  if (sit.voisins && !perpendiculaire(sit)) {
     const d = bowSign(sit) * (nx - sit.bateau.x);
     const v: Partial<Record<CoteVoisin, number>> = {};
     if (sit.voisins.avant !== undefined) v.avant = arrondi(sit.voisins.avant - d);
@@ -220,30 +222,54 @@ export function deplacerBateau(sit: Situation, origine: Pick<Situation, 'bateau'
   return next;
 }
 
-/** Écarts proposés pour un voisin dans l'éditeur (m) : serré et large. */
+/** Écarts proposés pour un voisin dans l'éditeur, le long du quai (m) : serré et large. */
 export const ECARTS_VOISIN = { serre: 1, large: 3 } as const;
 
 /**
- * Écart d'un voisin mesuré depuis la place d'origine du bateau, ou null sans
- * voisin de ce côté. C'est la valeur que règle l'éditeur : elle ne change pas
- * quand on fait glisser le bateau.
+ * En perpendiculaire, distance au quai de l'étrave d'un voisin placé dans l'éditeur :
+ * celle du bout du bateau tourné vers le quai, dans la situation d'origine, si bien
+ * que les deux coques sont alignées au départ.
+ */
+export function etraveVoisinCatway(origine: Pick<Situation, 'bateau'>): number {
+  return arrondi(origine.bateau.x - HALF_LENGTH);
+}
+
+/**
+ * Réglage d'un voisin dans l'éditeur, ou null sans voisin de ce côté. Le long du
+ * quai, c'est l'écart mesuré depuis la place d'origine du bateau : il ne change pas
+ * quand on fait glisser le bateau. En perpendiculaire, c'est la distance de l'étrave
+ * du voisin au quai, qui ne dépend pas du bateau.
  */
 export function ecartVoisin(sit: Situation, origine: Pick<Situation, 'bateau'>, cote: CoteVoisin): number | null {
   const e = sit.voisins?.[cote];
   if (e === undefined) return null;
+  if (cote === 'catway' || cote === 'large') return e;
   return arrondi(e + (cote === 'avant' ? 1 : -1) * avance(sit, origine));
 }
 
 /**
- * Place un voisin d'un côté, à l'écart donné de la place d'origine du bateau,
- * ou le retire (null). Refusé si le bateau, déplacé, est trop près de cette place.
+ * Place un voisin d'un côté, ou le retire (null). Le long du quai, `ecart` est compté
+ * depuis la place d'origine du bateau, et le voisin est refusé si le bateau, déplacé,
+ * est trop près de cette place. En perpendiculaire, `ecart` est la distance de l'étrave
+ * du voisin au quai (voir etraveVoisinCatway), et un voisin côté large est refusé si
+ * le bateau est trop loin de son catway pour lui laisser la place.
  */
 export function reglerVoisin(sit: Situation, origine: Pick<Situation, 'bateau'>, cote: CoteVoisin, ecart: number | null): Situation {
-  if (perpendiculaire(sit)) throw new EditionError('Les voisins ne sont proposés que le long du quai.');
+  const perp = perpendiculaire(sit);
+  if (!cotesVoisin(sit.quai.type).includes(cote)) {
+    throw new EditionError(perp
+      ? 'Sur catway, les voisins se placent côté catway ou côté large.'
+      : 'Le long du quai, les voisins se placent devant ou derrière.');
+  }
   const { voisins: anciens, ...reste } = sit;
   const voisins: Partial<Record<CoteVoisin, number>> = { ...anciens };
   if (ecart === null) {
     delete voisins[cote];
+  } else if (perp) {
+    if (cote === 'large' && ecartVoisinLarge(sit) < ECART_VOISIN_MIN) {
+      throw new EditionError('Pas assez de place côté large pour un voisin : le bateau est trop loin de son catway.');
+    }
+    voisins[cote] = arrondi(ecart);
   } else {
     const relatif = arrondi(ecart - (cote === 'avant' ? 1 : -1) * avance(sit, origine));
     if (relatif < ECART_VOISIN_MIN) {

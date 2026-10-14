@@ -1,8 +1,8 @@
 import type { Neighbor, SimState, Vec, Wind } from '../sim/types.ts';
 import { cleatPosition, toWorld } from '../sim/geometry.ts';
-import { COTES_VOISIN, type Situation, type WindDirection } from './schema.ts';
+import { cotesVoisin, type Situation, type WindDirection } from './schema.ts';
 import {
-  DEMI_LARGEUR_CATWAY, LONGUEUR_CATWAY, X_CATWAY, axesCatways, bowSign, perpendiculaire, pointBitte, poseDepart, quaySide, xVoisin,
+  DEMI_LARGEUR_CATWAY, LONGUEUR_CATWAY, X_CATWAY, axesCatways, bowSign, perpendiculaire, pointBitte, poseDepart, poseVoisin, quaySide,
 } from './quai.ts';
 import { nomsAffiches } from './edit.ts';
 
@@ -50,9 +50,9 @@ export function buildState(sit: Situation, windOverride?: Situation['vent']): Si
   const v = windOverride ?? sit.vent;
   const wind: Wind = { to: windVector(v.direction, sit), force: v.force };
   const neighbors: Neighbor[] = [];
-  for (const cote of COTES_VOISIN) {
-    const ecart = sit.voisins?.[cote];
-    if (ecart !== undefined) neighbors.push({ id: cote, x: xVoisin(sit, cote, ecart), y: pose.y, th: pose.th, contacts: [] });
+  for (const cote of cotesVoisin(sit.quai.type)) {
+    const valeur = sit.voisins?.[cote];
+    if (valeur !== undefined) neighbors.push({ id: cote, ...poseVoisin(sit, cote, valeur), contacts: [] });
   }
   // Catway du bateau et second catway, côté large ; aucun le long du quai.
   const catways = axesCatways(sit).map((x) => ({ x, halfWidth: DEMI_LARGEUR_CATWAY, length: LONGUEUR_CATWAY }));
