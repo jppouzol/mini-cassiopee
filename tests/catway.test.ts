@@ -15,7 +15,7 @@ import {
   EditionError, ajouterAussiere, bornesDeplacement, deplacerBateau, nomDeduit, nomsAffiches, reglerVoisin, taquetsProposes,
 } from '../src/situations/edit.ts';
 import {
-  ECART_QUAI_MIN, LONGUEUR_CATWAY, bitteDepuisPoint, bitteRepereBateau, bittesDuPort, pointBitte, quaySide,
+  ECART_QUAI_MIN, LONGUEUR_CATWAY, bitteDepuisPoint, bitteRepereBateau, bittesAutresCatways, bittesDuPort, pointBitte, quaySide,
 } from '../src/situations/quai.ts';
 import { parseSituation, type Situation } from '../src/situations/schema.ts';
 
@@ -29,14 +29,15 @@ const avecVent = (sit: Situation, direction: Situation['vent']['direction'], for
 const larguer = (s: SimState) => { for (const l of s.lines) l.attached = false; };
 const near = (a: number, b: number, eps = 1e-9) => Math.abs(a - b) < eps;
 
-/** Plus grande pénétration de la coque dans le catway (m). */
+/** Plus grande pénétration de la coque dans les catways (m). */
 function penetrationCatway(s: SimState): number {
-  const c = s.catway!;
   let m = 0;
-  for (const p of HULL) {
-    const w = toWorld(s.body, p);
-    if (Math.abs(w[0] - c.x) < c.halfWidth && w[1] < 0 && w[1] > -c.length) {
-      m = Math.max(m, Math.min(c.halfWidth - Math.abs(w[0] - c.x), w[1] + c.length));
+  for (const c of s.catways) {
+    for (const p of HULL) {
+      const w = toWorld(s.body, p);
+      if (Math.abs(w[0] - c.x) < c.halfWidth && w[1] < 0 && w[1] > -c.length) {
+        m = Math.max(m, Math.min(c.halfWidth - Math.abs(w[0] - c.x), w[1] + c.length));
+      }
     }
   }
   return m;
@@ -57,12 +58,16 @@ test('format : situations du catalogue lues, catway en place', () => {
   for (const sit of [verification(), sortieArriere(), sortieAvant()]) {
     assert.equal(sit.quai.type, 'perpendiculaire');
     const s = buildState(sit);
-    assert.deepEqual(s.catway, { x: 0, halfWidth: 0.5, length: LONGUEUR_CATWAY });
+    // Le catway du bateau, puis le second, côté large, à 8 m de bord à bord : deux places entre eux.
+    assert.deepEqual(s.catways, [
+      { x: 0, halfWidth: 0.5, length: LONGUEUR_CATWAY },
+      { x: 9 * Math.sign(s.body.x), halfWidth: 0.5, length: LONGUEUR_CATWAY },
+    ]);
     assert.ok(near(LONGUEUR_CATWAY, 6.67, 1e-9));
     assert.equal(penetrationCatway(s), 0);
     assert.ok(bow(s)[1] < 0 && stern(s)[1] < 0, 'le bateau est dans l’eau, sous le quai');
   }
-  assert.equal(buildState(loadSituation('depart-garde-avant')).catway, null, 'pas de catway le long du quai');
+  assert.deepEqual(buildState(loadSituation('depart-garde-avant')).catways, [], 'pas de catway le long du quai');
 });
 
 test('format : règles propres au catway', () => {
@@ -107,7 +112,19 @@ test('géométrie : bateau le long du catway, bittes sur leurs rangées, de part
       assert.deepEqual(bitteDepuisPoint(sit, pointBitte(sit, a)), a.sur ? { bitte: a.bitte, sur: 'quai' } : { bitte: a.bitte });
     }
   }
-  assert.deepEqual(bittesDuPort(sortieArriere()).filter((p) => p[1] < 0), [[0, -2], [0, -4], [0, -6]]);
+});
+
+test('bittes : quai aligné sur les bords des catways puis tous les 2 m, deux bittes par catway', () => {
+  for (const sit of [sortieArriere(), tribord(sortieArriere()), sortieAvant(), tribord(sortieAvant())]) {
+    const s = buildState(sit);
+    const cote = Math.sign(s.body.x);
+    const quai = bittesDuPort(sit).filter((p) => p[1] > 0).map((p) => p[0] * cote).filter((x) => x > -4 && x < 14);
+    // Bords du catway du bateau (±0,5), tous les 2 m jusqu'au second catway (8,5 et 9,5), puis tous les 2 m.
+    assert.deepEqual(quai.sort((a, b) => a - b), [-2.5, -0.5, 0.5, 2.5, 4.5, 6.5, 8.5, 9.5, 11.5, 13.5]);
+    // Seul le catway du bateau porte des bittes proposées : au milieu et près du bout.
+    assert.deepEqual(bittesDuPort(sit).filter((p) => p[1] < 0), [[0, -3.3], [0, -6.4]]);
+    assert.deepEqual(bittesAutresCatways(sit), [[9 * cote, -3.3], [9 * cote, -6.4]]);
+  }
 });
 
 test('nom déduit sur catway : pointe vers le quai, gardes et traversier sur le catway, de part et d’autre', () => {
@@ -115,8 +132,8 @@ test('nom déduit sur catway : pointe vers le quai, gardes et traversier sur le 
   assert.deepEqual(nomsAffiches(sortieArriere()), ['Pointe avant bâbord', 'Pointe avant tribord', 'Garde avant', 'Garde arrière']);
   assert.deepEqual(nomsAffiches(tribord(sortieArriere())), ['Pointe avant tribord', 'Pointe avant bâbord', 'Garde avant', 'Garde arrière']);
   for (const sit of [sortieArriere(), tribord(sortieArriere())]) {
-    // Étrave au quai à 1 m, taquet d'étrave à 1,5 m du quai : la bitte à 2 m est presque en face.
-    assert.equal(nomDeduit(sit, { taquet: 'etrave', bitte: 4 }), 'Traversier avant');
+    // Une bitte presque en face du taquet d’étrave, le long du catway, ferait un traversier.
+    assert.equal(nomDeduit(sit, { taquet: 'etrave', bitte: 4.4 }), 'Traversier avant');
   }
   // Cul à quai : une pointe arrière depuis chaque taquet arrière.
   assert.deepEqual(nomsAffiches(verification()), ['Pointe arrière bâbord', 'Pointe arrière tribord', 'Garde arrière', 'Garde avant']);
@@ -227,24 +244,24 @@ test('éditeur : glisser le long du catway, arrêt à 0,5 m du quai, bittes inch
 
 test('éditeur : ajouter une aussière sur le catway ou sur le quai, voisins refusés', () => {
   const sit = sansAmarre(sortieArriere());
-  const surCatway = bitteDepuisPoint(sit, [0, -4]);
-  const surQuai = bitteDepuisPoint(sit, [2, 0.6]);
+  const surCatway = bitteDepuisPoint(sit, [0, -3.3]);
+  const surQuai = bitteDepuisPoint(sit, [2.5, 0.6]);
   const avec = ajouterAussiere(ajouterAussiere(sit, 'etrave', surCatway.bitte, surCatway.sur), 'etrave', surQuai.bitte, surQuai.sur);
   assert.deepEqual(nomsAffiches(avec), ['Garde avant', 'Pointe avant']);
   // Cul à quai : une pointe arrière depuis chaque taquet arrière, proposés tous deux par l'éditeur.
   const cul = sansAmarre(sortieAvant());
   assert.deepEqual(taquetsProposes(cul).map((c) => c.name), ['etrave', 'arriere', 'arriere-large']);
-  const deux = ajouterAussiere(ajouterAussiere(cul, 'arriere', 2.5, 'quai'), 'arriere-large', -3.5, 'quai');
+  const deux = ajouterAussiere(ajouterAussiere(cul, 'arriere', 2, 'quai'), 'arriere-large', -2, 'quai');
   assert.deepEqual(nomsAffiches(deux), ['Pointe arrière bâbord', 'Pointe arrière tribord']);
-  assert.deepEqual(buildState(deux).lines.map((l) => l.bollard), [[0, 0.6], [-6, 0.6]]);
-  assert.deepEqual(buildState(avec).lines.map((l) => l.bollard), [[0, -4], [2, 0.6]]);
+  assert.deepEqual(buildState(deux).lines.map((l) => l.bollard), [[-0.5, 0.6], [-4.5, 0.6]]);
+  assert.deepEqual(buildState(avec).lines.map((l) => l.bollard), [[0, -3.3], [2.5, 0.6]]);
   assert.throws(() => ajouterAussiere(avec, 'etrave', surQuai.bitte, 'quai'), EditionError, 'doublon');
   assert.throws(() => ajouterAussiere(sit, 'etrave', 3), /catway/);
   assert.throws(() => ajouterAussiere(sit, 'etrave', 1.5, 'quai'), /quai/);
   assert.throws(() => reglerVoisin(sit, sit, 'avant', 1), /le long du quai/);
   // Une garde avant ajoutée dans l'éditeur se comporte comme celle du catalogue.
   const cat = buildState(sortieArriere());
-  const ajoutee = buildState(ajouterAussiere(sit, 'etrave', 2));
+  const ajoutee = buildState(ajouterAussiere(sit, 'etrave', 2.7));
   assert.deepEqual(ajoutee.lines[0].bollard, line(cat, 'garde-av').bollard);
   assert.deepEqual(ajoutee.lines[0].cleat, cleatPosition('etrave', 1));
   assert.ok(near(ajoutee.lines[0].len, line(cat, 'garde-av').len));

@@ -49,7 +49,7 @@ Le moteur est écrit sur mesure plutôt qu'adossé à une bibliothèque physique
 - Corps rigide plan à trois degrés de liberté (x, y, cap), masses différentes en longitudinal et en latéral pour tenir compte de l'eau entraînée.
 - Intégration d'Euler semi-implicite à pas fixe de 1/240 s, quatre sous-pas par image de 1/60 s. Le pas ne dépend jamais de la fréquence d'affichage.
 - Forces du socle : moteur, safran (flux d'hélice en marche avant et erre), résistances longitudinale et latérale, vent au centre, aussières, contact et frottement sur le quai et le catway, contact avec les voisins.
-- Catway : l'état porte un champ `catway`, nul le long du quai. C'est un rectangle immobile accroché au bord du quai, qui descend dans l'eau (y < 0) sur une longueur fixe, à une abscisse donnée. L'effet `catwayContact` le traite comme le quai : il repousse les points de la coque entrés dans le rectangle selon le flanc ou le bout le plus proche, et la coque là où un angle du bout du catway y est entré. Ses points d'appui rejoignent ceux du quai (`contacts`). Sans catway, l'effet n'ajoute rien.
+- Catways : l'état porte une liste `catways`, vide le long du quai : le catway du bateau et le second, côté large. Chacun est un rectangle immobile accroché au bord du quai, qui descend dans l'eau (y < 0) sur une longueur fixe, à une abscisse donnée. L'effet `catwayContact` les traite comme le quai : il repousse les points de la coque entrés dans un rectangle selon le flanc ou le bout le plus proche, et la coque là où un angle du bout d'un catway y est entré. Ses points d'appui rejoignent ceux du quai (`contacts`). Sans catway, l'effet n'ajoute rien.
 - Bateaux voisins : l'état porte une liste `neighbors` de coques identiques et immobiles (position et cap fixes). L'effet `neighborContact` les traite comme le quai : ressort amorti qui ne tire jamais, plus frottement, appliqué à chaque point de la coque entré dans un voisin et, en sens inverse, là où un point d'un voisin est entré dans la coque (un angle de tableau contre le flanc). La coque étant convexe, la pénétration se mesure sous l'arête la plus proche (`hullPenetration`, dans `src/sim/geometry.ts`). Les points touchés sont gardés par voisin pour l'affichage. Sans voisin, la liste est vide et l'effet n'ajoute rien : ce n'est pas un effet optionnel mais un élément de la scène, absent par défaut.
 - Aussières : ressort amorti qui ne travaille qu'en traction. Chacune est bloquée ou choquée (`payingOut`). Choquée, elle file sans retenue : à chaque sous-pas, sa longueur rejoint la distance du taquet à la bitte dès que le bateau s'en éloigne, et ne raccourcit jamais. Ce n'est pas un effet optionnel mais un état de l'aussière, changé par une action de l'élève.
 - Point de pivot calculé à chaque image : point de l'axe dont la vitesse latérale est nulle, lissé et masqué quand le bateau translate sans tourner.
@@ -104,8 +104,8 @@ Chaque situation du catalogue est un fichier JSON lisible à la main, dans `src/
 - `bordAuQuai` vaut `babord` ou `tribord` : le flanc tourné vers le support.
 - `bateau.boutAuQuai`, en perpendiculaire seulement et obligatoire, vaut `etrave` ou `arriere`.
 - `taquet` vaut `etrave`, `arriere` (côté quai), `arriere-large` ou `maitre-bau`. L'éditeur propose `etrave`, `arriere` et `arriere-large`.
-- `bitte` est la position de la bitte le long du support, en mètres, depuis le centre du bateau au départ, positive vers l'avant. Elle doit tomber sur la rangée de bittes du support : sa position le long du support (`bateau.x` plus ou moins `bitte` selon le sens de l'étrave) est un multiple de l'espacement, 2 m (`BOLLARD_SPACING` dans `src/situations/quai.ts`, avec les conversions entre position relative et position le long du support). La rangée du catway part du bord du quai et s'arrête au bout du catway.
-- `sur` est facultatif, en perpendiculaire seulement : `quai` pour une bitte de la rangée du quai. `bitte` est alors sa position le long du quai depuis l'axe du bateau, positive vers le catway, et sa position monde doit être un multiple de 2 m. Absent, la bitte est sur le support.
+- `bitte` est la position de la bitte le long du support, en mètres, depuis le centre du bateau au départ, positive vers l'avant. Sa position le long du support (`bateau.x` plus ou moins `bitte` selon le sens de l'étrave) doit tomber sur une bitte du support. Le long du quai, c'est un multiple de l'espacement, 2 m (`BOLLARD_SPACING` dans `src/situations/quai.ts`, avec les conversions entre position relative et position le long du support). Sur le catway, c'est l'une de ses deux bittes, au milieu et près du bout (`BITTES_CATWAY` : 3,3 m et 6,4 m du bord du quai).
+- `sur` est facultatif, en perpendiculaire seulement : `quai` pour une bitte de la rangée du quai. `bitte` est alors sa position le long du quai depuis l'axe du bateau, positive vers le catway, et sa position monde doit tomber sur la rangée du quai : une bitte dans l'alignement de chaque bord de catway, puis tous les 2 m (`bittesQuai`). Absent, la bitte est sur le support.
 - Deux aussières ne peuvent pas relier le même taquet à la même bitte.
 - `nom` est facultatif : absent, il est déduit de la géométrie au départ (voir l'édition ci-dessous) ; présent, c'est le nom choisi par l'auteur ou l'élève.
 - `mou` vaut 0 pour une aussière tendue au départ, ou la longueur de mou en mètres. L'éditeur ne produit que 0 (tendue) ou 0,5 (molle) ; le catalogue peut utiliser d'autres valeurs.
@@ -120,8 +120,8 @@ Chaque situation du catalogue est un fichier JSON lisible à la main, dans `src/
   "quai": { "type": "perpendiculaire" },
   "bateau": { "x": 6, "distanceQuai": 0.3, "bordAuQuai": "babord", "boutAuQuai": "etrave" },
   "aussieres": [
-    { "id": "pointe-av", "taquet": "etrave", "sur": "quai", "bitte": 0.5, "mou": 0 },
-    { "id": "garde-av", "taquet": "etrave", "bitte": 2, "mou": 0 }
+    { "id": "pointe-av", "taquet": "etrave", "sur": "quai", "bitte": 2, "mou": 0 },
+    { "id": "garde-av", "taquet": "etrave", "bitte": 2.7, "mou": 0 }
   ],
   "vent": { "direction": "catway", "force": "faible" }
 }
@@ -131,7 +131,7 @@ Chaque situation du catalogue est un fichier JSON lisible à la main, dans `src/
 
 Une fonction de validation (`src/situations/schema.ts`) accompagne le format ; une situation invalide est refusée au chargement avec un message lisible. Les nouvelles règles (bitte sur la rangée, doublons, plafond, nom facultatif, voisins, catway) restent compatibles avec le format 1 : seul le catalogue existant est recalé sur la rangée de bittes.
 
-La géométrie du port est regroupée dans `src/situations/quai.ts` : sens de l'étrave le long du support (`bowSign`), position monde d'une bitte (`pointBitte`), bittes à dessiner (`bittesDuPort`), bitte touchée dans l'éditeur (`bitteDepuisPoint`), et position d'une bitte dans le repère du bateau tourné vers le support (`bitteRepereBateau`), qui sert au nom déduit. Le catway a son axe en x = 0 ; le bateau est placé d'un côté ou de l'autre selon le bord au catway et le bout au quai.
+La géométrie du port est regroupée dans `src/situations/quai.ts` : sens de l'étrave le long du support (`bowSign`), position monde d'une bitte (`pointBitte`), axes des catways (`axesCatways`), rangée du quai (`bittesQuai`), bittes proposées (`bittesDuPort`) et bittes de l'autre catway (`bittesAutresCatways`), bitte touchée dans l'éditeur (`bitteDepuisPoint`), et position d'une bitte dans le repère du bateau tourné vers le support (`bitteRepereBateau`), qui sert au nom déduit. Le catway du bateau a son axe en x = 0 ; le bateau est placé d'un côté ou de l'autre selon le bord au catway et le bout au quai, et le second catway est de son côté large, à 8 m de bord à bord (`ECART_CATWAYS`).
 
 ### Édition de la situation
 
@@ -153,7 +153,7 @@ La scène est dessinée en Canvas 2D par un module impératif (`src/render`) ; l
 - **Canvas 2D** : un seul bateau et une dizaine de traits, à 60 images par seconde même sur un téléphone d'entrée de gamme. Pas besoin de WebGL ni de SVG.
 - **Rendu sans état** : le dessin est une fonction de l'état affiché et des préférences d'affichage. Il ne modifie jamais la simulation.
 - **Voisins** : coques estompées sous le bateau. Pendant un contact, le contour du voisin et un anneau sur chaque point touché prennent la couleur d'alerte (`--alert`) ; l'anneau garde le signal visible sans la couleur.
-- **Catway** : rectangle de la couleur du quai, sous le bateau, avec sa rangée de bittes sur l'axe. Les bittes à dessiner, du quai et du catway, sont fournies au rendu comme une préférence d'affichage.
+- **Catways** : rectangles de la couleur du quai, sous le bateau, avec leurs deux bittes sur l'axe. Les bittes proposées (quai et catway du bateau) et celles de l'autre catway, dessinées estompées et jamais proposées, sont fournies au rendu comme une préférence d'affichage.
 - **Caméra** : quai en haut de l'écran, bateau suivi quand il s'éloigne. En perpendiculaire, le bateau et le catway sont verticaux sous le quai ; les 17 m de hauteur de vue les montrent entiers. Sur téléphone, un cadrage plus serré ; le zoom à deux doigts est prévu, car le bateau paraît petit sur un téléphone.
 - **Bittes et taquets** : la rangée de bittes est dessinée sur toute la partie visible du quai. En préparation, les taquets proposés et les bittes deviennent des cibles tactiles d'au moins 44 px, plus larges que leur dessin ; le taquet sélectionné et les bittes disponibles sont mis en évidence. Le rendu reçoit cette sélection comme une préférence d'affichage et reste sans état.
 - **Glisser le bateau** : en préparation, la scène tranche le geste au relâcher. Si le doigt a bougé de moins de 8 px, c'est un toucher sur la cible la plus proche ; au-delà, un geste commencé sur la coque ou un taquet déplace le bateau. Le déplacement est mesuré depuis le début du geste et converti en mètres, projeté sur la direction du support (horizontale le long du quai, verticale le long du catway), puis l'interface appelle `deplacerBateau` avec la position visée : des événements rapprochés ne font pas dériver le bateau.
@@ -242,7 +242,7 @@ La physique se teste par comportements attendus, pas par valeurs exactes : un r�
 | Édition des voisins | Placer, changer, retirer ; voisins fixes quand on glisse le bateau, qui s'arrête à 0,5 m ; voisin refusé faute de place |
 | Relecture d'un contact | Un contact avec un voisin se rejoue à l'identique |
 | Relecture du choquer | Choquer puis bloquer se rejoue à l'identique ; basculer en pause après un retour arrière équivaut à basculer en lecture à la même image |
-| Format du catway | Bout au quai obligatoire, bitte hors de la rangée ou au-delà du bout du catway refusée, bout du bateau trop près du quai refusé, voisins et directions de vent du long du quai refusés |
+| Format du catway | Bout au quai obligatoire, bitte qui n'est ni au milieu ni près du bout du catway refusée, bitte du quai hors de la rangée refusée, bout du bateau trop près du quai refusé, voisins et directions de vent du long du quai refusés |
 | Catway en obstacle | Sans amarre, vent du large : le bateau vient sur le catway et s'y arrête sans pénétration notable, contact signalé ; symétrique de l'autre côté |
 | Quai en bout | Étrave au quai sans amarre, marche avant : le quai arrête l'étrave |
 | Catway, vérification d'amarrage | Vent soutenu du catway : l'amarrage tient, l'avant qui dépasse bouge plus que l'arrière |
@@ -251,6 +251,7 @@ La physique se teste par comportements attendus, pas par valeurs exactes : un r�
 | Nom déduit sur catway | Pointe avant vers le quai, gardes et traversier sur le catway ; identique de l'autre côté du catway |
 | Aussières vers l'extérieur | Dans chaque situation du catalogue, la bitte de chaque aussière est plus écartée de l'axe du bateau que son taquet, du même bord |
 | Nom par bord | Deux pointes arrière, une par taquet arrière, nommées bâbord et tribord, le long du quai comme sur catway ; deux pointes avant depuis l'étrave, nommées d'après le bord de leur bitte ; numéro si le bord ne suffit pas |
+| Bittes du port en perpendiculaire | Quai : bords des deux catways puis tous les 2 m ; deux bittes sur chaque catway, seules celles du catway du bateau proposées ; de part et d'autre du catway |
 | Déplacement le long du catway | Arrêt à 0,5 m du quai ; bittes du catway inchangées en monde, bittes du quai inchangées |
 | Relecture d'un contact au catway | Un appui sur le catway se rejoue à l'identique |
 
@@ -273,7 +274,7 @@ Chaque choix structurant est noté ici avec son statut ; une décision ne change
 | Déplacement du bateau | En préparation, au doigt ou pas à pas, par pas de 0,5 m et à ±4 m de l'origine ; les aussières restent sur leurs bittes | Décidé |
 | Choquer une aussière | Bouton à bascule toujours disponible, en préparation comme en lecture et en pause ; l'aussière file sans retenue et sans limite de longueur ; état de l'aussière, pas un effet optionnel ; reprise, freinage et longueur finie traités à part | Décidé |
 | Bateaux voisins | Le long du quai, devant et derrière, réglés à part (aucun, serré, large) dans les options avancées ; coques identiques et immobiles ; contact simple comme le quai, pouvant servir d'appui ; contact signalé par le contour du voisin et un anneau rouges ; voisins fixes quand on glisse le bateau, qui s'arrête à 0,5 m | Décidé |
-| Amarrage perpendiculaire | Catway de longueur fixe (2/3 du bateau), étrave ou arrière au quai selon la situation ; rangée de bittes tous les 2 m sur le catway, rangée du quai conservée ; contact comme le quai ; nommage inchangé ; vent en repères du port (catway, large, quai, chenal) ; type d'amarrage fixé par le catalogue ; bateau déplaçable le long du catway jusqu'à 0,5 m du quai ; ni longueur réglable (#29) ni voisins (#30) | Décidé |
+| Amarrage perpendiculaire | Catway de longueur fixe (2/3 du bateau), étrave ou arrière au quai selon la situation ; second catway côté large, à 8 m de bord à bord, encadrant deux places ; deux bittes par catway, au milieu et près du bout ; bittes du quai alignées sur les bords des catways puis tous les 2 m ; contact comme le quai ; nommage inchangé ; vent en repères du port (catway, large, quai, chenal) ; type d'amarrage fixé par le catalogue ; bateau déplaçable le long du catway jusqu'à 0,5 m du quai ; ni longueur réglable (#29) ni voisins (#30) | Décidé |
 | Taquets proposés | Étrave et arrière des deux bords, partout ; deux aussières de même nom départagées par le bord, sinon par un numéro | Décidé |
 | Hébergement | Dépôt public et GitHub Pages | Décidé |
 | Déploiement | GitHub Actions : tests sur chaque proposition, déploiement à chaque fusion | Décidé |

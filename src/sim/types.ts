@@ -82,8 +82,8 @@ export interface SimState {
   wind: Wind;
   /** points d'appui sur le quai et le catway à la dernière image (repère monde) */
   contacts: Vec[];
-  /** catway, immobile, ou null le long du quai */
-  catway: Catway | null;
+  /** catways, immobiles (liste vide le long du quai) */
+  catways: Catway[];
   /** bateaux voisins, immobiles (liste vide sans voisin) */
   neighbors: Neighbor[];
   /** position du point de pivot sur l'axe (m, repère bateau), null si le bateau ne tourne pas */

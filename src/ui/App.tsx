@@ -6,7 +6,7 @@ import {
   ECARTS_VOISIN, EditionError, PAS_DEPLACEMENT, ajouterAussiere, basculerFile, basculerMou, bornesDeplacement,
   deplacerBateau, ecartVoisin, reglerPlafond, reglerVoisin, renommerAussiere, supprimerAussiere, taquetsProposes,
 } from '../situations/edit.ts';
-import { bitteDepuisPoint, bittesDuPort, perpendiculaire } from '../situations/quai.ts';
+import { bitteDepuisPoint, bittesAutresCatways, bittesDuPort, perpendiculaire } from '../situations/quai.ts';
 import {
   COTES_VOISIN, PLAFOND_DEFAUT, PLAFOND_MAX, directionsVent, plafond,
   type Cleat, type CoteVoisin, type Situation, type WindDirection,
@@ -112,7 +112,9 @@ export function App() {
   // Amarrage perpendiculaire : le bateau est le long d'un catway, qu'on dessine vertical sous le quai.
   const catway = perpendiculaire(preparee);
   const typeQuai = preparee.quai.type;
-  const bollards = useMemo(() => bittesDuPort({ quai: { type: typeQuai } }), [typeQuai]);
+  // Les rangées de bittes dépendent du bord du bateau tourné vers le catway (côté du second catway).
+  const bollards = useMemo(() => bittesDuPort(preparee), [preparee]);
+  const otherBollards = useMemo(() => bittesAutresCatways(preparee), [preparee]);
   const support = catway ? 'catway' : 'quai';
   const bitteLabel = catway ? 'une bitte du quai ou du catway' : 'une bitte du quai';
 
@@ -318,7 +320,7 @@ export function App() {
     <div className="app">
       <div className="stage">
         <div className="scene">
-          <Scene state={s} ghost={ghost ? session.initialState.body : null} debug={debug} bollards={bollards}
+          <Scene state={s} ghost={ghost ? session.initialState.body : null} debug={debug} bollards={bollards} otherBollards={otherBollards}
             edition={edition} onPick={onPick} onDragStart={onDragStart} onDrag={onDrag} />
           <div className="badge">{status}</div>
         </div>

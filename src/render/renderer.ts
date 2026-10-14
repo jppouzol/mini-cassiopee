@@ -16,8 +16,10 @@ export interface View {
   /** position de départ à afficher en pointillés, ou null */
   ghost: Body | null;
   debug: boolean;
-  /** toutes les bittes du quai et du catway, pour les dessiner même sans aussière */
+  /** bittes où l'on peut tourner une aussière (quai et catway du bateau), dessinées même sans aussière */
   bollards: Vec[];
+  /** autres bittes, dessinées estompées mais jamais proposées (celles de l'autre catway) */
+  otherBollards: Vec[];
   /** édition des aussières en préparation, ou null */
   edition: EditionView | null;
 }
@@ -112,9 +114,8 @@ export function render(ctx: CanvasRenderingContext2D, s: Readonly<SimState>, v: 
   const yRow = v.bollards.length ? Y(v.bollards[0][1]) - Math.max(3, 0.22 * sc) - 6 : Y(0) - 8;
   ctx.fillText('QUAI', W - 12, Math.max(14, yRow));
 
-  // Catway : ponton accroché au quai, de la couleur du quai, bordé sur ses flancs et son bout.
-  if (s.catway) {
-    const c = s.catway;
+  // Catways : pontons accrochés au quai, de la couleur du quai, bordés sur leurs flancs et leur bout.
+  for (const c of s.catways) {
     const xa = X(c.x - c.halfWidth), xb = X(c.x + c.halfWidth), yt = Y(-c.length);
     ctx.fillStyle = C.quay;
     ctx.fillRect(xa, Y(0) - 1, xb - xa, yt - Y(0) + 1);
@@ -139,6 +140,14 @@ export function render(ctx: CanvasRenderingContext2D, s: Readonly<SimState>, v: 
   const used = new Set(s.lines.filter((l) => l.attached).map((l) => l.bollard.join(',')));
   const choosing = v.edition !== null && v.edition.selected !== null;
   const rBollard = Math.max(3, 0.22 * sc);
+  ctx.fillStyle = C.bollard;
+  ctx.globalAlpha = 0.35;
+  for (const p of v.otherBollards) {
+    ctx.beginPath();
+    ctx.arc(X(p[0]), Y(p[1]), rBollard, 0, Math.PI * 2);
+    ctx.fill();
+  }
+  ctx.globalAlpha = 1;
   for (const p of v.bollards) {
     const px = X(p[0]), py = Y(p[1]);
     if (px < -TOUCH_RADIUS || px > W + TOUCH_RADIUS) continue;

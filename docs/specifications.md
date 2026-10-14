@@ -58,8 +58,10 @@ La scène se compose d'un seul bateau, d'un quai, d'aussières et du vent. Chaqu
 #### Amarrage perpendiculaire
 
 - **Catway** : petit ponton perpendiculaire au quai, long des 2/3 du bateau. Sa longueur n'est pas réglable à ce stade.
+- **Second catway** : côté large, à 8 m de bord à bord du premier, il encadre avec lui deux places côte à côte, comme dans un port. Il est dessiné vide (pas de bateau dessus) ; s'il est touché, il arrête le bateau comme le premier.
 - **Sens** : le bateau a l'étrave ou l'arrière au quai, et son flanc bâbord ou tribord le long du catway, selon la situation. Son autre bout dépasse du catway, côté chenal.
-- **Bittes** : une rangée tous les 2 m sur le catway, comptée depuis le bord du quai. Le quai garde sa propre rangée : on peut y tourner une aussière, depuis le bout du bateau qui lui fait face.
+- **Bittes du catway** : deux sur l'axe de chaque catway, l'une au milieu, l'autre près du bout. Seules celles du catway du bateau reçoivent des aussières ; celles du second catway servent à la place voisine.
+- **Bittes du quai** : une dans l'alignement de chaque bord de catway, puis tous les 2 m, entre les catways comme au-delà. On peut y tourner une aussière depuis le bout du bateau qui fait face au quai.
 - **Contact** : le catway arrête le bateau comme le quai et peut lui servir d'appui ; le bout du bateau peut aussi venir toucher le quai.
 - **Repères du port** : le catway est d'un côté du bateau, le large de l'autre ; le quai est à un bout, le chenal à l'autre.
 - Les bateaux voisins ne sont pas proposés en perpendiculaire à ce stade.
@@ -272,7 +274,7 @@ Les points suivants n'ont pas été tranchés et figurent dans les points ouvert
 | Terme | Définition dans le projet |
 | --- | --- |
 | Aussière | Cordage reliant un taquet du bateau à une bitte du quai |
-| Bitte | Point d'amarrage fixe sur le quai ou le catway ; dans l'appli, une rangée de bittes espacées de 2 m sur chacun |
+| Bitte | Point d'amarrage fixe sur le quai ou le catway ; dans l'appli, une rangée espacée de 2 m sur le quai, et deux bittes par catway |
 | Chenal | Passage d'eau libre devant les places de port ; en perpendiculaire, le bout du bateau opposé au quai lui fait face |
 | Pointe avant / arrière | Aussière partant de l'avant (ou de l'arrière) du bateau vers l'avant (ou l'arrière) sur le quai |
 | Garde avant / arrière | Aussière partant de l'avant (ou de l'arrière) du bateau, frappée vers l'arrière (ou l'avant) sur le quai ; limite les mouvements longitudinaux |

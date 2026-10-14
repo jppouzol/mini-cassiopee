@@ -172,28 +172,28 @@ function catwayPenetration(c: Catway, w: Vec): { depth: number; n: Vec } | null 
 }
 
 /**
- * Contact avec le catway, immobile : traité comme le quai. On repousse les
- * points de la coque entrés dans le catway, et la coque là où un angle du bout
- * du catway y est entré. Les points d'appui rejoignent ceux du quai. Sans
+ * Contact avec les catways, immobiles : traités comme le quai. On repousse les
+ * points de la coque entrés dans un catway, et la coque là où un angle du bout
+ * d'un catway y est entré. Les points d'appui rejoignent ceux du quai. Sans
  * catway, cet effet n'ajoute rien.
  */
 export const catwayContact: Effect = (s, p, f) => {
-  const c = s.catway;
-  if (!c) return;
   const b = s.body;
-  // La coque ne peut toucher le catway que si son centre en est à moins d'une demi-longueur.
-  if (b.y < -c.length - HALF_LENGTH || Math.abs(b.x - c.x) > c.halfWidth + HALF_LENGTH) return;
-  for (const pt of CONTACT_POINTS) {
-    const w = toWorld(b, pt);
-    const pen = catwayPenetration(c, w);
-    if (pen && push(f, b, p, pt, pen.n, pen.depth) > 0) s.contacts.push(w);
-  }
-  for (const corner of [[c.x - c.halfWidth, -c.length], [c.x + c.halfWidth, -c.length]] as Vec[]) {
-    const local = toLocal(b, corner);
-    const pen = hullPenetration(local);
-    if (!pen) continue;
-    const out = rotate(b.th, pen.n);
-    if (push(f, b, p, local, [-out[0], -out[1]], pen.depth) > 0) s.contacts.push(corner);
+  for (const c of s.catways) {
+    // La coque ne peut toucher le catway que si son centre en est à moins d'une demi-longueur.
+    if (b.y < -c.length - HALF_LENGTH || Math.abs(b.x - c.x) > c.halfWidth + HALF_LENGTH) continue;
+    for (const pt of CONTACT_POINTS) {
+      const w = toWorld(b, pt);
+      const pen = catwayPenetration(c, w);
+      if (pen && push(f, b, p, pt, pen.n, pen.depth) > 0) s.contacts.push(w);
+    }
+    for (const corner of [[c.x - c.halfWidth, -c.length], [c.x + c.halfWidth, -c.length]] as Vec[]) {
+      const local = toLocal(b, corner);
+      const pen = hullPenetration(local);
+      if (!pen) continue;
+      const out = rotate(b.th, pen.n);
+      if (push(f, b, p, local, [-out[0], -out[1]], pen.depth) > 0) s.contacts.push(corner);
+    }
   }
 };
 

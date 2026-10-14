@@ -52,7 +52,7 @@ export function cloneState(s: SimState): SimState {
     rudder: s.rudder,
     wind: { to: [s.wind.to[0], s.wind.to[1]], force: s.wind.force },
     contacts: s.contacts.map((c) => [c[0], c[1]]),
-    catway: s.catway && { ...s.catway },
+    catways: s.catways.map((c) => ({ ...c })),
     neighbors: s.neighbors.map((n) => ({ ...n, contacts: n.contacts.map((c) => [c[0], c[1]]) })),
     pivot: s.pivot,
   };

@@ -7,23 +7,31 @@
 // fixes dans le repère monde.
 //
 // Repère monde : x le long du quai, y vers le quai, bord du quai en y = 0.
-// Le catway a son axe en x = 0 et descend dans l'eau (y < 0) depuis le quai.
-// En perpendiculaire, la position le long du support est la distance au bord
-// du quai, comptée le long du catway vers le chenal (u = -y).
+// En perpendiculaire, le catway du bateau a son axe en x = 0 et descend dans
+// l'eau (y < 0) depuis le quai ; un second catway, côté large, encadre avec
+// lui deux places de bateau. La position le long du support est la distance au
+// bord du quai, comptée le long du catway vers le chenal (u = -y).
 
 import type { Vec } from '../sim/types.ts';
 import { HALF_BEAM, HALF_LENGTH } from '../sim/geometry.ts';
 
 /** Distance de la rangée de bittes au bord du quai (m). */
 export const BOLLARD_SETBACK = 0.6;
-/** Espacement des bittes le long du quai et du catway (m). */
+/** Espacement des bittes le long du quai (m). */
 export const BOLLARD_SPACING = 2;
 /** Longueur du catway : les 2/3 du bateau (m). */
 export const LONGUEUR_CATWAY = Math.round(((2 * 2 * HALF_LENGTH) / 3) * 100) / 100;
-/** Demi-largeur du catway (m) ; sa rangée de bittes est sur l'axe. */
+/** Demi-largeur du catway (m) ; ses bittes sont sur l'axe. */
 export const DEMI_LARGEUR_CATWAY = 0.5;
-/** Abscisse monde de l'axe du catway. */
+/** Abscisse monde de l'axe du catway du bateau. */
 export const X_CATWAY = 0;
+/** Écart entre les bords de deux catways voisins : deux places de bateau côte à côte (m). */
+export const ECART_CATWAYS = 8;
+/** Bittes d'un catway, depuis le bord du quai : au milieu et près du bout (m). */
+export const BITTES_CATWAY: readonly number[] = [
+  Math.round((LONGUEUR_CATWAY / 2) * 10) / 10,
+  Math.round((LONGUEUR_CATWAY - 0.3) * 10) / 10,
+];
 /** En perpendiculaire, écart minimal entre le bout du bateau et le quai (m). */
 export const ECART_QUAI_MIN = 0.5;
 /** Étendue des rangées de bittes du quai, bien au-delà de ce que la caméra montre (m). */
@@ -98,6 +106,15 @@ function versCatway(sit: Placement): 1 | -1 {
   return xAxe(sit) > X_CATWAY ? -1 : 1;
 }
 
+/**
+ * Abscisses monde des axes des catways : celui du bateau, puis le second, côté large,
+ * qui encadre avec lui deux places côte à côte. Liste vide le long du quai.
+ */
+export function axesCatways(sit: Placement): number[] {
+  if (!perpendiculaire(sit)) return [];
+  return [X_CATWAY, X_CATWAY - versCatway(sit) * (ECART_CATWAYS + 2 * DEMI_LARGEUR_CATWAY)];
+}
+
 /** Position et cap du bateau au départ, en repère monde. */
 export function poseDepart(sit: Placement): { x: number; y: number; th: number } {
   if (perpendiculaire(sit)) return { x: xAxe(sit), y: -sit.bateau.x, th: cap(sit) };
@@ -117,11 +134,15 @@ function surLePas(v: number): boolean {
   return Math.abs(k - Math.round(k)) * BOLLARD_SPACING < 0.01;
 }
 
-/** Vrai si la bitte tombe sur une rangée : celle du quai, ou celle du catway sans dépasser son bout. */
+/** Vrai si la bitte en est une : sur la rangée du quai, ou l'une des bittes du catway du bateau. */
 export function surLaRangee(sit: Placement, a: Amarrage): boolean {
-  if (a.sur === 'quai' || !perpendiculaire(sit)) return surLePas(pointBitte(sit, a)[0]);
+  if (!perpendiculaire(sit)) return surLePas(pointBitte(sit, a)[0]);
+  if (a.sur === 'quai') {
+    const x = pointBitte(sit, a)[0];
+    return bittesQuai(sit).some((b) => Math.abs(b - x) < 0.01);
+  }
   const u = bitteVersSupport(sit, a.bitte);
-  return surLePas(u) && u > 0.01 && u <= LONGUEUR_CATWAY + 0.01;
+  return BITTES_CATWAY.some((b) => Math.abs(b - u) < 0.01);
 }
 
 /** Positions monde (x) des bittes de la rangée du quai comprises dans [xMin, xMax]. */
@@ -131,16 +152,35 @@ export function bittesEntre(xMin: number, xMax: number): number[] {
   return out;
 }
 
-/** Positions le long du catway (depuis le bord du quai) de sa rangée de bittes. */
-export function bittesDuCatway(): number[] {
-  return bittesEntre(0.01, LONGUEUR_CATWAY + 0.01);
+/**
+ * Abscisses monde des bittes du quai, de gauche à droite. Le long du quai : tous les 2 m.
+ * En perpendiculaire : une bitte dans l'alignement de chaque bord de catway, puis tous
+ * les 2 m entre les catways et au-delà.
+ */
+export function bittesQuai(sit: Placement): number[] {
+  if (!perpendiculaire(sit)) return bittesEntre(-ETENDUE_QUAI, ETENDUE_QUAI);
+  const bords = axesCatways(sit).sort((a, b) => a - b)
+    .flatMap((a) => [a - DEMI_LARGEUR_CATWAY, a + DEMI_LARGEUR_CATWAY]);
+  const out: number[] = [];
+  for (let x = bords[0]; x >= -ETENDUE_QUAI; x -= BOLLARD_SPACING) out.unshift(x);
+  for (let i = 1; i + 1 < bords.length; i += 2) {
+    for (let x = bords[i]; x < bords[i + 1] - 0.01; x += BOLLARD_SPACING) out.push(x);
+    out.push(bords[i + 1]);
+  }
+  for (let x = bords[bords.length - 1]; x <= ETENDUE_QUAI; x += BOLLARD_SPACING) out.push(x);
+  return out.map(arrondi);
 }
 
-/** Toutes les bittes à dessiner, en repère monde : rangée du quai, puis celle du catway s'il y en a un. */
-export function bittesDuPort(sit: Pick<Placement, 'quai'>): Vec[] {
-  const quai = bittesEntre(-ETENDUE_QUAI, ETENDUE_QUAI).map((x): Vec => [x, BOLLARD_SETBACK]);
+/** Bittes où l'on peut tourner une aussière, en repère monde : celles du quai, puis celles du catway du bateau. */
+export function bittesDuPort(sit: Placement): Vec[] {
+  const quai = bittesQuai(sit).map((x): Vec => [x, BOLLARD_SETBACK]);
   if (!perpendiculaire(sit)) return quai;
-  return quai.concat(bittesDuCatway().map((u): Vec => [X_CATWAY, -u]));
+  return quai.concat(BITTES_CATWAY.map((u): Vec => [X_CATWAY, -u]));
+}
+
+/** Bittes de l'autre catway, qui servent à la place voisine : dessinées, jamais proposées. */
+export function bittesAutresCatways(sit: Placement): Vec[] {
+  return axesCatways(sit).slice(1).flatMap((x) => BITTES_CATWAY.map((u): Vec => [x, -u]));
 }
 
 /** Bitte d'une aussière d'après la position monde d'une bitte touchée dans l'éditeur. */

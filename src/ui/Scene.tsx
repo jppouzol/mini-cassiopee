@@ -15,6 +15,8 @@ interface Props {
   ghost: Body | null;
   debug: boolean;
   bollards: Vec[];
+  /** bittes dessinées mais jamais proposées (celles de l'autre catway) */
+  otherBollards: Vec[];
   edition: EditionView | null;
   onPick: (p: Pick) => void;
   /** Début d'un glisser du bateau pendant l'édition. */
@@ -53,7 +55,7 @@ function onHull(body: Body, w: Vec): boolean {
 }
 
 /** Toile de la scène : redessinée à chaque rendu, à chaque redimensionnement et à chaque changement de thème. */
-export function Scene({ state, ghost, debug, bollards, edition, onPick, onDragStart, onDrag }: Props) {
+export function Scene({ state, ghost, debug, bollards, otherBollards, edition, onPick, onDragStart, onDrag }: Props) {
   const ref = useRef<HTMLCanvasElement>(null);
   const gesture = useRef<Gesture | null>(null);
   const [dragging, setDragging] = useState(false);
@@ -94,6 +96,7 @@ export function Scene({ state, ghost, debug, bollards, edition, onPick, onDragSt
       ghost,
       debug,
       bollards,
+      otherBollards,
       edition,
     });
   });
@@ -155,7 +158,7 @@ export function Scene({ state, ghost, debug, bollards, edition, onPick, onDragSt
       onPointerUp={(e) => endGesture(e, false)} onPointerCancel={(e) => endGesture(e, true)}
       className={edition ? (dragging ? 'editing dragging' : 'editing') : undefined}
       aria-label={edition
-        ? `Vue de dessus du bateau amarré ${state.catway ? 'le long d’un catway' : 'au quai'}. Touchez un taquet du bateau, puis une bitte du quai${state.catway ? ' ou du catway' : ''}, pour ajouter une aussière. Faites glisser le bateau pour le déplacer le long du ${state.catway ? 'catway' : 'quai'}.`
-        : `Vue de dessus du bateau amarré ${state.catway ? 'le long d’un catway' : 'au quai'}`} />
+        ? `Vue de dessus du bateau amarré ${state.catways.length ? 'le long d’un catway' : 'au quai'}. Touchez un taquet du bateau, puis une bitte du quai${state.catways.length ? ' ou du catway' : ''}, pour ajouter une aussière. Faites glisser le bateau pour le déplacer le long du ${state.catways.length ? 'catway' : 'quai'}.`
+        : `Vue de dessus du bateau amarré ${state.catways.length ? 'le long d’un catway' : 'au quai'}`} />
   );
 }

@@ -5,6 +5,7 @@ import { join } from 'node:path';
 import { catalogueFiles } from './helpers.ts';
 import { parseSituation, SituationError } from '../src/situations/schema.ts';
 import { BOLLARD_SPACING, buildState } from '../src/situations/build.ts';
+import { bittesDuPort } from '../src/situations/quai.ts';
 
 const DIR = join(import.meta.dirname, '..', 'src', 'situations', 'catalogue');
 const read = (f: string) => JSON.parse(readFileSync(join(DIR, f), 'utf8'));
@@ -41,12 +42,16 @@ test('une situation invalide est refusée avec un message lisible', () => {
   );
 });
 
-test('les bittes du catalogue sont sur la rangée du quai', () => {
+test('les bittes du catalogue sont sur la rangée du quai, ou sur le catway en perpendiculaire', () => {
   for (const f of catalogueFiles()) {
-    const s = buildState(parseSituation(read(f)));
-    for (const l of s.lines) {
-      const k = l.bollard[0] / BOLLARD_SPACING;
-      assert.ok(Math.abs(k - Math.round(k)) < 1e-9, `${f} : bitte à x = ${l.bollard[0]}`);
+    const sit = parseSituation(read(f));
+    const port = bittesDuPort(sit).map((p) => p.join(','));
+    for (const l of buildState(sit).lines) {
+      assert.ok(port.includes(l.bollard.join(',')), `${f} : bitte en ${l.bollard}`);
+      if (sit.quai.type === 'long-side') {
+        const k = l.bollard[0] / BOLLARD_SPACING;
+        assert.ok(Math.abs(k - Math.round(k)) < 1e-9, `${f} : bitte à x = ${l.bollard[0]}`);
+      }
     }
   }
 });
