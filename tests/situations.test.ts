@@ -1,30 +1,33 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { readFileSync } from 'node:fs';
-import { join } from 'node:path';
-import { catalogueFiles } from './helpers.ts';
+import { catalogue, rawSituation, scenarios } from './helpers.ts';
 import { parseSituation, SituationError } from '../src/situations/schema.ts';
 import { BOLLARD_SPACING, buildState } from '../src/situations/build.ts';
 import { bittesDuPort } from '../src/situations/quai.ts';
 import { nomDeduit } from '../src/situations/edit.ts';
 
-const DIR = join(import.meta.dirname, '..', 'src', 'situations', 'catalogue');
-const read = (f: string) => JSON.parse(readFileSync(join(DIR, f), 'utf8'));
 
 test('toutes les situations du catalogue sont valides et ont un identifiant unique', () => {
   const ids = new Set<string>();
-  for (const f of catalogueFiles()) {
-    const sit = parseSituation(read(f));
+  for (const { sit } of catalogue()) {
     assert.ok(!ids.has(sit.id), `identifiant en double : ${sit.id}`);
     ids.add(sit.id);
     const s = buildState(sit);
     assert.equal(s.lines.length, sit.aussieres.length);
   }
-  assert.ok(ids.size >= 4);
+});
+
+test('les scénarios de référence des tests sont valides et ont un identifiant unique', () => {
+  const ids = new Set<string>();
+  for (const sit of scenarios()) {
+    assert.ok(!ids.has(sit.id), `identifiant en double : ${sit.id}`);
+    ids.add(sit.id);
+    assert.equal(buildState(sit).lines.length, sit.aussieres.length);
+  }
 });
 
 test('une aussière sans mou est tendue au départ', () => {
-  const sit = parseSituation(read('01-depart-garde-avant.json'));
+  const sit = parseSituation(rawSituation('depart-garde-avant'));
   const s = buildState(sit);
   const l = s.lines[0];
   // Garde avant croisée, de l'étrave à la bitte 4 m en arrière du milieu : environ 8,7 m, sans mou.
@@ -32,7 +35,7 @@ test('une aussière sans mou est tendue au départ', () => {
 });
 
 test('une situation invalide est refusée avec un message lisible', () => {
-  const sit = read('01-depart-garde-avant.json');
+  const sit = rawSituation('depart-garde-avant');
   assert.throws(() => parseSituation({ ...sit, format: 2 }), SituationError);
   assert.throws(
     () => parseSituation({ ...sit, vent: { direction: 'nord', force: 'faible' } }),
@@ -45,8 +48,7 @@ test('une situation invalide est refusée avec un message lisible', () => {
 });
 
 test('les bittes du catalogue sont sur la rangée du quai, ou sur le catway en perpendiculaire', () => {
-  for (const f of catalogueFiles()) {
-    const sit = parseSituation(read(f));
+  for (const { file: f, sit } of catalogue()) {
     const port = bittesDuPort(sit).map((p) => p.join(','));
     for (const l of buildState(sit).lines) {
       assert.ok(port.includes(l.bollard.join(',')), `${f} : bitte en ${l.bollard}`);
@@ -59,7 +61,7 @@ test('les bittes du catalogue sont sur la rangée du quai, ou sur le catway en p
 });
 
 test('une bitte hors rangée ou un doublon taquet–bitte sont refusés', () => {
-  const sit = read('03-amarre-quatre-amarres.json');
+  const sit = rawSituation('amarre-quatre-amarres');
   const [a, b] = sit.aussieres;
   assert.throws(() => parseSituation({ ...sit, aussieres: [{ ...a, bitte: 9.5 }] }), /rangée de bittes/);
   assert.throws(() => parseSituation({ ...sit, aussieres: [a, { ...b, bitte: a.bitte }] }), /déjà ce taquet/);
@@ -69,21 +71,16 @@ test('une bitte hors rangée ou un doublon taquet–bitte sont refusés', () => 
 });
 
 test('catalogue, le long du quai : les gardes sont croisées, tournées au niveau de l’autre moitié du bateau', () => {
-  let gardes = 0;
-  for (const f of catalogueFiles()) {
-    const sit = parseSituation(read(f));
+  for (const { sit } of catalogue()) {
     if (sit.quai.type !== 'long-side') continue;
     for (const a of sit.aussieres) {
       const nom = nomDeduit(sit, a);
       // Bitte relative au milieu du bateau, positive vers l'avant ; la coque va de -5 à +5 m.
       if (nom.startsWith('Garde avant')) {
-        gardes++;
         assert.ok(a.bitte < 0 && a.bitte >= -5, `${sit.id} : garde avant tournée en ${a.bitte} m, hors de la moitié arrière`);
       } else if (nom.startsWith('Garde arrière')) {
-        gardes++;
         assert.ok(a.bitte > 0 && a.bitte <= 5, `${sit.id} : garde arrière tournée en ${a.bitte} m, hors de la moitié avant`);
       }
     }
   }
-  assert.ok(gardes >= 4);
 });

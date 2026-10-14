@@ -205,7 +205,7 @@ mini-cassiopee/
     situations/   format JSON, validation, catalogue
     render/       dessin Canvas et caméra
     ui/           composants React : commandes, lecteur, éditeur
-  tests/          scénarios de référence
+  tests/          tests et scénarios de référence (tests/situations/)
   docs/           spécifications et architecture
 ```
 
@@ -234,6 +234,8 @@ Licence MIT pour le code. Pour les situations du catalogue et les textes pédago
 ## Tests et qualité
 
 La physique se teste par comportements attendus, pas par valeurs exactes : un réglage des paramètres ne doit pas casser un test, un changement de comportement si.
+
+Les tests ne dépendent pas du catalogue. Le catalogue est une aide aux élèves : on y ajoute, modifie ou retire des situations librement. Les scénarios de référence appartiennent aux tests, dans `tests/situations/` (un fichier JSON par scénario, au format des situations, nommé par son identifiant) ; on les maintient et on les enrichit. Le catalogue n'est lu par les tests que pour vérifier qu'il respecte ses propres règles : situations valides, bittes sur les rangées, aussières vers l'extérieur, gardes croisées le long du quai. Ces vérifications portent sur ce qu'il contient, quel qu'en soit le nombre.
 
 | Scénario de référence | Comportement vérifié |
 | --- | --- |
@@ -282,7 +284,7 @@ La physique se teste par comportements attendus, pas par valeurs exactes : un r�
 | Édition des voisins sur catway | Placer et retirer ; côtés du long du quai refusés, et inversement ; voisin côté large refusé faute de place ; voisins fixes et course inchangée quand on glisse le bateau |
 | Relecture d'un contact avec un voisin sur catway | Le contact se rejoue à l'identique |
 
-S'y ajoutent des tests de stabilité numérique (aucune valeur non finie, pas d'oscillation résiduelle) et des tests du format des situations, dont le placement des bittes du catalogue sur la rangée. Le reste de l'interface se vérifie à la main sur PC, Android et iOS avant chaque version.
+S'y ajoutent des tests de stabilité numérique (aucune valeur non finie, pas d'oscillation résiduelle) et des tests du format des situations. Le reste de l'interface se vérifie à la main sur PC, Android et iOS avant chaque version.
 
 ## Registre des décisions
 
@@ -309,4 +311,5 @@ Chaque choix structurant est noté ici avec son statut ; une décision ne change
 | Licence du code | MIT | Décidé |
 | Licence des contenus | CC0 proposée pour les situations et textes pédagogiques | Ouvert |
 | Pilotage des évolutions | Pas de paliers ni de jalons ; backlog dans les issues GitHub, une issue par évolution | Décidé |
+| Tests et catalogue | Scénarios de référence propres aux tests (`tests/situations/`) ; le catalogue évolue librement, les tests ne vérifient que ses règles | Décidé |
 | Documentation de référence | `docs/` dans le dépôt fait foi, mise à jour avec le code | Décidé |
