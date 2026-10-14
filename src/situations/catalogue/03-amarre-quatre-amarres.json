@@ -1,7 +1,7 @@
 {
   "format": 1,
   "id": "amarre-quatre-amarres",
-  "titre": "Amarré, quatre amarres",
+  "titre": "Amarrage complet",
   "description": "Pointes et gardes tournées. Sans toucher aux commandes, le vent permet de vérifier que l'amarrage tient et de voir quelles aussières travaillent.",
   "quai": { "type": "long-side" },
   "bateau": { "x": 0, "distanceQuai": 0.05, "bordAuQuai": "babord" },

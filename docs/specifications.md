@@ -145,19 +145,16 @@ L'élève part d'un catalogue de situations types, qu'il peut ajuster dans un pe
 
 ### Catalogue
 
-Chaque situation définit : la configuration du quai (le long ou perpendiculaire, étrave ou arrière au quai), la position du bateau, les aussières en place et celles qui sont tendues au démarrage, le vent, et les options avancées actives. Contenu initial proposé, à valider :
+Chaque situation définit : la configuration du quai (le long ou perpendiculaire, étrave ou arrière au quai), la position du bateau, les aussières en place et celles qui sont tendues au démarrage, le vent, et les options avancées actives. Contenu proposé, à valider : chaque famille commence par l'amarrage complet, suivi des manœuvres de départ. Le catalogue ne propose pas de voisins : l'élève les ajoute dans les options avancées.
 
-- amarré le long du quai, quatre amarres (pointes et gardes), sans vent : vérification d'amarrage ;
-- même situation avec vent du quai, puis vent du large ;
-- départ sur garde avant ;
-- départ sur garde arrière ;
-- départ sur garde avant entre deux bateaux serrés : sans garde, la barre ne suffit pas à déborder l'étrave, qui vient toucher le voisin de devant ;
-- sur catway, arrière au quai, vent soutenu du catway, sans commande : vérification d'amarrage, l'avant qui dépasse du catway est le plus exposé ;
-- sur catway, étrave au quai : sortie en marche arrière ;
-- sur catway, arrière au quai : sortie en marche avant ;
-- sur catway, étrave au quai, voisin côté large, vent soutenu du catway et du quai : tout largué, la sortie en marche arrière pousse le bateau sur le voisin ; en larguant les pointes et en reculant sur les deux gardes du catway, l'arrière remonte au vent, puis le bateau sort sans contact une fois les gardes larguées.
+- le long du quai, amarrage complet : deux pointes et deux gardes, vent soutenu du quai, sans commande : vérification d'amarrage (à essayer aussi vent du large) ;
+- départ sur garde avant : seule la garde avant est tournée ;
+- départ sur garde arrière : seule la garde arrière est tournée ;
+- sur catway, amarrage complet : arrière au quai, deux pointes et deux gardes, vent soutenu du catway, sans commande : vérification d'amarrage, l'avant qui dépasse du catway est le plus exposé ;
+- sur catway, arrière au quai : sortie en marche avant, depuis les deux pointes et la garde arrière ;
+- sur catway, étrave au quai : sortie en marche arrière, depuis les deux pointes et la garde avant.
 
-Sur catway, le bout au quai porte deux pointes, une vers chaque bord, en plus des gardes tournées sur le catway. Comme sur un vrai bateau, chaque aussière du catalogue part vers l'extérieur du bateau, du bord de son taquet : sa bitte est plus écartée de l'axe que le taquet, et les deux pointes s'ouvrent en V.
+Sur catway, le bout au quai porte deux pointes, une vers chaque bord, en plus des gardes tournées sur le catway. Les pointes empêchent le bateau de s'éloigner du quai. Dans les sorties, une seule garde reste : celle qui l'empêche d'aller taper dans le quai, partie du bout tourné vers le quai. Comme sur un vrai bateau, chaque aussière du catalogue part vers l'extérieur du bateau, du bord de son taquet : sa bitte est plus écartée de l'axe que le taquet, et les deux pointes s'ouvrent en V.
 
 Le long du quai, les gardes du catalogue sont croisées, comme sur un vrai quai : la garde avant est tournée sur une bitte au niveau de la moitié arrière du bateau, à 4 m en arrière du milieu, et la garde arrière, symétriquement, à 4 m en avant. Longues, presque parallèles au quai, elles retiennent bien le bateau en long.
 
