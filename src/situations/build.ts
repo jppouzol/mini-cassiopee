@@ -1,7 +1,7 @@
-import type { SimState, Vec, Wind } from '../sim/types.ts';
+import type { Neighbor, SimState, Vec, Wind } from '../sim/types.ts';
 import { cleatPosition, toWorld } from '../sim/geometry.ts';
-import type { Situation, WindDirection } from './schema.ts';
-import { BOLLARD_SETBACK, bitteVersMonde, bowSign, yDepart } from './quai.ts';
+import { COTES_VOISIN, type Situation, type WindDirection } from './schema.ts';
+import { BOLLARD_SETBACK, bitteVersMonde, bowSign, xVoisin, yDepart } from './quai.ts';
 import { nomsAffiches } from './edit.ts';
 
 export { BOLLARD_SETBACK, BOLLARD_SPACING } from './quai.ts';
@@ -58,5 +58,10 @@ export function buildState(sit: Situation, windOverride?: Situation['vent']): Si
   });
   const v = windOverride ?? sit.vent;
   const wind: Wind = { to: windVector(v.direction, pose.bowSign), force: v.force };
-  return { frame: 0, body, lines, engine: 0, rudder: 0, wind, contacts: [], pivot: null };
+  const neighbors: Neighbor[] = [];
+  for (const cote of COTES_VOISIN) {
+    const ecart = sit.voisins?.[cote];
+    if (ecart !== undefined) neighbors.push({ id: cote, x: xVoisin(sit, cote, ecart), y: pose.y, th: pose.th, contacts: [] });
+  }
+  return { frame: 0, body, lines, engine: 0, rudder: 0, wind, contacts: [], neighbors, pivot: null };
 }

@@ -13,6 +13,49 @@ export const HULL: readonly Vec[] = HALF.concat(
 
 /** Demi-largeur maximale de la coque (m). */
 export const HALF_BEAM = 1.7;
+/** Demi-longueur de la coque, de l'étrave au tableau arrière (m). */
+export const HALF_LENGTH = 5;
+
+/** Arêtes de la coque, sens trigonométrique, sans arête de longueur nulle. */
+const EDGES: readonly { a: Vec; t: Vec; len: number }[] = HULL.flatMap((a, i) => {
+  const b = HULL[(i + 1) % HULL.length];
+  const dx = b[0] - a[0], dy = b[1] - a[1];
+  const len = Math.hypot(dx, dy);
+  return len > 1e-9 ? [{ a, t: [dx / len, dy / len] as Vec, len }] : [];
+});
+
+/**
+ * Pénétration d'un point dans la coque (repère bateau ; la coque est convexe).
+ * Renvoie la profondeur sous l'arête la plus proche et sa normale sortante,
+ * ou null si le point est dehors.
+ */
+export function hullPenetration(p: Vec): { depth: number; n: Vec } | null {
+  let depth = Infinity;
+  let n: Vec = [0, 0];
+  for (const e of EDGES) {
+    // Distance signée à la droite de l'arête, positive à l'intérieur.
+    const d = e.t[0] * (p[1] - e.a[1]) - e.t[1] * (p[0] - e.a[0]);
+    if (d < 0) return null;
+    if (d < depth) {
+      depth = d;
+      n = [e.t[1], -e.t[0]];
+    }
+  }
+  return { depth, n };
+}
+
+/** Point monde exprimé dans le repère d'un corps. */
+export function toLocal(b: Pick<Body, 'x' | 'y' | 'th'>, w: Vec): Vec {
+  const c = Math.cos(b.th), s = Math.sin(b.th);
+  const dx = w[0] - b.x, dy = w[1] - b.y;
+  return [c * dx + s * dy, -s * dx + c * dy];
+}
+
+/** Vecteur d'un repère corps tourné dans le repère monde. */
+export function rotate(th: number, v: Vec): Vec {
+  const c = Math.cos(th), s = Math.sin(th);
+  return [c * v[0] - s * v[1], s * v[0] + c * v[1]];
+}
 
 /** Points testés pour le contact avec le quai : sommets et milieux d'arêtes. */
 export const CONTACT_POINTS: readonly Vec[] = (() => {

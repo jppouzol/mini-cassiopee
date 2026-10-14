@@ -1,5 +1,5 @@
-import type { Body, Effect, Forces, Vec } from './types.ts';
-import { CONTACT_POINTS, SLICES, pointVelocity, toWorld } from './geometry.ts';
+import type { Body, Effect, Forces, Params, Vec } from './types.ts';
+import { CONTACT_POINTS, HALF_LENGTH, SLICES, hullPenetration, pointVelocity, rotate, toLocal, toWorld } from './geometry.ts';
 
 // Chaque effet est une fonction pure de l'état et des paramètres, qui ajoute
 // une force et un moment. Le socle en active une liste fixe ; les enrichissements
@@ -109,5 +109,51 @@ export const quayContact: Effect = (s, p, f) => {
   }
 };
 
+/**
+ * Réaction d'appui en un point p du bateau : n est la normale (monde) selon laquelle
+ * le bateau est repoussé, depth la profondeur de pénétration. Même loi que le quai :
+ * ressort amorti qui ne tire jamais, et frottement le long de la surface.
+ * Renvoie l'intensité de la réaction normale.
+ */
+function push(f: Forces, b: Body, p: Params, pt: Vec, n: Vec, depth: number): number {
+  const pv = pointVelocity(b, pt);
+  const vn = pv[0] * n[0] + pv[1] * n[1];
+  const fn = Math.max(0, p.contactK * depth - p.contactC * vn);
+  if (fn === 0) return 0;
+  const tx = -n[1], ty = n[0];
+  const vt = pv[0] * tx + pv[1] * ty;
+  const ft = -Math.sign(vt) * Math.min(p.contactMu * fn, p.contactCt * Math.abs(vt));
+  addWorld(f, b, fn * n[0] + ft * tx, fn * n[1] + ft * ty, pt);
+  return fn;
+}
+
+/**
+ * Contact avec les bateaux voisins, immobiles : coque contre coque, traité
+ * comme le quai. On repousse les points de la coque entrés dans un voisin, et
+ * la coque là où un point du voisin y est entré (un angle de tableau contre le
+ * flanc, par exemple). Sans voisin, cet effet n'ajoute rien.
+ */
+export const neighborContact: Effect = (s, p, f) => {
+  const b = s.body;
+  for (const nb of s.neighbors) {
+    nb.contacts = [];
+    // Deux coques de 10 m ne se touchent pas si leurs centres sont à plus de 2 × 5,3 m.
+    if (Math.hypot(nb.x - b.x, nb.y - b.y) > 2 * HALF_LENGTH + 0.7) continue;
+    for (const pt of CONTACT_POINTS) {
+      const w = toWorld(b, pt);
+      const pen = hullPenetration(toLocal(nb, w));
+      if (pen && push(f, b, p, pt, rotate(nb.th, pen.n), pen.depth) > 0) nb.contacts.push(w);
+    }
+    for (const q of CONTACT_POINTS) {
+      const w = toWorld(nb, q);
+      const local = toLocal(b, w);
+      const pen = hullPenetration(local);
+      if (!pen) continue;
+      const out = rotate(b.th, pen.n);
+      if (push(f, b, p, local, [-out[0], -out[1]], pen.depth) > 0) nb.contacts.push(w);
+    }
+  }
+};
+
 /** Effets du socle, dans un ordre fixe (gage de déterminisme). */
-export const BASE_EFFECTS: readonly Effect[] = [engine, rudder, hydrodynamics, wind, mooringLines, quayContact];
+export const BASE_EFFECTS: readonly Effect[] = [engine, rudder, hydrodynamics, wind, mooringLines, quayContact, neighborContact];

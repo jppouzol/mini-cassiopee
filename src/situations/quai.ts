@@ -3,7 +3,7 @@
 // (« bitte », en mètres depuis le centre, positive vers l'avant) ; la rangée,
 // elle, est fixe dans le repère monde.
 
-import { HALF_BEAM } from '../sim/geometry.ts';
+import { HALF_BEAM, HALF_LENGTH } from '../sim/geometry.ts';
 
 /** Distance de la rangée de bittes au bord du quai (m). */
 export const BOLLARD_SETBACK = 0.6;
@@ -41,6 +41,15 @@ export function bittesEntre(xMin: number, xMax: number): number[] {
   const out: number[] = [];
   for (let k = Math.ceil(xMin / BOLLARD_SPACING); k * BOLLARD_SPACING <= xMax; k++) out.push(k * BOLLARD_SPACING);
   return out;
+}
+
+/**
+ * Position monde (x) du centre d'un voisin : même coque, même cap et même
+ * écart au quai que le bateau, à l'écart donné de son étrave ou de son tableau.
+ */
+export function xVoisin(sit: Placement, cote: 'avant' | 'arriere', ecart: number): number {
+  const sens = cote === 'avant' ? 1 : -1;
+  return sit.bateau.x + bowSign(sit) * sens * (2 * HALF_LENGTH + ecart);
 }
 
 /** Ordonnée monde du centre du bateau au départ. */

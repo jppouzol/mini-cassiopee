@@ -1,0 +1,13 @@
+{
+  "format": 1,
+  "id": "depart-garde-avant-voisins",
+  "titre": "Départ sur garde avant entre deux bateaux",
+  "description": "Un bateau amarré juste devant, un autre juste derrière. Sans garde, la barre ne suffit pas à déborder l'étrave : l'arrière frotte le quai et l'étrave touche le voisin. Sur la garde avant, l'arrière décolle, puis marche arrière et garde larguée pour sortir.",
+  "quai": { "type": "long-side" },
+  "bateau": { "x": 0, "distanceQuai": 0.05, "bordAuQuai": "babord" },
+  "aussieres": [
+    { "id": "garde-av", "taquet": "etrave", "bitte": 0, "mou": 0 }
+  ],
+  "voisins": { "avant": 1, "arriere": 1 },
+  "vent": { "direction": "quai", "force": "aucun" }
+}

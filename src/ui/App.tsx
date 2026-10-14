@@ -3,13 +3,13 @@ import { Session, type Action } from '../session/session.ts';
 import { BOLLARD_SETBACK, buildState } from '../situations/build.ts';
 import { CATALOGUE } from '../situations/catalogue.ts';
 import {
-  DEPLACEMENT_MAX, EditionError, PAS_DEPLACEMENT, ajouterAussiere, basculerFile, basculerMou, deplacerBateau,
-  reglerPlafond, renommerAussiere, supprimerAussiere, taquetsProposes,
+  ECARTS_VOISIN, EditionError, PAS_DEPLACEMENT, ajouterAussiere, basculerFile, basculerMou, bornesDeplacement,
+  deplacerBateau, ecartVoisin, reglerPlafond, reglerVoisin, renommerAussiere, supprimerAussiere, taquetsProposes,
 } from '../situations/edit.ts';
 import { bitteDepuisMonde, bittesEntre } from '../situations/quai.ts';
 import {
-  PLAFOND_DEFAUT, PLAFOND_MAX, WIND_DIRECTIONS, plafond,
-  type Cleat, type Situation, type WindDirection,
+  COTES_VOISIN, PLAFOND_DEFAUT, PLAFOND_MAX, WIND_DIRECTIONS, plafond,
+  type Cleat, type CoteVoisin, type Situation, type WindDirection,
 } from '../situations/schema.ts';
 import { DEFAULT_PARAMS, FPS } from '../sim/params.ts';
 import type { Engine, Params, Vec } from '../sim/types.ts';
@@ -45,6 +45,12 @@ const CLEAT_LABELS: Record<Cleat, string> = {
   'arriere-large': 'le taquet arrière côté large',
   'maitre-bau': 'le taquet de maître-bau',
 };
+const VOISINS: { value: number | null; label: string }[] = [
+  { value: null, label: 'Aucun' },
+  { value: ECARTS_VOISIN.serre, label: 'Serré' },
+  { value: ECARTS_VOISIN.large, label: 'Large' },
+];
+const COTE_LABELS: Record<CoteVoisin, string> = { avant: 'Voisin devant', arriere: 'Voisin derrière' };
 const STEP_FRAMES = 12;
 const MAX_RUDDER_DEG = 35;
 /** Étendue de la rangée de bittes dessinée (m, repère monde), bien au-delà de ce que la caméra montre. */
@@ -65,6 +71,7 @@ export function App() {
   const [debug, setDebug] = useState(false);
   const [selected, setSelected] = useState<Cleat | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
+  const [voisinNotice, setVoisinNotice] = useState<string | null>(null);
   const [renaming, setRenamingState] = useState<{ id: string; text: string } | null>(null);
   // Copie synchrone du renommage en cours : Entrée, Échap et la perte de focus peuvent se suivre
   // avant le rendu suivant, et un seul d'entre eux doit agir.
@@ -121,6 +128,7 @@ export function App() {
     setSelected(null);
     setRenaming(null);
     setNotice(null);
+    setVoisinNotice(null);
   }, [preparing, setRenaming]);
 
   const act = useCallback((a: Action) => { sessionRef.current?.act(a); refresh(); }, [refresh]);
@@ -133,8 +141,11 @@ export function App() {
     refresh();
   }, [refresh]);
 
-  /** Modifie la situation préparée et repart de cette nouvelle situation (la manœuvre enregistrée est effacée). */
-  const edit = (f: (sit: Situation) => Situation) => {
+  /**
+   * Modifie la situation préparée et repart de cette nouvelle situation (la manœuvre enregistrée est effacée).
+   * Un refus de l'éditeur s'affiche près des aussières, ou près du réglage concerné (`onError`).
+   */
+  const edit = (f: (sit: Situation) => Situation, onError: (msg: string) => void = setNotice) => {
     if (!preparing) return;
     try {
       const next = f(preparee);
@@ -142,10 +153,13 @@ export function App() {
       setPreparee(next);
       newSession(next);
       setNotice(null);
+      setVoisinNotice(null);
     } catch (e) {
-      if (e instanceof EditionError) setNotice(e.message); else throw e;
+      if (e instanceof EditionError) onError(e.message); else throw e;
     }
   };
+  const setVoisin = (cote: CoteVoisin, ecart: number | null) =>
+    edit((sit) => reglerVoisin(sit, origine, cote, ecart), setVoisinNotice);
   const changeWind = (w: WindSetting) => edit((sit) => ({ ...sit, vent: w }));
   const changeParams = (p: Params) => {
     setParams(p);
@@ -158,6 +172,7 @@ export function App() {
     setSelected(null);
     setRenaming(null);
     setNotice(null);
+    setVoisinNotice(null);
     newSession(sit);
   };
 
@@ -270,7 +285,7 @@ export function App() {
   const showTuning = typeof location !== 'undefined' && location.hash === '#reglages';
   const max = plafond(preparee);
   const modified = preparee !== origine;
-  const xMin = origine.bateau.x - DEPLACEMENT_MAX, xMax = origine.bateau.x + DEPLACEMENT_MAX;
+  const [xMin, xMax] = bornesDeplacement(preparee, origine);
   const status = playing
     ? (session.atEnd ? 'Simulation' : 'Relecture')
     : selected ? 'Touchez une bitte du quai'
@@ -455,6 +470,22 @@ export function App() {
               </div>
             </div>
             <p className="hint">De {PLAFOND_DEFAUT} à {PLAFOND_MAX}, jamais moins que le nombre d’aussières en place. Se règle au départ.</p>
+            {COTES_VOISIN.map((cote) => {
+              const ecart = ecartVoisin(preparee, origine, cote);
+              return (
+                <div className="voisin" key={cote}>
+                  <span>{COTE_LABELS[cote]}</span>
+                  <div className="seg" role="group" aria-label={COTE_LABELS[cote]}>
+                    {VOISINS.map((o) => (
+                      <button key={o.label} aria-pressed={ecart === o.value} disabled={!preparing}
+                        onClick={() => setVoisin(cote, o.value)}>{o.label}</button>
+                    ))}
+                  </div>
+                </div>
+              );
+            })}
+            <p className="hint" aria-live="polite">{voisinNotice
+              ?? 'Bateaux amarrés devant ou derrière, immobiles : le bateau peut s’y appuyer ou les toucher. Se règlent au départ.'}</p>
           </div>
         </details>
 

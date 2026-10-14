@@ -44,6 +44,20 @@ export interface Wind {
   force: WindForce;
 }
 
+/**
+ * Bateau voisin : même coque que le bateau simulé, immobile. Il sert
+ * d'obstacle et peut faire point d'appui, comme le quai.
+ */
+export interface Neighbor {
+  id: string;
+  /** position du centre et cap, fixes (repère monde) */
+  x: number;
+  y: number;
+  th: number;
+  /** points de contact avec le bateau à la dernière image (repère monde) */
+  contacts: Vec[];
+}
+
 export interface SimState {
   /** numéro d'image (60 images par seconde) */
   frame: number;
@@ -55,6 +69,8 @@ export interface SimState {
   wind: Wind;
   /** points d'appui sur le quai à la dernière image (repère monde) */
   contacts: Vec[];
+  /** bateaux voisins, immobiles (liste vide sans voisin) */
+  neighbors: Neighbor[];
   /** position du point de pivot sur l'axe (m, repère bateau), null si le bateau ne tourne pas */
   pivot: number | null;
 }

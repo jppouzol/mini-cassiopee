@@ -13,6 +13,13 @@ export const WIND_FORCES = ['aucun', 'faible', 'soutenu'] as const;
 export const CLEATS = ['etrave', 'arriere', 'arriere-large', 'maitre-bau'] as const;
 export type Cleat = (typeof CLEATS)[number];
 
+/** Côtés du bateau où l'on peut placer un voisin, le long du quai. */
+export const COTES_VOISIN = ['avant', 'arriere'] as const;
+export type CoteVoisin = (typeof COTES_VOISIN)[number];
+/** Écart minimal et maximal entre le bateau et un voisin au départ (m). */
+export const ECART_VOISIN_MIN = 0.5;
+export const ECART_VOISIN_MAX = 20;
+
 /** Plafond d'aussières par défaut, et bornes de son réglage. */
 export const PLAFOND_DEFAUT = 6;
 export const PLAFOND_MAX = 12;
@@ -50,6 +57,12 @@ export interface Situation {
   /** nombre maximal d'aussières (PLAFOND_DEFAUT si absent) */
   plafondAussieres?: number;
   vent: { direction: WindDirection; force: (typeof WIND_FORCES)[number] };
+  /**
+   * bateaux voisins, amarrés le long du même quai : écart (m) entre l'étrave
+   * (avant) ou le tableau arrière (arriere) du bateau au départ et le voisin ;
+   * un côté absent n'a pas de voisin
+   */
+  voisins?: Partial<Record<CoteVoisin, number>>;
 }
 
 /** Plafond d'aussières effectif d'une situation. */
@@ -146,5 +159,20 @@ export function parseSituation(input: unknown): Situation {
     },
   };
   if (plafondAussieres !== undefined) sit.plafondAussieres = plafondAussieres;
+
+  if (input.voisins !== undefined) {
+    const v = input.voisins;
+    if (!isObj(v)) throw new SituationError(`${id} : « voisins » doit être un objet ({ "avant": écart, "arriere": écart }).`);
+    const voisins: Partial<Record<CoteVoisin, number>> = {};
+    for (const k of Object.keys(v)) {
+      const cote = oneOf(k, COTES_VOISIN, `${id} : chaque côté de « voisins »`);
+      const e = v[k];
+      if (!isNum(e) || e < ECART_VOISIN_MIN || e > ECART_VOISIN_MAX) {
+        throw new SituationError(`${id} : l'écart du voisin ${cote === 'avant' ? 'avant' : 'arrière'} doit être un nombre de ${ECART_VOISIN_MIN} à ${ECART_VOISIN_MAX} m.`);
+      }
+      voisins[cote] = e;
+    }
+    if (Object.keys(voisins).length > 0) sit.voisins = voisins;
+  }
   return sit;
 }
