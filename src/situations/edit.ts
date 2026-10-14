@@ -4,7 +4,7 @@
 
 import { HALF_LENGTH, cleatPosition } from '../sim/geometry.ts';
 import {
-  ECART_QUAI_MIN, bitteDepuisSupport, bitteRepereBateau, bitteVersSupport, bowSign, perpendiculaire, surLaRangee,
+  ECART_QUAI_MIN, bitteDepuisSupport, bitteRepereBateau, bitteVersSupport, bowSign, perpendiculaire, quaySide, surLaRangee,
   type Placement,
 } from './quai.ts';
 import {
@@ -12,8 +12,11 @@ import {
   type Cleat, type CoteVoisin, type Situation, type SituationLine,
 } from './schema.ts';
 
-/** Taquets proposés dans l'éditeur (le maître-bau viendra plus tard). */
-export const TAQUETS_EDITABLES: readonly Cleat[] = ['etrave', 'arriere'];
+/**
+ * Taquets proposés dans l'éditeur : l'étrave, proche de l'axe, et l'arrière sur chaque bord,
+ * côté support et côté large (le maître-bau viendra plus tard).
+ */
+export const TAQUETS_EDITABLES: readonly Cleat[] = ['etrave', 'arriere', 'arriere-large'];
 
 /** Taquets proposés, avec leur position en repère bateau selon le bord au quai. */
 export function taquetsProposes(sit: Pick<Situation, 'bateau'>): { name: Cleat; pos: [number, number] }[] {
@@ -52,18 +55,44 @@ export function nomDeduit(sit: Placement, a: Pick<SituationLine, 'taquet' | 'bit
 }
 
 /**
+ * Bord d'une aussière : celui de son taquet, ou, pour le taquet d'étrave, proche de
+ * l'axe, celui où se trouve sa bitte. Null si la bitte est dans l'axe de l'étrave.
+ */
+export function bordAussiere(sit: Placement, a: Pick<SituationLine, 'taquet' | 'bitte' | 'sur'>): 'bâbord' | 'tribord' | null {
+  // Côté, dans le repère du bateau tourné vers le support : +1 vers le support, -1 vers le large.
+  let cote: number;
+  if (a.taquet === 'etrave') {
+    const ecart = bitteRepereBateau(sit, a)[1] - cleatPosition('etrave', 1)[1];
+    cote = Math.abs(ecart) < 1e-6 ? 0 : Math.sign(ecart);
+  } else {
+    cote = Math.sign(cleatPosition(a.taquet, 1)[1]);
+  }
+  if (cote === 0) return null;
+  return cote * quaySide(sit) > 0 ? 'bâbord' : 'tribord';
+}
+
+/**
  * Noms affichés de toutes les aussières, dans l'ordre de la situation.
- * Un nom choisi est gardé tel quel ; les noms déduits identiques sont numérotés.
+ * Un nom choisi est gardé tel quel. Des noms déduits identiques sont départagés par
+ * leur bord quand chacune est sur un bord différent (« Pointe arrière bâbord » et
+ * « Pointe arrière tribord ») ; sinon, ils sont numérotés.
  */
 export function nomsAffiches(sit: Pick<Situation, 'quai' | 'bateau' | 'aussieres'>): string[] {
   const deduits = sit.aussieres.map((a) => (a.nom ? null : nomDeduit(sit, a)));
-  const total = new Map<string, number>();
-  for (const n of deduits) if (n) total.set(n, (total.get(n) ?? 0) + 1);
+  const bords = sit.aussieres.map((a) => bordAussiere(sit, a));
+  const groupes = new Map<string, number[]>();
+  deduits.forEach((n, i) => { if (n) groupes.set(n, [...(groupes.get(n) ?? []), i]); });
+  const parBord = new Set<string>();
+  for (const [n, idx] of groupes) {
+    const b = idx.map((i) => bords[i]);
+    if (idx.length > 1 && b.every((x) => x !== null) && new Set(b).size === b.length) parBord.add(n);
+  }
   const vus = new Map<string, number>();
   return sit.aussieres.map((a, i) => {
     const n = deduits[i];
     if (!n) return a.nom as string;
-    if ((total.get(n) ?? 0) < 2) return n;
+    if ((groupes.get(n)?.length ?? 0) < 2) return n;
+    if (parBord.has(n)) return `${n} ${bords[i]}`;
     const k = (vus.get(n) ?? 0) + 1;
     vus.set(n, k);
     return `${n} ${k}`;

@@ -45,12 +45,17 @@ const ENGINE: { value: Engine; label: string }[] = [
   { value: 0, label: 'Neutre' },
   { value: 1, label: 'Avant' },
 ];
-const CLEAT_LABELS: Record<Cleat, string> = {
-  etrave: "le taquet d'étrave",
-  arriere: 'le taquet arrière',
-  'arriere-large': 'le taquet arrière côté large',
-  'maitre-bau': 'le taquet de maître-bau',
-};
+/** Taquet sélectionné, nommé par son bord : bâbord ou tribord selon le flanc tourné vers le quai ou le catway. */
+function cleatLabel(sit: Situation, cleat: Cleat): string {
+  const auQuai = sit.bateau.bordAuQuai === 'babord' ? 'bâbord' : 'tribord';
+  const auLarge = auQuai === 'bâbord' ? 'tribord' : 'bâbord';
+  switch (cleat) {
+    case 'etrave': return "le taquet d'étrave";
+    case 'arriere': return `le taquet arrière ${auQuai}`;
+    case 'arriere-large': return `le taquet arrière ${auLarge}`;
+    case 'maitre-bau': return `le taquet de maître-bau ${auQuai}`;
+  }
+}
 const VOISINS: { value: number | null; label: string }[] = [
   { value: null, label: 'Aucun' },
   { value: ECARTS_VOISIN.serre, label: 'Serré' },
@@ -461,7 +466,7 @@ export function App() {
             <p className="hint" aria-live="polite">
               {notice
                 ?? (selected
-                  ? `Touchez ${bitteLabel} pour y tourner l’aussière depuis ${CLEAT_LABELS[selected]}.`
+                  ? `Touchez ${bitteLabel} pour y tourner l’aussière depuis ${cleatLabel(preparee, selected)}.`
                   : `Pour ajouter une aussière, touchez un taquet du bateau (cercle bleu), puis ${bitteLabel}.`)}
             </p>
           )}

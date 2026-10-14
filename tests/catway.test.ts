@@ -10,7 +10,7 @@ import { HULL, HALF_LENGTH, cleatPosition, toLocal, toWorld } from '../src/sim/g
 import type { SimState, Vec } from '../src/sim/types.ts';
 import { Session } from '../src/session/session.ts';
 import {
-  EditionError, ajouterAussiere, bornesDeplacement, deplacerBateau, nomDeduit, nomsAffiches, reglerVoisin,
+  EditionError, ajouterAussiere, bornesDeplacement, deplacerBateau, nomDeduit, nomsAffiches, reglerVoisin, taquetsProposes,
 } from '../src/situations/edit.ts';
 import {
   ECART_QUAI_MIN, LONGUEUR_CATWAY, bitteDepuisPoint, bitteRepereBateau, bittesDuPort, pointBitte, quaySide,
@@ -109,14 +109,16 @@ test('géométrie : bateau le long du catway, bittes sur leurs rangées, de part
 });
 
 test('nom déduit sur catway : pointe vers le quai, gardes et traversier sur le catway, de part et d’autre', () => {
+  // Deux pointes avant depuis le taquet d'étrave, départagées par le bord où se trouve leur bitte.
+  assert.deepEqual(nomsAffiches(sortieArriere()), ['Pointe avant bâbord', 'Pointe avant tribord', 'Garde avant', 'Garde arrière']);
+  assert.deepEqual(nomsAffiches(tribord(sortieArriere())), ['Pointe avant tribord', 'Pointe avant bâbord', 'Garde avant', 'Garde arrière']);
   for (const sit of [sortieArriere(), tribord(sortieArriere())]) {
-    assert.deepEqual(nomsAffiches(sit), ['Pointe avant', 'Garde avant', 'Garde arrière']);
     // Étrave au quai à 1 m, taquet d'étrave à 1,5 m du quai : la bitte à 2 m est presque en face.
     assert.equal(nomDeduit(sit, { taquet: 'etrave', bitte: 4 }), 'Traversier avant');
   }
-  for (const sit of [verification(), tribord(verification())]) {
-    assert.deepEqual(nomsAffiches(sit), ['Pointe arrière', 'Garde arrière', 'Garde avant']);
-  }
+  // Cul à quai : une pointe arrière depuis chaque taquet arrière.
+  assert.deepEqual(nomsAffiches(verification()), ['Pointe arrière bâbord', 'Pointe arrière tribord', 'Garde arrière', 'Garde avant']);
+  assert.deepEqual(nomsAffiches(tribord(verification())), ['Pointe arrière tribord', 'Pointe arrière bâbord', 'Garde arrière', 'Garde avant']);
 });
 
 test('vent en repères du port : catway, large, quai, chenal', () => {
@@ -217,7 +219,8 @@ test('éditeur : glisser le long du catway, arrêt à 0,5 m du quai, bittes inch
   }
   // Reculé de 2 m, le taquet d'étrave arrive presque en face de la bitte de la garde avant : elle devient un traversier.
   const o = sortieArriere();
-  assert.deepEqual(nomsAffiches(deplacerBateau(o, o, o.bateau.x + 2)), ['Pointe avant', 'Traversier avant', 'Garde arrière']);
+  assert.deepEqual(nomsAffiches(deplacerBateau(o, o, o.bateau.x + 2)),
+    ['Pointe avant bâbord', 'Pointe avant tribord', 'Traversier avant', 'Garde arrière']);
 });
 
 test('éditeur : ajouter une aussière sur le catway ou sur le quai, voisins refusés', () => {
@@ -226,6 +229,12 @@ test('éditeur : ajouter une aussière sur le catway ou sur le quai, voisins ref
   const surQuai = bitteDepuisPoint(sit, [2, 0.6]);
   const avec = ajouterAussiere(ajouterAussiere(sit, 'etrave', surCatway.bitte, surCatway.sur), 'etrave', surQuai.bitte, surQuai.sur);
   assert.deepEqual(nomsAffiches(avec), ['Garde avant', 'Pointe avant']);
+  // Cul à quai : une pointe arrière depuis chaque taquet arrière, proposés tous deux par l'éditeur.
+  const cul = sansAmarre(sortieAvant());
+  assert.deepEqual(taquetsProposes(cul).map((c) => c.name), ['etrave', 'arriere', 'arriere-large']);
+  const deux = ajouterAussiere(ajouterAussiere(cul, 'arriere', 0.5, 'quai'), 'arriere-large', -1.5, 'quai');
+  assert.deepEqual(nomsAffiches(deux), ['Pointe arrière bâbord', 'Pointe arrière tribord']);
+  assert.deepEqual(buildState(deux).lines.map((l) => l.bollard), [[-2, 0.6], [-4, 0.6]]);
   assert.deepEqual(buildState(avec).lines.map((l) => l.bollard), [[0, -4], [2, 0.6]]);
   assert.throws(() => ajouterAussiere(avec, 'etrave', surQuai.bitte, 'quai'), EditionError, 'doublon');
   assert.throws(() => ajouterAussiere(sit, 'etrave', 3), /catway/);

@@ -5,7 +5,7 @@ import { line, loadSituation, run } from './helpers.ts';
 import { buildState } from '../src/situations/build.ts';
 import {
   DEPLACEMENT_MAX, EditionError, MOU_MOLLE, ajouterAussiere, basculerMou, deplacerBateau,
-  nomDeduit, nomsAffiches, reglerPlafond, renommerAussiere, supprimerAussiere,
+  nomDeduit, nomsAffiches, reglerPlafond, renommerAussiere, supprimerAussiere, taquetsProposes,
 } from '../src/situations/edit.ts';
 import { parseSituation, type Situation } from '../src/situations/schema.ts';
 import { bitteDepuisSupport, bitteVersSupport } from '../src/situations/quai.ts';
@@ -186,4 +186,19 @@ test('déplacer le bateau allonge une garde restée sur sa bitte', () => {
   const moved = buildState(deplacerBateau(sit, sit, 2));
   assert.equal(moved.lines[0].name, 'Garde avant');
   assert.ok(moved.lines[0].len > ref.lines[0].len + 1.5);
+});
+
+test('nom par bord : deux aussières de même nom sur deux bords, sinon un numéro', () => {
+  const garde = loadSituation('depart-garde-avant');
+  const sit = { ...garde, aussieres: [] };
+  // Le long du quai aussi, l'éditeur propose le taquet arrière des deux bords.
+  assert.deepEqual(taquetsProposes(sit).map((c) => c.name), ['etrave', 'arriere', 'arriere-large']);
+  const deux = ajouterAussiere(ajouterAussiere(sit, 'arriere', -8), 'arriere-large', -10);
+  assert.deepEqual(nomsAffiches(deux), ['Pointe arrière bâbord', 'Pointe arrière tribord']);
+  assert.deepEqual(nomsAffiches({ ...deux, bateau: { ...deux.bateau, bordAuQuai: 'tribord' } }), ['Pointe arrière tribord', 'Pointe arrière bâbord']);
+  // Deux pointes arrière du même bord : le bord ne suffit plus, elles sont numérotées.
+  const meme = ajouterAussiere(deux, 'arriere', -10);
+  assert.deepEqual(nomsAffiches(meme), ['Pointe arrière 1', 'Pointe arrière 2', 'Pointe arrière 3']);
+  // Une aussière seule de son nom garde un nom sans bord.
+  assert.deepEqual(nomsAffiches(ajouterAussiere(sit, 'arriere-large', -10)), ['Pointe arrière']);
 });

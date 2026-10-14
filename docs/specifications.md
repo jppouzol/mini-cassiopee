@@ -45,7 +45,7 @@ La scène se compose d'un seul bateau, d'un quai, d'aussières et du vent. Chaqu
 ### Bateau
 
 - Un modèle unique et générique, aux proportions d'un voilier de croisière de 10 m.
-- Taquets : au minimum un à l'étrave et un à l'arrière côté quai ; option pour en ajouter au maître-bau. L'éditeur ne propose que ces deux taquets tant que le maître-bau n'est pas livré.
+- Taquets : un à l'étrave, proche de l'axe, et un à l'arrière sur chaque bord ; option pour en ajouter au maître-bau. L'éditeur propose ces trois taquets tant que le maître-bau n'est pas livré. Le taquet d'étrave peut porter plusieurs aussières, vers un bord ou l'autre ; les deux taquets arrière permettent par exemple deux pointes arrière, cul à quai.
 - Paramètres avancés : pas d'hélice activable, avec choix du sens de rotation ; choix entre mono-safran et bi-safran.
 - Le type de quille n'est pas paramétrable.
 
@@ -68,7 +68,7 @@ La scène se compose d'un seul bateau, d'un quai, d'aussières et du vent. Chaqu
 
 - Chaque aussière relie un taquet du bateau à une bitte du quai ou du catway. Un même taquet peut porter plusieurs aussières (par exemple une pointe et une garde), mais deux aussières ne peuvent pas relier le même taquet à la même bitte.
 - Par défaut, sa longueur est fixée à la position de départ ; elle est soit tendue, soit molle. Une aussière molle a 0,5 m de mou ; les situations du catalogue peuvent préciser une autre valeur.
-- Son nom est déduit de la géométrie au départ : traversier si elle fait moins de 20° avec la perpendiculaire au bateau, sinon pointe si elle part vers l'extérieur du bateau (bitte en avant du taquet d'étrave, ou en arrière du taquet arrière) et garde dans le cas inverse ; avant ou arrière selon le taquet (voir le glossaire). Un numéro départage deux aussières de même nom. L'élève peut la renommer. En perpendiculaire, la même règle s'applique, le catway jouant le rôle du quai : une aussière du taquet d'étrave vers le quai, droit devant, est une pointe avant.
+- Son nom est déduit de la géométrie au départ : traversier si elle fait moins de 20° avec la perpendiculaire au bateau, sinon pointe si elle part vers l'extérieur du bateau (bitte en avant du taquet d'étrave, ou en arrière du taquet arrière) et garde dans le cas inverse ; avant ou arrière selon le taquet (voir le glossaire). Deux aussières de même nom sont départagées par leur bord quand elles sont sur deux bords différents (« Pointe arrière bâbord » et « Pointe arrière tribord ») : le bord du taquet, ou, pour le taquet d'étrave, celui où se trouve la bitte. Sinon, un numéro les départage. L'élève peut la renommer. En perpendiculaire, la même règle s'applique, le catway jouant le rôle du quai : une aussière du taquet d'étrave vers le quai, droit devant, est une pointe avant.
 - Une situation compte au plus 6 aussières par défaut. Ce plafond est réglable entre 6 et 12 dans les options avancées de l'éditeur, sans pouvoir descendre sous le nombre d'aussières en place ; une situation du catalogue peut déclarer un plafond plus élevé.
 - Larguée, elle disparaît de la scène (considérée comme remontée à bord).
 - Choquée, elle file : tant que l'élève la laisse filer, elle s'allonge aussi vite que le bateau s'éloigne de sa bitte et ne le retient plus ; une fois bloquée, elle garde sa nouvelle longueur et retient de nouveau. Une aussière molle qu'on choque ne change pas tant que le bateau ne tire pas dessus. Elle peut filer sans limite de longueur.
@@ -153,6 +153,8 @@ Chaque situation définit : la configuration du quai (le long ou perpendiculaire
 - sur catway, arrière au quai, vent soutenu du catway, sans commande : vérification d'amarrage, l'avant qui dépasse du catway est le plus exposé ;
 - sur catway, étrave au quai : sortie en marche arrière ;
 - sur catway, arrière au quai : sortie en marche avant.
+
+Sur catway, le bout au quai porte deux pointes, une vers chaque bord, en plus des gardes tournées sur le catway.
 
 Les bittes des situations du catalogue sont placées sur les rangées de bittes fixes du quai et du catway, en vérifiant que les scénarios de référence restent démonstratifs.
 

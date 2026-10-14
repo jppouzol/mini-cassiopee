@@ -7,6 +7,7 @@
   "bateau": { "x": 6, "distanceQuai": 0.3, "bordAuQuai": "babord", "boutAuQuai": "etrave" },
   "aussieres": [
     { "id": "pointe-av", "taquet": "etrave", "sur": "quai", "bitte": 0.5, "mou": 0 },
+    { "id": "pointe-av-large", "taquet": "etrave", "sur": "quai", "bitte": -1.5, "mou": 0 },
     { "id": "garde-av", "taquet": "etrave", "bitte": 2, "mou": 0 },
     { "id": "garde-ar", "taquet": "arriere", "bitte": 0, "mou": 0 }
   ],
