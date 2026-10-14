@@ -6,6 +6,7 @@ import { catalogueFiles } from './helpers.ts';
 import { parseSituation, SituationError } from '../src/situations/schema.ts';
 import { BOLLARD_SPACING, buildState } from '../src/situations/build.ts';
 import { bittesDuPort } from '../src/situations/quai.ts';
+import { nomDeduit } from '../src/situations/edit.ts';
 
 const DIR = join(import.meta.dirname, '..', 'src', 'situations', 'catalogue');
 const read = (f: string) => JSON.parse(readFileSync(join(DIR, f), 'utf8'));
@@ -26,7 +27,8 @@ test('une aussière sans mou est tendue au départ', () => {
   const sit = parseSituation(read('01-depart-garde-avant.json'));
   const s = buildState(sit);
   const l = s.lines[0];
-  assert.ok(l.len > 4 && l.len < 7, `longueur ${l.len}`);
+  // Garde avant croisée, de l'étrave à la bitte 4 m en arrière du milieu : environ 8,7 m, sans mou.
+  assert.ok(l.len > 8 && l.len < 9.5, `longueur ${l.len}`);
 });
 
 test('une situation invalide est refusée avec un message lisible', () => {
@@ -64,4 +66,24 @@ test('une bitte hors rangée ou un doublon taquet–bitte sont refusés', () => 
   // Bateau décalé de 1 m : les bittes relatives deviennent impaires.
   assert.doesNotThrow(() => parseSituation({ ...sit, bateau: { ...sit.bateau, x: 1 }, aussieres: [{ ...a, bitte: 9 }] }));
   assert.throws(() => parseSituation({ ...sit, aussieres: [{ ...a, nom: '' }] }), /nom/);
+});
+
+test('catalogue, le long du quai : les gardes sont croisées, tournées au niveau de l’autre moitié du bateau', () => {
+  let gardes = 0;
+  for (const f of catalogueFiles()) {
+    const sit = parseSituation(read(f));
+    if (sit.quai.type !== 'long-side') continue;
+    for (const a of sit.aussieres) {
+      const nom = nomDeduit(sit, a);
+      // Bitte relative au milieu du bateau, positive vers l'avant ; la coque va de -5 à +5 m.
+      if (nom.startsWith('Garde avant')) {
+        gardes++;
+        assert.ok(a.bitte < 0 && a.bitte >= -5, `${sit.id} : garde avant tournée en ${a.bitte} m, hors de la moitié arrière`);
+      } else if (nom.startsWith('Garde arrière')) {
+        gardes++;
+        assert.ok(a.bitte > 0 && a.bitte <= 5, `${sit.id} : garde arrière tournée en ${a.bitte} m, hors de la moitié avant`);
+      }
+    }
+  }
+  assert.ok(gardes >= 4);
 });

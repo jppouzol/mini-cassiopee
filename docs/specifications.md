@@ -159,6 +159,8 @@ Chaque situation définit : la configuration du quai (le long ou perpendiculaire
 
 Sur catway, le bout au quai porte deux pointes, une vers chaque bord, en plus des gardes tournées sur le catway. Comme sur un vrai bateau, chaque aussière du catalogue part vers l'extérieur du bateau, du bord de son taquet : sa bitte est plus écartée de l'axe que le taquet, et les deux pointes s'ouvrent en V.
 
+Le long du quai, les gardes du catalogue sont croisées, comme sur un vrai quai : la garde avant est tournée sur une bitte au niveau de la moitié arrière du bateau, à 4 m en arrière du milieu, et la garde arrière, symétriquement, à 4 m en avant. Longues, presque parallèles au quai, elles retiennent bien le bateau en long.
+
 Les bittes des situations du catalogue sont placées sur les rangées de bittes fixes du quai et du catway, en vérifiant que les scénarios de référence restent démonstratifs.
 
 ### Éditeur

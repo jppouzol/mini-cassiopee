@@ -108,7 +108,7 @@ test('basculer entre tendue et molle', () => {
 
 test('une garde avant ajoutée dans l’éditeur se comporte comme celle du catalogue', () => {
   const catalogue = buildState(loadSituation('depart-garde-avant'));
-  const ajoutee = buildState(ajouterAussiere(vide(), 'etrave', 0));
+  const ajoutee = buildState(ajouterAussiere(vide(), 'etrave', -4));
   catalogue.engine = 1;
   ajoutee.engine = 1;
   run(catalogue, 8);
@@ -150,8 +150,12 @@ test('déplacer le bateau : pas de 0,5 m et bornes autour de la position d’ori
 });
 
 test('déplacer le bateau : le nom déduit suit la géométrie, un nom choisi est gardé', () => {
-  let sit = loadSituation('amarre-quatre-amarres');
-  sit = renommerAussiere(sit, 'pointe-ar', 'Ma pointe');
+  // Gardes courtes, tournées sur la bitte du milieu : les gardes croisées du catalogue restent des gardes à ±4 m.
+  let sit = vide();
+  for (const [taquet, bitte] of [['etrave', 10], ['etrave', 0], ['arriere', 0], ['arriere', -10]] as const) {
+    sit = ajouterAussiere(sit, taquet, bitte);
+  }
+  sit = renommerAussiere(sit, sit.aussieres[3].id, 'Ma pointe');
   const moved = deplacerBateau(sit, sit, -4);
   // L'étrave arrive presque au droit de la bitte de la garde avant : elle devient traversier.
   assert.deepEqual(nomsAffiches(moved), ['Pointe avant', 'Traversier avant', 'Garde arrière', 'Ma pointe']);

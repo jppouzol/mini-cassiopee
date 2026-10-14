@@ -6,7 +6,7 @@
   "quai": { "type": "long-side" },
   "bateau": { "x": 0, "distanceQuai": 0.05, "bordAuQuai": "babord" },
   "aussieres": [
-    { "id": "garde-av", "taquet": "etrave", "bitte": 0, "mou": 0 }
+    { "id": "garde-av", "taquet": "etrave", "bitte": -4, "mou": 0 }
   ],
   "vent": { "direction": "quai", "force": "aucun" }
 }
