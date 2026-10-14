@@ -223,7 +223,7 @@ L'application est un ensemble de fichiers statiques, destiné à être installab
 
 ### Hébergement et déploiement
 
-Le dépôt et l'application sont hébergés sur GitHub : le code dans un dépôt public, l'application sur GitHub Pages (<https://jppouzol.github.io/mini-cassiopee/>), gratuitement. Le workflow `.github/workflows/ci.yml` lance les tests, la vérification des types et la construction à chaque demande de fusion, puis déploie l'application à chaque fusion dans `main`.
+Le dépôt et l'application sont hébergés sur GitHub : le code dans un dépôt public, l'application sur GitHub Pages (<https://jppouzol.github.io/mini-cassiopee/>), gratuitement. Le workflow `.github/workflows/ci.yml` lance les tests, la vérification des types et la construction à chaque demande de fusion, puis déploie l'application à chaque fusion dans `main`. Sur une demande de fusion, un nouveau commit annule les vérifications en cours. Sur `main`, un déploiement commencé n'est jamais interrompu : la fusion suivante attend qu'il se termine, et seule la plus récente des fusions en attente est déployée. Un déploiement interrompu en pleine publication peut en effet bloquer GitHub Pages pour les suivants.
 
 Codeberg a été écarté comme hébergement principal parce que l'environnement de développement assisté n'y a pas accès, ce qui obligerait à transférer chaque livraison à la main. Un miroir Codeberg reste possible à tout moment ; le projet ne contient ni données personnelles ni comptes, l'enjeu de souveraineté est donc faible.
 
@@ -305,7 +305,7 @@ Chaque choix structurant est noté ici avec son statut ; une décision ne change
 | Menu du catalogue | Deux familles, le long du quai et sur catway, choisies par deux boutons ; menu filtré par `quai.type` ; titres sans le type d'amarrage | Décidé |
 | Taquets proposés | Quatre taquets partout : étrave et arrière, sur chaque bord ; deux aussières de même nom départagées par le bord, sinon par un numéro | Décidé |
 | Hébergement | Dépôt public et GitHub Pages | Décidé |
-| Déploiement | GitHub Actions : tests sur chaque proposition, déploiement à chaque fusion | Décidé |
+| Déploiement | GitHub Actions : tests sur chaque proposition, déploiement à chaque fusion ; un déploiement en cours n'est jamais annulé | Décidé |
 | Licence du code | MIT | Décidé |
 | Licence des contenus | CC0 proposée pour les situations et textes pédagogiques | Ouvert |
 | Pilotage des évolutions | Pas de paliers ni de jalons ; backlog dans les issues GitHub, une issue par évolution | Décidé |

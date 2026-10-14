@@ -10,9 +10,13 @@ on:
 permissions:
   contents: read
 
+# Sur une demande de fusion, un nouveau commit annule les vérifications en cours.
+# Sur main, un déploiement commencé n'est jamais interrompu : l'annuler en pleine publication
+# peut bloquer GitHub Pages pour les suivants. La fusion suivante attend son tour ; si
+# plusieurs attendent, seule la plus récente est déployée.
 concurrency:
   group: ci-${{ github.ref }}
-  cancel-in-progress: true
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
   build:
