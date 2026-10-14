@@ -20,4 +20,4 @@ Consignes pour les sessions lancées depuis claude.ai, dont l'environnement dist
   - essai dans un navigateur avec Playwright pour Python et le Chromium de `/opt/pw-browsers/chromium-*/chrome-linux/chrome`, au format téléphone (390 px de large) puis PC ;
   - la vérification complète des types (`npm run typecheck`) reste à la CI, qui tourne sur chaque PR.
 - **Avant d'ouvrir une PR** : `npm test`, construction avec esbuild, puis essai de la fonctionnalité dans Playwright sur l'application construite, pas sur une maquette.
-- **Artefact de test** : quand Jp le demande, assembler une page HTML autonome (CSS et JS de la construction intégrés, polices Google en lien) et la publier comme artefact privé. Il est supprimé une fois la PR fusionnée.
+- **Artefact de test** : à chaque PR qui touche l'application, sans attendre que Jp le demande, assembler une page HTML autonome (CSS et JS de la construction intégrés, polices Google en lien) et la publier comme artefact privé, en même temps que l'ouverture de la PR. Le republier à chaque nouvelle version de la branche. Il est supprimé une fois la PR fusionnée.
