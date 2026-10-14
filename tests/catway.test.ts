@@ -2,9 +2,7 @@
 // scénarios du catalogue, nom déduit, déplacement dans l'éditeur, relecture.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { readFileSync } from 'node:fs';
-import { join } from 'node:path';
-import { bow, catalogueFiles, deg, line, loadSituation, run, stern } from './helpers.ts';
+import { bow, catalogue, deg, line, loadSituation, run, stern } from './helpers.ts';
 import { buildState, windVector } from '../src/situations/build.ts';
 import { cloneState, tick } from '../src/sim/engine.ts';
 import { DEFAULT_PARAMS } from '../src/sim/params.ts';
@@ -286,8 +284,7 @@ test('relecture : un appui sur le catway se rejoue à l’identique', () => {
 
 
 test('catalogue : chaque aussière part vers l’extérieur du bateau, du bord de son taquet', () => {
-  for (const f of catalogueFiles()) {
-    const sit = parseSituation(JSON.parse(readFileSync(join(import.meta.dirname, '..', 'src', 'situations', 'catalogue', f), 'utf8')));
+  for (const { sit } of catalogue()) {
     const s = buildState(sit);
     for (const l of s.lines) {
       // Écart latéral de la bitte, en repère bateau, compté du côté du taquet : au-delà du taquet.

@@ -1,0 +1,16 @@
+{
+  "format": 1,
+  "id": "catway-sortie-arriere-voisin",
+  "titre": "Sortie en marche arrière, voisin sous le vent",
+  "description": "Étrave au quai, un voisin tout près côté large, vent soutenu du catway et du quai. Tout largué, en marche arrière, le vent pousse le bateau sur le voisin. Larguez plutôt les pointes, gardez les gardes et reculez : sur la garde arrière, l'arrière remonte vers le catway. Larguez alors les gardes : le bateau sort en remontant au vent.",
+  "quai": { "type": "perpendiculaire" },
+  "bateau": { "x": 6, "distanceQuai": 0.3, "bordAuQuai": "babord", "boutAuQuai": "etrave" },
+  "aussieres": [
+    { "id": "pointe-av", "taquet": "etrave", "sur": "quai", "bitte": 2, "mou": 0 },
+    { "id": "pointe-av-large", "taquet": "etrave-large", "sur": "quai", "bitte": -2, "mou": 0 },
+    { "id": "garde-av", "taquet": "etrave", "bitte": 2.7, "mou": 0 },
+    { "id": "garde-ar", "taquet": "arriere", "bitte": -0.4, "mou": 0 }
+  ],
+  "voisins": { "large": 1 },
+  "vent": { "direction": "catway-quai", "force": "soutenu" }
+}

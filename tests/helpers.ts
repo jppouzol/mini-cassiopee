@@ -7,18 +7,37 @@ import { DEFAULT_PARAMS } from '../src/sim/params.ts';
 import { toWorld } from '../src/sim/geometry.ts';
 import type { SimState } from '../src/sim/types.ts';
 
-const DIR = join(import.meta.dirname, '..', 'src', 'situations', 'catalogue');
+/**
+ * Scénarios de référence des tests, dans `tests/situations/` : ils appartiennent aux tests et
+ * ne bougent pas quand le catalogue évolue. Le catalogue (`src/situations/catalogue/`) n'est
+ * qu'une aide aux élèves ; les tests ne le lisent que pour vérifier qu'il respecte ses règles.
+ */
+const SCENARIOS = join(import.meta.dirname, 'situations');
+const CATALOGUE = join(import.meta.dirname, '..', 'src', 'situations', 'catalogue');
 
-export function catalogueFiles(): string[] {
-  return readdirSync(DIR).filter((f) => f.endsWith('.json')).sort();
+const jsonFiles = (dir: string): string[] => readdirSync(dir).filter((f) => f.endsWith('.json')).sort();
+const readJson = (dir: string, f: string): unknown => JSON.parse(readFileSync(join(dir, f), 'utf8'));
+
+/** Scénario de référence brut (avant validation), pour tester le format. */
+export function rawSituation(id: string): Record<string, any> {
+  return readJson(SCENARIOS, `${id}.json`) as Record<string, any>;
 }
 
+/** Scénario de référence des tests, validé. */
 export function loadSituation(id: string): Situation {
-  for (const f of catalogueFiles()) {
-    const sit = parseSituation(JSON.parse(readFileSync(join(DIR, f), 'utf8')));
-    if (sit.id === id) return sit;
-  }
-  throw new Error(`Situation introuvable : ${id}`);
+  const sit = parseSituation(rawSituation(id));
+  if (sit.id !== id) throw new Error(`Scénario ${id} : identifiant ${sit.id} dans le fichier`);
+  return sit;
+}
+
+/** Tous les scénarios de référence, validés. */
+export function scenarios(): Situation[] {
+  return jsonFiles(SCENARIOS).map((f) => parseSituation(readJson(SCENARIOS, f)));
+}
+
+/** Situations du catalogue, validées, avec leur nom de fichier : seulement pour vérifier les règles du catalogue. */
+export function catalogue(): { file: string; sit: Situation }[] {
+  return jsonFiles(CATALOGUE).map((file) => ({ file, sit: parseSituation(readJson(CATALOGUE, file)) }));
 }
 
 export function start(id: string, wind?: Situation['vent']): SimState {
