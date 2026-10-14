@@ -110,7 +110,7 @@ Chaque situation du catalogue est un fichier JSON lisible à la main, dans `src/
   "quai": { "type": "long-side" },
   "bateau": { "x": 0, "distanceQuai": 0.05, "bordAuQuai": "babord" },
   "aussieres": [
-    { "id": "garde-av", "taquet": "etrave", "bitte": 0, "mou": 0 }
+    { "id": "garde-av", "taquet": "etrave", "bitte": -4, "mou": 0 }
   ],
   "vent": { "direction": "quai", "force": "aucun" }
 }
@@ -267,6 +267,7 @@ La physique se teste par comportements attendus, pas par valeurs exactes : un r�
 | Sortie en marche arrière | Étrave au quai, aussières larguées : le bateau recule le long du catway sans le toucher |
 | Sortie en marche avant | Arrière au quai, aussières larguées : le bateau sort vers le chenal sans toucher le catway |
 | Nom déduit sur catway | Pointe avant vers le quai, gardes et traversier sur le catway ; identique de l'autre côté du catway |
+| Gardes croisées | Dans chaque situation du catalogue le long du quai, la garde avant est tournée au niveau de la moitié arrière du bateau, la garde arrière au niveau de la moitié avant |
 | Aussières vers l'extérieur | Dans chaque situation du catalogue, la bitte de chaque aussière est plus écartée de l'axe du bateau que son taquet, du même bord |
 | Nom par bord | Deux pointes arrière, une par taquet arrière, nommées bâbord et tribord, le long du quai comme sur catway ; deux pointes avant, une par taquet d'étrave, nommées de même ; numéro si le bord ne suffit pas |
 | Bittes du port en perpendiculaire | Quai : bords des deux catways puis tous les 2 m ; deux bittes sur chaque catway, seules celles du catway du bateau proposées ; de part et d'autre du catway |
@@ -294,7 +295,7 @@ Chaque choix structurant est noté ici avec son statut ; une décision ne change
 | Stack | TypeScript, React, Vite ; tests avec le lanceur intégré à Node.js | Décidé |
 | Rendu | Canvas 2D | Décidé |
 | Format des situations | JSON versionné, validation écrite à la main | Décidé |
-| Points d'amarrage | Rangée de bittes fixes espacées de 2 m ; catalogue recalé dessus | Décidé |
+| Points d'amarrage | Rangée de bittes fixes espacées de 2 m ; catalogue recalé dessus ; le long du quai, gardes du catalogue croisées, à ±4 m du milieu du bateau | Décidé |
 | Édition des aussières | En préparation seulement, par fonctions pures sur la situation ; situation préparée distincte de la situation d'origine ; plafond de 6, réglable jusqu'à 12 | Décidé |
 | Déplacement du bateau | En préparation, au doigt ou pas à pas, par pas de 0,5 m et à ±4 m de l'origine ; les aussières restent sur leurs bittes | Décidé |
 | Choquer une aussière | Bouton à bascule toujours disponible, en préparation comme en lecture et en pause ; l'aussière file sans retenue et sans limite de longueur ; état de l'aussière, pas un effet optionnel ; reprise, freinage et longueur finie traités à part | Décidé |
