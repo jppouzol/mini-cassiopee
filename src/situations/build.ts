@@ -54,7 +54,7 @@ export function buildState(sit: Situation, windOverride?: Situation['vent']): Si
     const bollard: Vec = [bitteVersMonde(sit, a.bitte), BOLLARD_SETBACK];
     const cw = toWorld(body, cleat);
     const dist = Math.hypot(cw[0] - bollard[0], cw[1] - bollard[1]);
-    return { id: a.id, name: names[i], cleat, bollard, len: dist + a.mou, attached: true, tension: 0 };
+    return { id: a.id, name: names[i], cleat, bollard, len: dist + a.mou, attached: true, payingOut: a.file === true, tension: 0 };
   });
   const v = windOverride ?? sit.vent;
   const wind: Wind = { to: windVector(v.direction, pose.bowSign), force: v.force };

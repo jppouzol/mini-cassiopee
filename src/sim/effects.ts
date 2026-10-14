@@ -68,7 +68,11 @@ export const wind: Effect = (s, p, f) => {
   addBody(f, b, force * p.windLongRatio * wbx, force * wby, 0, 0);
 };
 
-/** Aussières : ressort amorti qui ne travaille qu'en traction. */
+/**
+ * Aussières : ressort amorti qui ne travaille qu'en traction.
+ * Une aussière choquée file sans retenue : sa longueur suit la distance du
+ * taquet à la bitte dès que le bateau s'en éloigne, et ne raccourcit jamais.
+ */
 export const mooringLines: Effect = (s, p, f) => {
   const b = s.body;
   for (const line of s.lines) {
@@ -78,6 +82,7 @@ export const mooringLines: Effect = (s, p, f) => {
     const dx = line.bollard[0] - pw[0];
     const dy = line.bollard[1] - pw[1];
     const d = Math.hypot(dx, dy);
+    if (line.payingOut && d > line.len) line.len = d;
     const ext = d - line.len;
     if (ext <= 0 || d === 0) continue;
     const ux = dx / d, uy = dy / d;

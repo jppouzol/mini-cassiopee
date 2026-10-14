@@ -76,13 +76,17 @@ h2 { margin: 0; font-family: var(--f-label); font-weight: 600; font-size: 13px; 
 .helm input { width: 100%; accent-color: var(--accent); }
 
 .lines { display: flex; flex-direction: column; gap: 6px; }
-.line { display: grid; grid-template-columns: 12px 1fr auto auto; gap: 10px; align-items: center; padding: 4px 0; border-bottom: 1px solid var(--rule); }
+.line { display: grid; grid-template-columns: 12px 1fr auto; gap: 6px 10px; align-items: center; padding: 4px 0; border-bottom: 1px solid var(--rule); }
 .line:last-child { border-bottom: 0; }
 .chip { width: 12px; height: 12px; border-radius: 50%; background: var(--slack); }
 .chip.taut { background: var(--taut); }
 .chip.gone { background: transparent; border: 1.5px dashed var(--muted); box-sizing: border-box; }
 .state { font-family: var(--f-label); font-weight: 600; font-size: 12.5px; text-transform: uppercase; letter-spacing: .05em; color: var(--muted); font-variant-numeric: tabular-nums; }
 .line .btn { padding: 5px 9px; font-size: 13.5px; }
+/* Seconde rangée de la ligne : choquer, puis larguer ou supprimer. */
+.line .acts { grid-column: 2 / -1; display: flex; gap: 8px; justify-content: flex-end; }
+/* Bouton à bascule enfoncé : l'aussière file. */
+.line .btn.toggle[aria-pressed="true"] { background: var(--accent); color: var(--panel); border-color: var(--accent); font-weight: 700; }
 
 details { border-top: 1px solid var(--rule); padding-top: 10px; }
 summary { cursor: pointer; font-family: var(--f-label); font-weight: 600; font-size: 13px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }

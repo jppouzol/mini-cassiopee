@@ -89,6 +89,14 @@ export function basculerMou(sit: Situation, id: string): Situation {
   return modifier(sit, id, (a) => ({ ...a, mou: a.mou > 0 ? 0 : MOU_MOLLE }));
 }
 
+/** Bascule une aussière entre bloquée et choquée au départ (elle file dès la mise en mouvement). */
+export function basculerFile(sit: Situation, id: string): Situation {
+  return modifier(sit, id, (a) => {
+    const { file: _ancien, ...reste } = a;
+    return a.file ? reste : { ...reste, file: true };
+  });
+}
+
 /** Renomme une aussière ; un nom vide rend le nom déduit. */
 export function renommerAussiere(sit: Situation, id: string, nom: string): Situation {
   const propre = nom.trim().slice(0, 40);

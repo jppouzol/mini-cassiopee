@@ -26,6 +26,11 @@ export interface MooringLine {
   /** longueur maximale (m) */
   len: number;
   attached: boolean;
+  /**
+   * aussière choquée : elle file aussi vite que le bateau s'éloigne de la bitte,
+   * sans le retenir ; bloquée (false), sa longueur ne change pas
+   */
+  payingOut: boolean;
   /** tension calculée à la dernière image (N) */
   tension: number;
 }
