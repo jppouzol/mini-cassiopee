@@ -68,6 +68,24 @@ Chaque force est un **effet** (`src/sim/effects.ts`) : une fonction qui reçoit 
 
 Les constantes physiques (poussée, efficacité de barre, résistances, vent, raideur des aussières) sont regroupées dans un seul jeu de paramètres (`src/sim/params.ts`), versionné avec le code. Un panneau de réglages, accessible en ajoutant `#reglages` à l'adresse de l'application, permet de les affiner.
 
+#### Ordres de grandeur
+
+Les valeurs par défaut ont été réglées pour que pivots et translations soient plausibles, pas à partir de mesures. Les équivalences ci-dessous servent seulement de repères pour en parler ; elles reposent sur des hypothèses grossières.
+
+| Paramètre | Valeur | Équivalent indicatif |
+| --- | --- | --- |
+| Poussée en marche avant (`thrustFwd`) | 2 500 N, environ 250 kgf | Moteur de 20 à 30 ch à régime de manœuvre appuyé (on compte 8 à 10 kgf de poussée au point fixe par cheval). Vitesse limite du bateau libre : environ 4,3 nœuds |
+| Poussée en marche arrière (`thrustRev`) | 1 700 N, environ 170 kgf | Vitesse limite du bateau libre : environ 3,5 nœuds |
+| Vent faible (`windFaible`) | 450 N par le travers | Environ 12 à 14 nœuds (force 4). Dérive du bateau libre : environ 0,3 nœud |
+| Vent soutenu (`windSoutenu`) | 1 400 N par le travers | Environ 22 à 25 nœuds (force 6). Dérive du bateau libre : environ 0,7 nœud |
+| Vent dans l'axe (`windLongRatio`) | 35 % de la force par le travers | Fardage plus faible de face que de travers |
+
+Hypothèses : pour le vent, surface exposée par le travers de 15 à 18 m² (coque et gréement) et coefficient de traînée proche de 1 ; les vitesses limites et les dérives découlent des résistances du modèle (`dragXq`, `dragXl`, `dragYq`, `dragYl`).
+
+Conséquences pour la pédagogie :
+- le vent « faible » est déjà une bonne brise ;
+- le vent soutenu vaut plus de la moitié de la poussée avant et presque toute la poussée arrière, ce qui rend le recul au vent difficile, comme sur l'eau.
+
 ## Historique et relecture
 
 Une manœuvre est enregistrée comme une situation de départ plus un journal horodaté des actions de l'élève, complété d'images clés de l'état (`src/session/session.ts`). C'est ce qui permet pause, pas à pas et retour arrière sans conserver chaque image.
