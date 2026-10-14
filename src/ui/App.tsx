@@ -40,6 +40,11 @@ const FORCES: { value: WindSetting['force']; label: string }[] = [
   { value: 'faible', label: 'Faible' },
   { value: 'soutenu', label: 'Soutenu' },
 ];
+/** Familles du catalogue, selon le type d'amarrage : le menu ne liste que les situations de la famille choisie. */
+const AMARRAGES: { value: Situation['quai']['type']; label: string }[] = [
+  { value: 'long-side', label: 'Le long du quai' },
+  { value: 'perpendiculaire', label: 'Sur catway' },
+];
 const ENGINE: { value: Engine; label: string }[] = [
   { value: -1, label: 'Arrière' },
   { value: 0, label: 'Neutre' },
@@ -347,9 +352,21 @@ export function App() {
 
         <section>
           <h2>Situation</h2>
+          <div className="seg" role="group" aria-label="Type d'amarrage">
+            {AMARRAGES.map((a) => (
+              <button key={a.value} aria-pressed={origine.quai.type === a.value}
+                onClick={() => {
+                  // Changer de famille ouvre sa première situation ; rester dans la même ne change rien.
+                  if (origine.quai.type === a.value) return;
+                  const premiere = CATALOGUE.find((x) => x.quai.type === a.value);
+                  if (premiere) chooseSituation(premiere);
+                }}>{a.label}</button>
+            ))}
+          </div>
           <select id="situation" value={origine.id} aria-label="Situation de départ"
             onChange={(e) => chooseSituation(CATALOGUE.find((x) => x.id === e.target.value) ?? CATALOGUE[0])}>
-            {CATALOGUE.map((x) => <option key={x.id} value={x.id}>{x.titre}</option>)}
+            {CATALOGUE.filter((x) => x.quai.type === origine.quai.type)
+              .map((x) => <option key={x.id} value={x.id}>{x.titre}</option>)}
           </select>
           <p className="hint">{origine.description}</p>
           {modified && (
