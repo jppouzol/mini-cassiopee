@@ -1,18 +1,18 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Session, type Action } from '../session/session.ts';
-import { BOLLARD_SETBACK, buildState } from '../situations/build.ts';
+import { buildState } from '../situations/build.ts';
 import { CATALOGUE } from '../situations/catalogue.ts';
 import {
   ECARTS_VOISIN, EditionError, PAS_DEPLACEMENT, ajouterAussiere, basculerFile, basculerMou, bornesDeplacement,
   deplacerBateau, ecartVoisin, reglerPlafond, reglerVoisin, renommerAussiere, supprimerAussiere, taquetsProposes,
 } from '../situations/edit.ts';
-import { bitteDepuisMonde, bittesEntre } from '../situations/quai.ts';
+import { bitteDepuisPoint, bittesDuPort, perpendiculaire } from '../situations/quai.ts';
 import {
-  COTES_VOISIN, PLAFOND_DEFAUT, PLAFOND_MAX, WIND_DIRECTIONS, plafond,
+  COTES_VOISIN, PLAFOND_DEFAUT, PLAFOND_MAX, directionsVent, plafond,
   type Cleat, type CoteVoisin, type Situation, type WindDirection,
 } from '../situations/schema.ts';
 import { DEFAULT_PARAMS, FPS } from '../sim/params.ts';
-import type { Engine, Params, Vec } from '../sim/types.ts';
+import type { Engine, Params } from '../sim/types.ts';
 import { TAUT_THRESHOLD, type EditionView } from '../render/renderer.ts';
 import { Scene, type Pick } from './Scene.tsx';
 import { Tuning } from './Tuning.tsx';
@@ -28,6 +28,12 @@ const WIND_LABELS: Record<WindDirection, string> = {
   'quai-arriere': "Du quai, de l'arrière",
   'large-avant': "Du large, de l'avant",
   'large-arriere': "Du large, de l'arrière",
+  catway: 'Vent du catway',
+  chenal: 'Vent du chenal',
+  'catway-quai': 'Du catway, du quai',
+  'catway-chenal': 'Du catway, du chenal',
+  'large-quai': 'Du large, du quai',
+  'large-chenal': 'Du large, du chenal',
 };
 const FORCES: { value: WindSetting['force']; label: string }[] = [
   { value: 'aucun', label: 'Pas de vent' },
@@ -53,8 +59,6 @@ const VOISINS: { value: number | null; label: string }[] = [
 const COTE_LABELS: Record<CoteVoisin, string> = { avant: 'Voisin devant', arriere: 'Voisin derrière' };
 const STEP_FRAMES = 12;
 const MAX_RUDDER_DEG = 35;
-/** Étendue de la rangée de bittes dessinée (m, repère monde), bien au-delà de ce que la caméra montre. */
-const BOLLARD_ROW: Vec[] = bittesEntre(-200, 200).map((x): Vec => [x, BOLLARD_SETBACK]);
 
 const fmtTime = (frame: number) => `${(frame / FPS).toFixed(1).replace('.', ',')} s`;
 const rudderToDeg = (rad: number) => Math.round((-rad * 180) / Math.PI);
@@ -100,6 +104,12 @@ export function App() {
   // Préparation : instant de départ, lecture arrêtée. Seul moment où l'on édite la situation.
   const preparing = atStart && !playing;
   const wind = preparee.vent;
+  // Amarrage perpendiculaire : le bateau est le long d'un catway, qu'on dessine vertical sous le quai.
+  const catway = perpendiculaire(preparee);
+  const typeQuai = preparee.quai.type;
+  const bollards = useMemo(() => bittesDuPort({ quai: { type: typeQuai } }), [typeQuai]);
+  const support = catway ? 'catway' : 'quai';
+  const bitteLabel = catway ? 'une bitte du quai ou du catway' : 'une bitte du quai';
 
   // Boucle de lecture : avance au rythme de l'affichage, en temps simulé régulier.
   useEffect(() => {
@@ -176,7 +186,8 @@ export function App() {
     newSession(sit);
   };
 
-  // Déplacer le bateau le long du quai, au doigt (position visée depuis le début du geste) ou par pas.
+  // Déplacer le bateau le long du support, au doigt (position visée depuis le début du geste) ou par pas.
+  // Le long du quai, la position suit x ; le long du catway, elle croît vers le chenal, vers le bas de l'écran.
   const dragFrom = useRef<number | null>(null);
   const onDragStart = () => {
     if (!preparing) return;
@@ -184,9 +195,9 @@ export function App() {
     setSelected(null);
     setNotice(null);
   };
-  const onDrag = (dx: number) => {
+  const onDrag = (dx: number, dy: number) => {
     const x0 = dragFrom.current;
-    if (x0 !== null) edit((sit) => deplacerBateau(sit, origine, x0 + dx));
+    if (x0 !== null) edit((sit) => deplacerBateau(sit, origine, x0 + (perpendiculaire(sit) ? -dy : dx)));
   };
   const moveBoat = (sens: 1 | -1) => edit((sit) => deplacerBateau(sit, origine, sit.bateau.x + sens * PAS_DEPLACEMENT));
   // Choquer : en préparation, l'aussière file dès la mise en mouvement ; ensuite, bascule notée dans le journal.
@@ -202,6 +213,8 @@ export function App() {
   // Copies pour les raccourcis clavier, dont l'écouteur n'est pas recréé à chaque rendu.
   const moveBoatRef = useRef(moveBoat);
   moveBoatRef.current = moveBoat;
+  const catwayRef = useRef(catway);
+  catwayRef.current = catway;
   const togglePayOutRef = useRef(togglePayOut);
   togglePayOutRef.current = togglePayOut;
 
@@ -219,7 +232,10 @@ export function App() {
       }
       const taquet = selected;
       setSelected(null);
-      edit((sit) => ajouterAussiere(sit, taquet, bitteDepuisMonde(sit, p.x)));
+      edit((sit) => {
+        const a = bitteDepuisPoint(sit, p.p);
+        return ajouterAussiere(sit, taquet, a.bitte, a.sur);
+      });
     } else {
       setSelected(null);
     }
@@ -242,9 +258,11 @@ export function App() {
       if (!ses) return;
       const cur = ses.state;
       const deg = rudderToDeg(cur.rudder);
-      // Maj + flèches : déplacer le bateau pendant la préparation (les flèches seules pilotent).
-      if (e.shiftKey && (e.code === 'ArrowLeft' || e.code === 'ArrowRight')) {
-        moveBoatRef.current(e.code === 'ArrowLeft' ? -1 : 1);
+      // Maj + flèches : déplacer le bateau pendant la préparation (les flèches seules pilotent),
+      // gauche et droite le long du quai, haut (vers le quai) et bas (vers le chenal) le long du catway.
+      const [moins, plus] = catwayRef.current ? ['ArrowUp', 'ArrowDown'] : ['ArrowLeft', 'ArrowRight'];
+      if (e.shiftKey && (e.code === moins || e.code === plus)) {
+        moveBoatRef.current(e.code === moins ? -1 : 1);
         e.preventDefault();
         return;
       }
@@ -288,14 +306,14 @@ export function App() {
   const [xMin, xMax] = bornesDeplacement(preparee, origine);
   const status = playing
     ? (session.atEnd ? 'Simulation' : 'Relecture')
-    : selected ? 'Touchez une bitte du quai'
+    : selected ? `Touchez ${bitteLabel}`
     : atStart ? 'Prêt · appuyez sur Lecture' : 'En pause';
 
   return (
     <div className="app">
       <div className="stage">
         <div className="scene">
-          <Scene state={s} ghost={ghost ? session.initialState.body : null} debug={debug} bollards={BOLLARD_ROW}
+          <Scene state={s} ghost={ghost ? session.initialState.body : null} debug={debug} bollards={bollards}
             edition={edition} onPick={onPick} onDragStart={onDragStart} onDrag={onDrag} />
           <div className="badge">{status}</div>
         </div>
@@ -331,18 +349,20 @@ export function App() {
             </div>
           )}
           <div className="row">
-            <span>Bateau le long du quai</span>
-            <div className="stepper push-right" role="group" aria-label="Position du bateau le long du quai">
+            <span>Bateau le long du {support}</span>
+            <div className="stepper push-right" role="group" aria-label={`Position du bateau le long du ${support}`}>
               <button className="btn" disabled={!preparing || preparee.bateau.x <= xMin}
-                aria-label="Déplacer le bateau vers la gauche" title="Vers la gauche (Maj + ←)" onClick={() => moveBoat(-1)}>◀</button>
+                aria-label={catway ? 'Rapprocher le bateau du quai' : 'Déplacer le bateau vers la gauche'}
+                title={catway ? 'Vers le quai (Maj + ↑)' : 'Vers la gauche (Maj + ←)'} onClick={() => moveBoat(-1)}>{catway ? '▲' : '◀'}</button>
               <button className="btn" disabled={!preparing || preparee.bateau.x >= xMax}
-                aria-label="Déplacer le bateau vers la droite" title="Vers la droite (Maj + →)" onClick={() => moveBoat(1)}>▶</button>
+                aria-label={catway ? 'Éloigner le bateau du quai' : 'Déplacer le bateau vers la droite'}
+                title={catway ? 'Vers le chenal (Maj + ↓)' : 'Vers la droite (Maj + →)'} onClick={() => moveBoat(1)}>{catway ? '▼' : '▶'}</button>
             </div>
           </div>
-          {preparing && <p className="hint">Faites glisser le bateau ou utilisez ◀ ▶ : les aussières restent tournées sur leurs bittes.</p>}
+          {preparing && <p className="hint">Faites glisser le bateau ou utilisez {catway ? '▲ ▼' : '◀ ▶'} : les aussières restent tournées sur leurs bittes.</p>}
           <select id="wind-direction" value={wind.direction} disabled={!preparing} aria-label="Direction du vent"
             onChange={(e) => changeWind({ ...wind, direction: e.target.value as WindDirection })}>
-            {WIND_DIRECTIONS.map((d) => <option key={d} value={d}>{WIND_LABELS[d]}</option>)}
+            {directionsVent(typeQuai).map((d) => <option key={d} value={d}>{WIND_LABELS[d]}</option>)}
           </select>
           <div className="seg" role="group" aria-label="Force du vent">
             {FORCES.map((f) => (
@@ -441,8 +461,8 @@ export function App() {
             <p className="hint" aria-live="polite">
               {notice
                 ?? (selected
-                  ? `Touchez une bitte du quai pour y tourner l’aussière depuis ${CLEAT_LABELS[selected]}.`
-                  : 'Pour ajouter une aussière, touchez un taquet du bateau (cercle bleu), puis une bitte du quai.')}
+                  ? `Touchez ${bitteLabel} pour y tourner l’aussière depuis ${CLEAT_LABELS[selected]}.`
+                  : `Pour ajouter une aussière, touchez un taquet du bateau (cercle bleu), puis ${bitteLabel}.`)}
             </p>
           )}
           {!atStart && (
@@ -470,7 +490,8 @@ export function App() {
               </div>
             </div>
             <p className="hint">De {PLAFOND_DEFAUT} à {PLAFOND_MAX}, jamais moins que le nombre d’aussières en place. Se règle au départ.</p>
-            {COTES_VOISIN.map((cote) => {
+            {catway && <p className="hint">Bateaux voisins : proposés le long du quai seulement.</p>}
+            {!catway && COTES_VOISIN.map((cote) => {
               const ecart = ecartVoisin(preparee, origine, cote);
               return (
                 <div className="voisin" key={cote}>
@@ -484,8 +505,8 @@ export function App() {
                 </div>
               );
             })}
-            <p className="hint" aria-live="polite">{voisinNotice
-              ?? 'Bateaux amarrés devant ou derrière, immobiles : le bateau peut s’y appuyer ou les toucher. Se règlent au départ.'}</p>
+            {!catway && <p className="hint" aria-live="polite">{voisinNotice
+              ?? 'Bateaux amarrés devant ou derrière, immobiles : le bateau peut s’y appuyer ou les toucher. Se règlent au départ.'}</p>}
           </div>
         </details>
 
@@ -493,7 +514,7 @@ export function App() {
 
         <p className="keys">
           <kbd>Espace</kbd> lecture · <kbd>↑</kbd><kbd>↓</kbd> moteur · <kbd>←</kbd><kbd>→</kbd> barre · <kbd>C</kbd> centrer ·
-          {' '}<kbd>Maj</kbd>+<kbd>←</kbd><kbd>→</kbd> bateau ·
+          {' '}<kbd>Maj</kbd>+{catway ? <><kbd>↑</kbd><kbd>↓</kbd></> : <><kbd>←</kbd><kbd>→</kbd></>} bateau ·
           {' '}<kbd>1</kbd>–<kbd>9</kbd> larguer · <kbd>Maj</kbd>+<kbd>1</kbd>–<kbd>9</kbd> choquer · <kbd>,</kbd><kbd>.</kbd> pas à pas · <kbd>R</kbd> départ · <kbd>Échap</kbd> annuler
         </p>
       </aside>

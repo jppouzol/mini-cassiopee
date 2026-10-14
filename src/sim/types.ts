@@ -58,6 +58,19 @@ export interface Neighbor {
   contacts: Vec[];
 }
 
+/**
+ * Catway : petit ponton immobile accroché au bord du quai (y = 0), qui descend
+ * dans l'eau (y < 0) sur sa longueur, centré sur l'abscisse x.
+ */
+export interface Catway {
+  /** abscisse de l'axe (m, repère monde) */
+  x: number;
+  /** demi-largeur (m) */
+  halfWidth: number;
+  /** longueur depuis le bord du quai (m) */
+  length: number;
+}
+
 export interface SimState {
   /** numéro d'image (60 images par seconde) */
   frame: number;
@@ -67,8 +80,10 @@ export interface SimState {
   /** angle de barre (rad), > 0 : le bateau tourne vers bâbord */
   rudder: number;
   wind: Wind;
-  /** points d'appui sur le quai à la dernière image (repère monde) */
+  /** points d'appui sur le quai et le catway à la dernière image (repère monde) */
   contacts: Vec[];
+  /** catway, immobile, ou null le long du quai */
+  catway: Catway | null;
   /** bateaux voisins, immobiles (liste vide sans voisin) */
   neighbors: Neighbor[];
   /** position du point de pivot sur l'axe (m, repère bateau), null si le bateau ne tourne pas */

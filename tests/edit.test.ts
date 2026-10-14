@@ -8,7 +8,7 @@ import {
   nomDeduit, nomsAffiches, reglerPlafond, renommerAussiere, supprimerAussiere,
 } from '../src/situations/edit.ts';
 import { parseSituation, type Situation } from '../src/situations/schema.ts';
-import { bitteDepuisMonde, bitteVersMonde } from '../src/situations/quai.ts';
+import { bitteDepuisSupport, bitteVersSupport } from '../src/situations/quai.ts';
 
 /** Situation de départ sur garde avant, sans aucune aussière. */
 const vide = (): Situation => ({ ...loadSituation('depart-garde-avant'), aussieres: [] });
@@ -121,16 +121,16 @@ test('une garde avant ajoutée dans l’éditeur se comporte comme celle du cata
 
 test('conversion des positions de bitte, bâbord et tribord au quai', () => {
   const sit = { ...vide(), bateau: { ...vide().bateau, x: 3 } };
-  assert.equal(bitteDepuisMonde(sit, 4), 1);
-  assert.equal(bitteDepuisMonde(tribord(sit), 4), -1);
+  assert.equal(bitteDepuisSupport(sit, 4), 1);
+  assert.equal(bitteDepuisSupport(tribord(sit), 4), -1);
 });
 
 test('déplacer le bateau : les aussières restent sur leurs bittes, bâbord et tribord au quai', () => {
   for (const sit of [loadSituation('amarre-quatre-amarres'), tribord(loadSituation('amarre-quatre-amarres'))]) {
-    const avant = sit.aussieres.map((a) => bitteVersMonde(sit, a.bitte));
+    const avant = sit.aussieres.map((a) => bitteVersSupport(sit, a.bitte));
     const moved = deplacerBateau(sit, sit, 2.5);
     assert.equal(moved.bateau.x, 2.5);
-    assert.deepEqual(moved.aussieres.map((a) => bitteVersMonde(moved, a.bitte)), avant);
+    assert.deepEqual(moved.aussieres.map((a) => bitteVersSupport(moved, a.bitte)), avant);
     assert.deepEqual(moved.aussieres.map((a) => a.mou), sit.aussieres.map((a) => a.mou), 'le mou est conservé');
     // La situation produite reste valide : toutes les bittes sont sur la rangée.
     assert.deepEqual(parseSituation(JSON.parse(JSON.stringify(moved))), moved);
@@ -160,7 +160,7 @@ test('déplacer le bateau : le nom déduit suit la géométrie, un nom choisi es
 test('déplacer le bateau : un traversier arrière devient possible', () => {
   const sit = deplacerBateau(vide(), vide(), 1);
   // Taquet arrière à x = -3,75 : la bitte -4 n'est qu'à 0,25 m le long du bateau.
-  const avecTraversiers = ajouterAussiere(ajouterAussiere(sit, 'arriere', bitteDepuisMonde(sit, -4)), 'etrave', bitteDepuisMonde(sit, 6));
+  const avecTraversiers = ajouterAussiere(ajouterAussiere(sit, 'arriere', bitteDepuisSupport(sit, -4)), 'etrave', bitteDepuisSupport(sit, 6));
   assert.deepEqual(nomsAffiches(avecTraversiers), ['Traversier arrière', 'Traversier avant']);
 });
 

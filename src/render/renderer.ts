@@ -16,7 +16,7 @@ export interface View {
   /** position de départ à afficher en pointillés, ou null */
   ghost: Body | null;
   debug: boolean;
-  /** toutes les bittes du quai, pour les dessiner même sans aussière */
+  /** toutes les bittes du quai et du catway, pour les dessiner même sans aussière */
   bollards: Vec[];
   /** édition des aussières en préparation, ou null */
   edition: EditionView | null;
@@ -111,6 +111,28 @@ export function render(ctx: CanvasRenderingContext2D, s: Readonly<SimState>, v: 
   // Libellé au-dessus de la rangée de bittes, pour ne pas la chevaucher.
   const yRow = v.bollards.length ? Y(v.bollards[0][1]) - Math.max(3, 0.22 * sc) - 6 : Y(0) - 8;
   ctx.fillText('QUAI', W - 12, Math.max(14, yRow));
+
+  // Catway : ponton accroché au quai, de la couleur du quai, bordé sur ses flancs et son bout.
+  if (s.catway) {
+    const c = s.catway;
+    const xa = X(c.x - c.halfWidth), xb = X(c.x + c.halfWidth), yt = Y(-c.length);
+    ctx.fillStyle = C.quay;
+    ctx.fillRect(xa, Y(0) - 1, xb - xa, yt - Y(0) + 1);
+    ctx.strokeStyle = C.quayEdge;
+    ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.moveTo(xa, Y(0)); ctx.lineTo(xa, yt); ctx.lineTo(xb, yt); ctx.lineTo(xb, Y(0)); ctx.stroke();
+    // Libellé le long du catway, du côté opposé au bateau, pour ne pas passer sous la coque.
+    const cote = b.x >= c.x ? -1 : 1;
+    ctx.save();
+    ctx.translate(X(c.x + cote * (c.halfWidth + 0.5)), Y(-c.length / 2));
+    ctx.rotate(-Math.PI / 2);
+    ctx.fillStyle = C.quayEdge;
+    ctx.font = `600 11px ${v.labelFont}`;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText('CATWAY', 0, 0);
+    ctx.restore();
+  }
 
   // Bittes : pleines si une aussière y est tournée, estompées sinon.
   // Pendant l'édition, un taquet sélectionné met en évidence les bittes où l'on peut tourner l'aussière.
