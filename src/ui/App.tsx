@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Session, type Action } from '../session/session.ts';
 import { buildState } from '../situations/build.ts';
-import { CATALOGUE } from '../situations/catalogue.ts';
+import { CATALOGUE, GROUPES } from '../situations/catalogue.ts';
 import {
   ECARTS_VOISIN, EditionError, PAS_DEPLACEMENT, ajouterAussiere, basculerFile, basculerMou, bornesDeplacement,
   deplacerBateau, ecartVoisin, etraveVoisinCatway, reglerPlafond, reglerVoisin, renommerAussiere, supprimerAussiere, taquetsProposes,
@@ -365,8 +365,11 @@ export function App() {
           </div>
           <select id="situation" value={origine.id} aria-label="Situation de départ"
             onChange={(e) => chooseSituation(CATALOGUE.find((x) => x.id === e.target.value) ?? CATALOGUE[0])}>
-            {CATALOGUE.filter((x) => x.quai.type === origine.quai.type)
-              .map((x) => <option key={x.id} value={x.id}>{x.titre}</option>)}
+            {GROUPES.filter((g) => g.type === origine.quai.type).map((g) => (
+              <optgroup key={`${g.type}-${g.titre}`} label={g.titre}>
+                {g.situations.map((x) => <option key={x.id} value={x.id}>{x.titre}</option>)}
+              </optgroup>
+            ))}
           </select>
           <p className="hint">{origine.description}</p>
           {modified && (
