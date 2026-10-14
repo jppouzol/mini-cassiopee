@@ -1,7 +1,7 @@
 {
   "format": 1,
   "id": "catway-verification",
-  "titre": "Sur catway : vérification d'amarrage",
+  "titre": "Vérification d'amarrage",
   "description": "Arrière au quai, bâbord le long d'un catway plus court que le bateau. Vent soutenu du catway, sans toucher aux commandes : l'avant, qui dépasse du catway, est le plus exposé. Quelles aussières travaillent ?",
   "quai": { "type": "perpendiculaire" },
   "bateau": { "x": 6, "distanceQuai": 0.3, "bordAuQuai": "babord", "boutAuQuai": "arriere" },

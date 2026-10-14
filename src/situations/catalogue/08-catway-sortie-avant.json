@@ -1,7 +1,7 @@
 {
   "format": 1,
   "id": "catway-sortie-avant",
-  "titre": "Sur catway : sortie en marche avant",
+  "titre": "Sortie en marche avant",
   "description": "Arrière au quai, bâbord le long du catway. Larguez les aussières, puis marche avant : le bateau sort vers le chenal. Essayez aussi avec du vent du large, qui le plaque contre le catway.",
   "quai": { "type": "perpendiculaire" },
   "bateau": { "x": 6, "distanceQuai": 0.3, "bordAuQuai": "babord", "boutAuQuai": "arriere" },
