@@ -4,11 +4,11 @@ import { buildState } from '../situations/build.ts';
 import { CATALOGUE } from '../situations/catalogue.ts';
 import {
   ECARTS_VOISIN, EditionError, PAS_DEPLACEMENT, ajouterAussiere, basculerFile, basculerMou, bornesDeplacement,
-  deplacerBateau, ecartVoisin, reglerPlafond, reglerVoisin, renommerAussiere, supprimerAussiere, taquetsProposes,
+  deplacerBateau, ecartVoisin, etraveVoisinCatway, reglerPlafond, reglerVoisin, renommerAussiere, supprimerAussiere, taquetsProposes,
 } from '../situations/edit.ts';
 import { bitteDepuisPoint, bittesAutresCatways, bittesDuPort, perpendiculaire } from '../situations/quai.ts';
 import {
-  COTES_VOISIN, PLAFOND_DEFAUT, PLAFOND_MAX, directionsVent, plafond,
+  PLAFOND_DEFAUT, PLAFOND_MAX, cotesVoisin, directionsVent, plafond,
   type Cleat, type CoteVoisin, type Situation, type WindDirection,
 } from '../situations/schema.ts';
 import { DEFAULT_PARAMS, FPS } from '../sim/params.ts';
@@ -57,12 +57,15 @@ function cleatLabel(sit: Situation, cleat: Cleat): string {
     case 'maitre-bau': return `le taquet de maître-bau ${auQuai}`;
   }
 }
+/** Réglages d'un voisin le long du quai : écart compté depuis la place d'origine du bateau. */
 const VOISINS: { value: number | null; label: string }[] = [
   { value: null, label: 'Aucun' },
   { value: ECARTS_VOISIN.serre, label: 'Serré' },
   { value: ECARTS_VOISIN.large, label: 'Large' },
 ];
-const COTE_LABELS: Record<CoteVoisin, string> = { avant: 'Voisin devant', arriere: 'Voisin derrière' };
+const COTE_LABELS: Record<CoteVoisin, string> = {
+  avant: 'Voisin devant', arriere: 'Voisin derrière', catway: 'Voisin côté catway', large: 'Voisin côté large',
+};
 const STEP_FRAMES = 12;
 const MAX_RUDDER_DEG = 35;
 
@@ -498,23 +501,28 @@ export function App() {
               </div>
             </div>
             <p className="hint">De {PLAFOND_DEFAUT} à {PLAFOND_MAX}, jamais moins que le nombre d’aussières en place. Se règle au départ.</p>
-            {catway && <p className="hint">Bateaux voisins : proposés le long du quai seulement.</p>}
-            {!catway && COTES_VOISIN.map((cote) => {
+            {cotesVoisin(preparee.quai.type).map((cote) => {
               const ecart = ecartVoisin(preparee, origine, cote);
+              // Sur catway, un voisin est présent ou absent : sa place découle des catways.
+              const options = catway
+                ? [{ value: null, label: 'Aucun' }, { value: etraveVoisinCatway(origine), label: 'Présent' }]
+                : VOISINS;
+              const actif = (v: number | null) => (catway ? (ecart !== null) === (v !== null) : ecart === v);
               return (
                 <div className="voisin" key={cote}>
                   <span>{COTE_LABELS[cote]}</span>
                   <div className="seg" role="group" aria-label={COTE_LABELS[cote]}>
-                    {VOISINS.map((o) => (
-                      <button key={o.label} aria-pressed={ecart === o.value} disabled={!preparing}
+                    {options.map((o) => (
+                      <button key={o.label} aria-pressed={actif(o.value)} disabled={!preparing}
                         onClick={() => setVoisin(cote, o.value)}>{o.label}</button>
                     ))}
                   </div>
                 </div>
               );
             })}
-            {!catway && <p className="hint" aria-live="polite">{voisinNotice
-              ?? 'Bateaux amarrés devant ou derrière, immobiles : le bateau peut s’y appuyer ou les toucher. Se règlent au départ.'}</p>}
+            <p className="hint" aria-live="polite">{voisinNotice ?? (catway
+              ? 'Bateaux amarrés étrave au quai, de l’autre côté du catway ou contre le catway voisin, immobiles : le bateau peut s’y appuyer ou les toucher. Se règlent au départ.'
+              : 'Bateaux amarrés devant ou derrière, immobiles : le bateau peut s’y appuyer ou les toucher. Se règlent au départ.')}</p>
           </div>
         </details>
 

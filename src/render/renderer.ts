@@ -123,9 +123,12 @@ export function render(ctx: CanvasRenderingContext2D, s: Readonly<SimState>, v: 
     ctx.lineWidth = 2;
     ctx.beginPath(); ctx.moveTo(xa, Y(0)); ctx.lineTo(xa, yt); ctx.lineTo(xb, yt); ctx.lineTo(xb, Y(0)); ctx.stroke();
     // Libellé le long du catway, du côté opposé au bateau, pour ne pas passer sous la coque.
+    // Si un voisin occupe ce côté, le libellé passe sur le catway, entre le quai et la première bitte.
     const cote = b.x >= c.x ? -1 : 1;
+    const voisinDeCeCote = s.neighbors.some((nb) => Math.sign(nb.x - c.x) === cote && Math.abs(nb.x - c.x) < c.halfWidth + 4);
     ctx.save();
-    ctx.translate(X(c.x + cote * (c.halfWidth + 0.5)), Y(-c.length / 2));
+    if (voisinDeCeCote) ctx.translate(X(c.x), Y(-c.length / 4));
+    else ctx.translate(X(c.x + cote * (c.halfWidth + 0.5)), Y(-c.length / 2));
     ctx.rotate(-Math.PI / 2);
     ctx.fillStyle = C.quayEdge;
     ctx.font = `600 11px ${v.labelFont}`;

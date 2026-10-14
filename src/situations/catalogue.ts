@@ -7,6 +7,7 @@ import departGardeAvantVoisins from './catalogue/05-depart-garde-avant-voisins.j
 import catwayVerification from './catalogue/06-catway-verification.json';
 import catwaySortieArriere from './catalogue/07-catway-sortie-arriere.json';
 import catwaySortieAvant from './catalogue/08-catway-sortie-avant.json';
+import catwaySortieArriereVoisin from './catalogue/09-catway-sortie-arriere-voisin.json';
 
 /** Situations du catalogue, dans l'ordre d'affichage. Ajouter ici tout nouveau fichier. */
 export const CATALOGUE: readonly Situation[] = [
@@ -18,4 +19,5 @@ export const CATALOGUE: readonly Situation[] = [
   catwayVerification,
   catwaySortieArriere,
   catwaySortieAvant,
+  catwaySortieArriereVoisin,
 ].map(parseSituation);

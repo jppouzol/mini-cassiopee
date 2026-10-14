@@ -81,7 +81,7 @@ test('format : règles propres au catway', () => {
   assert.throws(() => parseSituation(aussiere({ bitte: -2 })), /rangée de bittes du catway/, 'au-delà du bout du catway');
   assert.throws(() => parseSituation(aussiere({ bitte: 1, sur: 'quai' })), /rangée de bittes du quai/);
   assert.throws(() => parseSituation(aussiere({ bitte: 0.5, sur: 'catway' })), /sur/);
-  assert.throws(() => parseSituation(json({ voisins: { avant: 1 } })), /le long du quai/);
+  assert.throws(() => parseSituation(json({ voisins: { avant: 1 } })), /côté de « voisins »/, 'pas de voisin devant ni derrière sur catway');
   assert.throws(() => parseSituation(json({ vent: { direction: 'avant', force: 'faible' } })), /vent.direction/);
   // Le long du quai, les champs propres au catway sont refusés.
   const garde = loadSituation('depart-garde-avant');
@@ -242,7 +242,7 @@ test('éditeur : glisser le long du catway, arrêt à 0,5 m du quai, bittes inch
     ['Pointe avant bâbord', 'Pointe avant tribord', 'Traversier avant', 'Garde arrière']);
 });
 
-test('éditeur : ajouter une aussière sur le catway ou sur le quai, voisins refusés', () => {
+test('éditeur : ajouter une aussière sur le catway ou sur le quai, voisins du long du quai refusés', () => {
   const sit = sansAmarre(sortieArriere());
   const surCatway = bitteDepuisPoint(sit, [0, -3.3]);
   const surQuai = bitteDepuisPoint(sit, [2.5, 0.6]);
@@ -258,7 +258,7 @@ test('éditeur : ajouter une aussière sur le catway ou sur le quai, voisins ref
   assert.throws(() => ajouterAussiere(avec, 'etrave', surQuai.bitte, 'quai'), EditionError, 'doublon');
   assert.throws(() => ajouterAussiere(sit, 'etrave', 3), /catway/);
   assert.throws(() => ajouterAussiere(sit, 'etrave', 1.5, 'quai'), /quai/);
-  assert.throws(() => reglerVoisin(sit, sit, 'avant', 1), /le long du quai/);
+  assert.throws(() => reglerVoisin(sit, sit, 'avant', 1), /côté catway ou côté large/);
   // Une garde avant ajoutée dans l'éditeur se comporte comme celle du catalogue.
   const cat = buildState(sortieArriere());
   const ajoutee = buildState(ajouterAussiere(sit, 'etrave', 2.7));
