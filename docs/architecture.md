@@ -249,6 +249,7 @@ La physique se teste par comportements attendus, pas par valeurs exactes : un r�
 | Sortie en marche arrière | Étrave au quai, aussières larguées : le bateau recule le long du catway sans le toucher |
 | Sortie en marche avant | Arrière au quai, aussières larguées : le bateau sort vers le chenal sans toucher le catway |
 | Nom déduit sur catway | Pointe avant vers le quai, gardes et traversier sur le catway ; identique de l'autre côté du catway |
+| Aussières vers l'extérieur | Dans chaque situation du catalogue, la bitte de chaque aussière est plus écartée de l'axe du bateau que son taquet, du même bord |
 | Nom par bord | Deux pointes arrière, une par taquet arrière, nommées bâbord et tribord, le long du quai comme sur catway ; deux pointes avant depuis l'étrave, nommées d'après le bord de leur bitte ; numéro si le bord ne suffit pas |
 | Déplacement le long du catway | Arrêt à 0,5 m du quai ; bittes du catway inchangées en monde, bittes du quai inchangées |
 | Relecture d'un contact au catway | Un appui sur le catway se rejoue à l'identique |

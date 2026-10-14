@@ -2,7 +2,9 @@
 // scénarios du catalogue, nom déduit, déplacement dans l'éditeur, relecture.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { bow, deg, line, loadSituation, run, stern } from './helpers.ts';
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
+import { bow, catalogueFiles, deg, line, loadSituation, run, stern } from './helpers.ts';
 import { buildState, windVector } from '../src/situations/build.ts';
 import { cloneState, tick } from '../src/sim/engine.ts';
 import { DEFAULT_PARAMS } from '../src/sim/params.ts';
@@ -232,9 +234,9 @@ test('éditeur : ajouter une aussière sur le catway ou sur le quai, voisins ref
   // Cul à quai : une pointe arrière depuis chaque taquet arrière, proposés tous deux par l'éditeur.
   const cul = sansAmarre(sortieAvant());
   assert.deepEqual(taquetsProposes(cul).map((c) => c.name), ['etrave', 'arriere', 'arriere-large']);
-  const deux = ajouterAussiere(ajouterAussiere(cul, 'arriere', 0.5, 'quai'), 'arriere-large', -1.5, 'quai');
+  const deux = ajouterAussiere(ajouterAussiere(cul, 'arriere', 2.5, 'quai'), 'arriere-large', -3.5, 'quai');
   assert.deepEqual(nomsAffiches(deux), ['Pointe arrière bâbord', 'Pointe arrière tribord']);
-  assert.deepEqual(buildState(deux).lines.map((l) => l.bollard), [[-2, 0.6], [-4, 0.6]]);
+  assert.deepEqual(buildState(deux).lines.map((l) => l.bollard), [[0, 0.6], [-6, 0.6]]);
   assert.deepEqual(buildState(avec).lines.map((l) => l.bollard), [[0, -4], [2, 0.6]]);
   assert.throws(() => ajouterAussiere(avec, 'etrave', surQuai.bitte, 'quai'), EditionError, 'doublon');
   assert.throws(() => ajouterAussiere(sit, 'etrave', 3), /catway/);
@@ -265,3 +267,16 @@ test('relecture : un appui sur le catway se rejoue à l’identique', () => {
   assert.ok(touche, 'le vent du large a plaqué le bateau sur le catway');
 });
 
+
+test('catalogue : chaque aussière part vers l’extérieur du bateau, du bord de son taquet', () => {
+  for (const f of catalogueFiles()) {
+    const sit = parseSituation(JSON.parse(readFileSync(join(import.meta.dirname, '..', 'src', 'situations', 'catalogue', f), 'utf8')));
+    const s = buildState(sit);
+    for (const l of s.lines) {
+      // Écart latéral de la bitte, en repère bateau, compté du côté du taquet : au-delà du taquet.
+      const cote = Math.abs(l.cleat[1]) < 0.5 ? Math.sign(toLocal(s.body, l.bollard)[1]) : Math.sign(l.cleat[1]);
+      const lateral = cote * toLocal(s.body, l.bollard)[1];
+      assert.ok(lateral > Math.abs(l.cleat[1]) + 0.3, `${sit.id}, ${l.name} : la bitte n'est pas à l'extérieur du taquet`);
+    }
+  }
+});

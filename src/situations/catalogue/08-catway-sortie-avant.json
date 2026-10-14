@@ -6,8 +6,8 @@
   "quai": { "type": "perpendiculaire" },
   "bateau": { "x": 6, "distanceQuai": 0.3, "bordAuQuai": "babord", "boutAuQuai": "arriere" },
   "aussieres": [
-    { "id": "pointe-ar", "taquet": "arriere", "sur": "quai", "bitte": 0.5, "mou": 0 },
-    { "id": "pointe-ar-large", "taquet": "arriere-large", "sur": "quai", "bitte": -1.5, "mou": 0 },
+    { "id": "pointe-ar", "taquet": "arriere", "sur": "quai", "bitte": 2.5, "mou": 0 },
+    { "id": "pointe-ar-large", "taquet": "arriere-large", "sur": "quai", "bitte": -3.5, "mou": 0 },
     { "id": "garde-ar", "taquet": "arriere", "bitte": -2, "mou": 0 },
     { "id": "garde-av", "taquet": "etrave", "bitte": 0, "mou": 0 }
   ],

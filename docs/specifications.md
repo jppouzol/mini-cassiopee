@@ -154,7 +154,7 @@ Chaque situation définit : la configuration du quai (le long ou perpendiculaire
 - sur catway, étrave au quai : sortie en marche arrière ;
 - sur catway, arrière au quai : sortie en marche avant.
 
-Sur catway, le bout au quai porte deux pointes, une vers chaque bord, en plus des gardes tournées sur le catway.
+Sur catway, le bout au quai porte deux pointes, une vers chaque bord, en plus des gardes tournées sur le catway. Comme sur un vrai bateau, chaque aussière du catalogue part vers l'extérieur du bateau, du bord de son taquet : sa bitte est plus écartée de l'axe que le taquet, et les deux pointes s'ouvrent en V.
 
 Les bittes des situations du catalogue sont placées sur les rangées de bittes fixes du quai et du catway, en vérifiant que les scénarios de référence restent démonstratifs.
 
