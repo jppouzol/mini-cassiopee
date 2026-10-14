@@ -6,7 +6,9 @@ import { FPS } from '../sim/params.ts';
 export type Action =
   | { type: 'engine'; value: Engine }
   | { type: 'rudder'; value: number }
-  | { type: 'cast-off'; lineId: string };
+  | { type: 'cast-off'; lineId: string }
+  /** choquer (value = true : l'aussière file) ou bloquer (false) */
+  | { type: 'pay-out'; lineId: string; value: boolean };
 
 interface LoggedAction {
   frame: number;
@@ -25,6 +27,11 @@ export function applyAction(s: SimState, a: Action): void {
     case 'cast-off': {
       const line = s.lines.find((l) => l.id === a.lineId);
       if (line) line.attached = false;
+      break;
+    }
+    case 'pay-out': {
+      const line = s.lines.find((l) => l.id === a.lineId);
+      if (line) line.payingOut = a.value;
       break;
     }
   }

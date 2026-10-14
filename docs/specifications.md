@@ -19,7 +19,7 @@ Ces principes arbitrent toutes les décisions de conception, en particulier lors
 1. **Le bout de tissu d'abord.** Toute situation doit pouvoir se décrire aussi simplement que sur la table : un bateau, un quai, quelques aussières, un sens de moteur.
 2. **Des principes, pas un bateau réel.** La physique est qualitativement correcte : le bateau part dans le bon sens, pivote autour du bon point, avec des ordres de grandeur plausibles. Aucune valeur réelle (kN, nœuds) n'est affichée ni garantie.
 3. **Le point de pivot est l'information centrale.** C'est ce que l'outil doit rendre visible avant tout.
-4. **La complexité est optionnelle.** Chaque enrichissement (pas d'hélice, bi-safran, bateaux voisins, choquer une aussière…) s'active dans des paramètres avancés ; désactivé, le comportement de base reste inchangé.
+4. **La complexité est optionnelle.** Chaque enrichissement du modèle ou de la scène (pas d'hélice, bi-safran, bateaux voisins…) s'active dans des paramètres avancés ; désactivé, le comportement de base reste inchangé. Une nouvelle commande (choquer une aussière…) peut rester disponible en permanence si, tant qu'on ne s'en sert pas, elle ne change rien.
 5. **Enrichissement progressif.** On livre un socle utilisable, puis on ajoute des fonctionnalités une à une, sans ordre imposé ni palier, et sans basculer dans une simulation fine.
 6. **Mobile d'abord.** L'outil doit être utilisable au port ou à bord, sur un téléphone, sans autre matériel.
 
@@ -63,7 +63,8 @@ La scène se compose d'un seul bateau, d'un quai, d'aussières et du vent. Chaqu
 - Son nom est déduit de la géométrie au départ : traversier si elle fait moins de 20° avec la perpendiculaire au bateau, sinon pointe si elle part vers l'extérieur du bateau (bitte en avant du taquet d'étrave, ou en arrière du taquet arrière) et garde dans le cas inverse ; avant ou arrière selon le taquet (voir le glossaire). Un numéro départage deux aussières de même nom. L'élève peut la renommer.
 - Une situation compte au plus 6 aussières par défaut. Ce plafond est réglable entre 6 et 12 dans les options avancées de l'éditeur, sans pouvoir descendre sous le nombre d'aussières en place ; une situation du catalogue peut déclarer un plafond plus élevé.
 - Larguée, elle disparaît de la scène (considérée comme remontée à bord).
-- Enrichissement envisagé : choquer ou reprendre une aussière pendant la manœuvre, pour conserver de la tension ou créer un point de pivot.
+- Choquée, elle file : tant que l'élève la laisse filer, elle s'allonge aussi vite que le bateau s'éloigne de sa bitte et ne le retient plus ; une fois bloquée, elle garde sa nouvelle longueur et retient de nouveau. Une aussière molle qu'on choque ne change pas tant que le bateau ne tire pas dessus. Elle peut filer sans limite de longueur.
+- Enrichissements envisagés : reprendre une aussière (la raccourcir) pendant la manœuvre ; freiner une aussière qu'on choque ; longueur finie des aussières.
 
 ### Vent
 
@@ -95,7 +96,10 @@ L'application a deux modes : la **préparation**, où l'on règle la situation, 
 | Larguer une aussière | Individuellement, à tout moment | Socle |
 | Barre | Angle de barre, côté bâbord ou tribord | Socle |
 | Ne rien faire | Laisser agir le vent seul | Socle |
-| Choquer ou reprendre une aussière | Allonger ou raccourcir pendant la manœuvre | Envisagé |
+| Choquer une aussière | Laisser filer ou bloquer, individuellement, à tout moment, en lecture comme en pause | Livré |
+| Reprendre une aussière | Raccourcir pendant la manœuvre | Envisagé |
+
+**Choquer une aussière** : chaque aussière de la liste porte un bouton « Choquer » à bascule, à côté de « Larguer ». Un premier appui la laisse filer et le bouton reste enfoncé ; un second appui la bloque. Le bouton s'utilise en lecture comme en pause : en pause, la bascule prend effet à la reprise ou au pas à pas suivant. Elle est enregistrée avec la manœuvre, comme les autres commandes. En préparation, le même bouton indique qu'une aussière file dès la mise en mouvement. Larguer une aussière qui file la fait disparaître, comme toute aussière larguée. Dans la scène, une aussière qui file apparaît molle, puisqu'elle ne retient pas ; la liste l'indique par « File ».
 
 ### Contrôle du déroulement
 
@@ -142,7 +146,7 @@ L'éditeur agit pendant la préparation, c'est-à-dire tant que la simulation es
 
 - Déplacer le bateau le long du quai.
 - Ajouter, retirer ou déplacer une aussière entre un taquet du bateau et une bitte du quai.
-- Indiquer pour chaque aussière si elle est tendue au moment de la mise en mouvement.
+- Indiquer pour chaque aussière si elle est tendue au moment de la mise en mouvement, et si elle file dès ce moment.
 - Régler la direction et la force du vent.
 - Activer les options avancées, dont le plafond d'aussières.
 
@@ -159,9 +163,9 @@ L'éditeur agit pendant la préparation, c'est-à-dire tant que la simulation es
 #### Ajouter et supprimer une aussière
 
 - **Ajouter** : l'élève touche un taquet sur la coque, puis une bitte sur le quai. L'aussière est créée tendue, avec un nom déduit de sa géométrie. Tant qu'un taquet est sélectionné, les bittes sont mises en évidence ; toucher ailleurs annule la sélection. La création est refusée, avec un message, si elle crée un doublon ou dépasse le plafond.
-- **Régler** : dans la liste des aussières, l'élève bascule chaque aussière entre tendue et molle, et peut la renommer.
+- **Régler** : dans la liste des aussières, l'élève bascule chaque aussière entre tendue et molle, et entre bloquée et choquée (elle file dès la mise en mouvement) ; il peut aussi la renommer.
 - **Supprimer** : en préparation, le bouton « Larguer » de la liste devient « Supprimer ». Une aussière supprimée disparaît de la situation préparée.
-- Pendant la simulation, on ne peut ni ajouter ni supprimer d'aussière : seul le largage reste possible.
+- Pendant la simulation, on ne peut ni ajouter ni supprimer d'aussière : seuls le choquer et le largage restent possibles.
 
 #### Situation préparée et situation d'origine
 
@@ -188,7 +192,7 @@ Aucune sauvegarde ni partage de situation n'est prévu à ce stade : la situatio
 
 ## Évolutions
 
-Le socle est livré : amarrage le long du quai, aussières fixes, moteur avant, neutre et arrière, largage individuel, barre, vent faible ou soutenu, tension des aussières et point de pivot, pause, pas à pas et retour arrière, catalogue et éditeur.
+Le socle est livré : amarrage le long du quai, aussières fixes, moteur avant, neutre et arrière, largage individuel, barre, vent faible ou soutenu, tension des aussières et point de pivot, pause, pas à pas et retour arrière, catalogue et éditeur. Depuis, l'élève peut aussi choquer une aussière.
 
 Le projet s'enrichit ensuite progressivement, une fonctionnalité à la fois, sans paliers ni jalons : l'ordre suit les envies et les retours des élèves. Le backlog est tenu dans les issues GitHub du dépôt ; chaque issue devient une branche et une demande de fusion, qui met à jour ce document si elle change le périmètre.
 
@@ -200,7 +204,9 @@ Enrichissements envisagés, chacun optionnel et sans effet sur le comportement d
 - amarrage perpendiculaire et longueur de catway ;
 - bateaux voisins ;
 - taquet au maître-bau ;
-- choquer et reprendre une aussière pendant la manœuvre ;
+- reprendre une aussière pendant la manœuvre ;
+- freiner une aussière qu'on choque ;
+- longueur finie des aussières ;
 - aides visuelles en option (trajectoire, flèches de forces, position fantôme).
 
 ## Critères d'acceptation du socle

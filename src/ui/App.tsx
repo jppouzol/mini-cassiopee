@@ -3,7 +3,7 @@ import { Session, type Action } from '../session/session.ts';
 import { BOLLARD_SETBACK, buildState } from '../situations/build.ts';
 import { CATALOGUE } from '../situations/catalogue.ts';
 import {
-  DEPLACEMENT_MAX, EditionError, PAS_DEPLACEMENT, ajouterAussiere, basculerMou, deplacerBateau,
+  DEPLACEMENT_MAX, EditionError, PAS_DEPLACEMENT, ajouterAussiere, basculerFile, basculerMou, deplacerBateau,
   reglerPlafond, renommerAussiere, supprimerAussiere, taquetsProposes,
 } from '../situations/edit.ts';
 import { bitteDepuisMonde, bittesEntre } from '../situations/quai.ts';
@@ -174,9 +174,21 @@ export function App() {
     if (x0 !== null) edit((sit) => deplacerBateau(sit, origine, x0 + dx));
   };
   const moveBoat = (sens: 1 | -1) => edit((sit) => deplacerBateau(sit, origine, sit.bateau.x + sens * PAS_DEPLACEMENT));
-  // Copie pour les raccourcis clavier, dont l'écouteur n'est pas recréé à chaque rendu.
+  // Choquer : en préparation, l'aussière file dès la mise en mouvement ; ensuite, bascule notée dans le journal.
+  const togglePayOut = (index: number) => {
+    if (preparing) {
+      const a = preparee.aussieres[index];
+      if (a) edit((sit) => basculerFile(sit, a.id));
+      return;
+    }
+    const l = session.state.lines[index];
+    if (l && l.attached) act({ type: 'pay-out', lineId: l.id, value: !l.payingOut });
+  };
+  // Copies pour les raccourcis clavier, dont l'écouteur n'est pas recréé à chaque rendu.
   const moveBoatRef = useRef(moveBoat);
   moveBoatRef.current = moveBoat;
+  const togglePayOutRef = useRef(togglePayOut);
+  togglePayOutRef.current = togglePayOut;
 
   // Toucher sur la scène : un taquet, puis une bitte.
   const onPick = (p: Pick) => {
@@ -233,10 +245,14 @@ export function App() {
         case 'Comma': step(-STEP_FRAMES); break;
         case 'Period': step(STEP_FRAMES); break;
         default: {
-          // Chiffres : larguer une aussière, seulement une fois la manœuvre commencée.
-          const n = Number(e.key);
+          // Chiffres de la rangée du haut, repérés par la touche (indépendamment de la disposition du clavier) :
+          // Maj + chiffre choque ou bloque une aussière ; le chiffre seul la largue, une fois la manœuvre commencée.
+          const m = /^Digit([1-9])$/.exec(e.code);
+          if (!m || e.altKey || e.ctrlKey || e.metaKey) return;
+          const n = Number(m[1]);
           const l = cur.lines[n - 1];
-          if (n >= 1 && l && l.attached && ses.frame > 0) act({ type: 'cast-off', lineId: l.id });
+          if (e.shiftKey) togglePayOutRef.current(n - 1);
+          else if (l && l.attached && ses.frame > 0) act({ type: 'cast-off', lineId: l.id });
           else return;
         }
       }
@@ -376,20 +392,32 @@ export function App() {
                           onClick={() => setRenaming({ id: a.id, text: a.nom ?? '' })}>{name} <span aria-hidden="true">✎</span></button>}
                     <button className="btn" aria-pressed={molle} title="Basculer entre tendue et molle"
                       onClick={() => edit((sit) => basculerMou(sit, a.id))}>{molle ? 'Molle' : 'Tendue'}</button>
-                    <button className="btn" onClick={() => edit((sit) => supprimerAussiere(sit, a.id))}>Supprimer</button>
+                    <div className="acts">
+                      <button className="btn toggle" aria-pressed={a.file === true}
+                        title={`Laisser filer dès le départ, ou bloquer${i < 9 ? ` (Maj + ${i + 1})` : ''}`}
+                        onClick={() => togglePayOut(i)}>Choquer</button>
+                      <button className="btn" onClick={() => edit((sit) => supprimerAussiere(sit, a.id))}>Supprimer</button>
+                    </div>
                   </div>
                 );
               })
               : s.lines.map((l, i) => {
                 const state = !l.attached ? 'gone' : l.tension > TAUT_THRESHOLD ? 'taut' : 'slack';
-                const label = state === 'gone' ? 'Larguée' : state === 'taut' ? (debug ? `${Math.round(l.tension)} N` : 'Tendue') : 'Molle';
+                const label = state === 'gone' ? 'Larguée'
+                  : l.payingOut ? 'File'
+                  : state === 'taut' ? (debug ? `${Math.round(l.tension)} N` : 'Tendue') : 'Molle';
                 return (
                   <div className="line" key={l.id}>
                     <span className={`chip ${state}`} />
                     <span>{l.name}</span>
                     <span className="state">{label}</span>
-                    <button className="btn" disabled={!l.attached} title={i < 9 ? `Touche ${i + 1}` : undefined}
-                      onClick={() => act({ type: 'cast-off', lineId: l.id })}>Larguer</button>
+                    <div className="acts">
+                      <button className="btn toggle" disabled={!l.attached} aria-pressed={l.attached && l.payingOut}
+                        title={`Laisser filer ou bloquer${i < 9 ? ` (Maj + ${i + 1})` : ''}`}
+                        onClick={() => togglePayOut(i)}>Choquer</button>
+                      <button className="btn" disabled={!l.attached} title={i < 9 ? `Touche ${i + 1}` : undefined}
+                        onClick={() => act({ type: 'cast-off', lineId: l.id })}>Larguer</button>
+                    </div>
                   </div>
                 );
               })}
@@ -435,7 +463,7 @@ export function App() {
         <p className="keys">
           <kbd>Espace</kbd> lecture · <kbd>↑</kbd><kbd>↓</kbd> moteur · <kbd>←</kbd><kbd>→</kbd> barre · <kbd>C</kbd> centrer ·
           {' '}<kbd>Maj</kbd>+<kbd>←</kbd><kbd>→</kbd> bateau ·
-          {' '}<kbd>1</kbd>–<kbd>9</kbd> larguer · <kbd>,</kbd><kbd>.</kbd> pas à pas · <kbd>R</kbd> départ · <kbd>Échap</kbd> annuler
+          {' '}<kbd>1</kbd>–<kbd>9</kbd> larguer · <kbd>Maj</kbd>+<kbd>1</kbd>–<kbd>9</kbd> choquer · <kbd>,</kbd><kbd>.</kbd> pas à pas · <kbd>R</kbd> départ · <kbd>Échap</kbd> annuler
         </p>
       </aside>
     </div>

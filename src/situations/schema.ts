@@ -30,6 +30,8 @@ export interface SituationLine {
   bitte: number;
   /** mou au départ (m) ; 0 = aussière tendue */
   mou: number;
+  /** aussière choquée dès le départ : elle file dès la mise en mouvement (bloquée si absent) */
+  file?: boolean;
 }
 
 export interface Situation {
@@ -99,6 +101,7 @@ export function parseSituation(input: unknown): Situation {
     }
     if (a.nom !== undefined && !isStr(a.nom)) throw new SituationError(`${where} : le nom, s'il est donné, ne peut pas être vide.`);
     if (ids.has(a.id)) throw new SituationError(`${where} : identifiant « ${a.id} » en double.`);
+    if (a.file !== undefined && typeof a.file !== 'boolean') throw new SituationError(`${where} : « file » vaut true ou false.`);
     if (a.mou < 0) throw new SituationError(`${where} : le mou ne peut pas être négatif.`);
     if (!surLaRangee(placement, a.bitte)) {
       throw new SituationError(`${where} : la bitte (${a.bitte} m) n'est pas sur la rangée de bittes du quai, espacées de ${BOLLARD_SPACING} m.`);
@@ -110,6 +113,7 @@ export function parseSituation(input: unknown): Situation {
     liens.add(lien);
     const line: SituationLine = { id: a.id, taquet, bitte: a.bitte, mou: a.mou };
     if (a.nom !== undefined) line.nom = a.nom as string;
+    if (a.file === true) line.file = true;
     return line;
   });
 

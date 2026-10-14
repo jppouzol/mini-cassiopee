@@ -49,6 +49,7 @@ Le moteur est écrit sur mesure plutôt qu'adossé à une bibliothèque physique
 - Corps rigide plan à trois degrés de liberté (x, y, cap), masses différentes en longitudinal et en latéral pour tenir compte de l'eau entraînée.
 - Intégration d'Euler semi-implicite à pas fixe de 1/240 s, quatre sous-pas par image de 1/60 s. Le pas ne dépend jamais de la fréquence d'affichage.
 - Forces du socle : moteur, safran (flux d'hélice en marche avant et erre), résistances longitudinale et latérale, vent au centre, aussières, contact et frottement sur le quai.
+- Aussières : ressort amorti qui ne travaille qu'en traction. Chacune est bloquée ou choquée (`payingOut`). Choquée, elle file sans retenue : à chaque sous-pas, sa longueur rejoint la distance du taquet à la bitte dès que le bateau s'en éloigne, et ne raccourcit jamais. Ce n'est pas un effet optionnel mais un état de l'aussière, changé par une action de l'élève.
 - Point de pivot calculé à chaque image : point de l'axe dont la vitesse latérale est nulle, lissé et masqué quand le bateau translate sans tourner.
 
 ### Effets activables
@@ -60,7 +61,6 @@ Chaque force est un **effet** (`src/sim/effects.ts`) : une fonction qui reçoit 
 | Pas d'hélice | Poussée latérale à l'arrière, surtout en marche arrière, sens selon la rotation de l'hélice |
 | Bi-safran | Safrans hors du flux d'hélice : effet de barre seulement avec de l'erre |
 | Fardage de l'étrave | Point d'application du vent avancé : le vent fait abattre l'avant |
-| Aussière réglable | Longueur de l'aussière modifiable pendant la manœuvre |
 
 ### Paramètres
 
@@ -70,7 +70,7 @@ Les constantes physiques (poussée, efficacité de barre, résistances, vent, ra
 
 Une manœuvre est enregistrée comme une situation de départ plus un journal horodaté des actions de l'élève, complété d'images clés de l'état (`src/session/session.ts`). C'est ce qui permet pause, pas à pas et retour arrière sans conserver chaque image.
 
-- **Journal d'actions** : chaque action (moteur, barre, largage) est notée avec le numéro d'image où elle s'applique.
+- **Journal d'actions** : chaque action (moteur, barre, largage, choquer ou bloquer une aussière) est notée avec le numéro d'image où elle s'applique.
 - **Images clés** : l'état complet est sauvegardé toutes les 60 images (1 s). Pour afficher l'image n, on repart de l'image clé précédente et on resimule au plus 59 images, ce qui reste imperceptible.
 - **Embranchement** : une action faite après un retour arrière efface la suite du journal et des images clés, puis la manœuvre repart de ce point.
 - **Mémoire** : un état tient en moins de 200 octets ; un quart d'heure de manœuvre représente environ 900 images clés, soit moins de 200 ko.
@@ -102,6 +102,7 @@ Chaque situation du catalogue est un fichier JSON lisible à la main, dans `src/
 - Deux aussières ne peuvent pas relier le même taquet à la même bitte.
 - `nom` est facultatif : absent, il est déduit de la géométrie au départ (voir l'édition ci-dessous) ; présent, c'est le nom choisi par l'auteur ou l'élève.
 - `mou` vaut 0 pour une aussière tendue au départ, ou la longueur de mou en mètres. L'éditeur ne produit que 0 (tendue) ou 0,5 (molle) ; le catalogue peut utiliser d'autres valeurs.
+- `file` est facultatif : `true` pour une aussière choquée dès la mise en mouvement ; absent, elle est bloquée. Le validateur ne garde que `true`.
 - `plafondAussieres` est facultatif : nombre maximal d'aussières de la situation, entier de 6 à 12, 6 par défaut, jamais inférieur au nombre d'aussières déclarées.
 - `vent.direction` vaut `quai`, `large`, `avant`, `arriere` ou une combinaison (`quai-avant`, `large-arriere`…) ; `avant` et `arriere` se rapportent au cap du bateau au départ. `vent.force` vaut `aucun`, `faible` ou `soutenu`.
 - `format` permet de faire évoluer le schéma en gardant la lecture des anciennes situations.
@@ -115,7 +116,7 @@ Une fonction de validation (`src/situations/schema.ts`) accompagne le format ; u
 L'éditeur produit des situations au même format que le catalogue. Les opérations sont des fonctions pures sur une `Situation` (`src/situations/edit.ts`), sans dépendance au navigateur et testables seules :
 
 - `ajouterAussiere(situation, taquet, bitte)`, refusée avec un message lisible en cas de doublon ou de plafond atteint ;
-- `supprimerAussiere`, `basculerMou` (tendue ou 0,5 m de mou), `renommerAussiere`, `reglerPlafond` ;
+- `supprimerAussiere`, `basculerMou` (tendue ou 0,5 m de mou), `basculerFile` (bloquée ou choquée au départ), `renommerAussiere`, `reglerPlafond` ;
 - `nomDeduit(situation, aussiere)` : traversier si l'aussière fait moins de 20° avec la perpendiculaire au bateau, sinon pointe ou garde selon que la bitte est en dehors ou en dedans du taquet le long du bateau, avant ou arrière selon le taquet. Le calcul se fait en repère bateau, ce qui le rend indépendant du bord au quai. `nomsAffiches(situation)` garde les noms choisis et numérote les noms déduits identiques ; `buildState` l'utilise pour nommer les aussières de la simulation ;
 - `taquetsProposes(situation)` : les taquets offerts à l'éditeur et leur position, selon le bord au quai ;
 - `deplacerBateau(situation, origine, x)` : place le bateau en `x`, arrondi au pas de 0,5 m (`PAS_DEPLACEMENT`) et borné à 4 m (`DEPLACEMENT_MAX`) autour de la position de la situation d'origine. Les aussières gardent leur bitte dans le repère monde : leur `bitte` relative est recalculée, et la longueur et le nom déduit suivent à la construction de l'état. La fonction renvoie la même situation quand la position ne change pas, ce qui évite une session inutile pendant un glisser.
@@ -133,7 +134,8 @@ La scène est dessinée en Canvas 2D par un module impératif (`src/render`) ; l
 - **Glisser le bateau** : en préparation, la scène tranche le geste au relâcher. Si le doigt a bougé de moins de 8 px, c'est un toucher sur la cible la plus proche ; au-delà, un geste commencé sur la coque ou un taquet déplace le bateau. Le déplacement est mesuré depuis le début du geste et converti en mètres, puis l'interface appelle `deplacerBateau` avec la position visée : des événements rapprochés ne font pas dériver le bateau.
 - **Couleurs** : tirées des variables CSS du thème, clair et sombre.
 - **Disposition** : scène et commandes côte à côte sur PC et tablette en paysage ; scène en haut et commandes dessous sur téléphone, avec les commandes de manœuvre (moteur, barre, largage) accessibles au pouce sans défilement.
-- **Clavier** sur PC : raccourcis pour la lecture, le moteur, la barre, le largage, le pas à pas et, en préparation, le déplacement du bateau (Maj + flèches gauche et droite), rappelés en bas du panneau de commandes.
+- **Liste des aussières** : chaque ligne montre le nom et l'état (tendue, molle, file, larguée), puis sur une seconde rangée les boutons « Choquer », à bascule, et « Larguer » (« Supprimer » en préparation).
+- **Clavier** sur PC : raccourcis pour la lecture, le moteur, la barre, le largage (chiffre), le choquer (Maj + chiffre), le pas à pas et, en préparation, le déplacement du bateau (Maj + flèches gauche et droite), rappelés en bas du panneau de commandes. Les chiffres sont repérés par la touche et non par le caractère, pour fonctionner pareil en AZERTY et en QWERTY.
 - **Accessibilité** : commandes utilisables au clavier, contrastes suffisants dans les deux thèmes, état des aussières indiqué par la couleur et par un libellé.
 
 ## Stack, outillage et organisation du code
@@ -206,6 +208,9 @@ La physique se teste par comportements attendus, pas par valeurs exactes : un r�
 | Aussière ajoutée | Une garde avant ajoutée dans l'éditeur sur une situation sans amarre se comporte comme celle du catalogue |
 | Déplacement du bateau | Bittes inchangées dans le repère monde, bâbord comme tribord au quai ; pas de 0,5 m et bornes de ±4 m ; une garde devient traversier, un nom choisi est gardé ; traversier arrière possible bateau décalé de 1 m |
 | Rangée périodique | Bateau et aussières décalés de 2 m : la manœuvre est identique, à la translation près |
+| Choquer | Garde avant choquée en marche avant : le bateau avance sans être retenu ; bloquée, elle le retient de nouveau ; une aussière molle choquée ne change rien |
+| Choquer au départ | Une aussière qui file dès le départ équivaut à une aussière choquée à la première image |
+| Relecture du choquer | Choquer puis bloquer se rejoue à l'identique ; basculer en pause après un retour arrière équivaut à basculer en lecture à la même image |
 
 S'y ajoutent des tests de stabilité numérique (aucune valeur non finie, pas d'oscillation résiduelle) et des tests du format des situations, dont le placement des bittes du catalogue sur la rangée. Le reste de l'interface se vérifie à la main sur PC, Android et iOS avant chaque version.
 
@@ -224,6 +229,7 @@ Chaque choix structurant est noté ici avec son statut ; une décision ne change
 | Points d'amarrage | Rangée de bittes fixes espacées de 2 m ; catalogue recalé dessus | Décidé |
 | Édition des aussières | En préparation seulement, par fonctions pures sur la situation ; situation préparée distincte de la situation d'origine ; plafond de 6, réglable jusqu'à 12 | Décidé |
 | Déplacement du bateau | En préparation, au doigt ou pas à pas, par pas de 0,5 m et à ±4 m de l'origine ; les aussières restent sur leurs bittes | Décidé |
+| Choquer une aussière | Bouton à bascule toujours disponible, en préparation comme en lecture et en pause ; l'aussière file sans retenue et sans limite de longueur ; état de l'aussière, pas un effet optionnel ; reprise, freinage et longueur finie traités à part | Décidé |
 | Hébergement | Dépôt public et GitHub Pages | Décidé |
 | Déploiement | GitHub Actions : tests sur chaque proposition, déploiement à chaque fusion | Décidé |
 | Licence du code | MIT | Décidé |
