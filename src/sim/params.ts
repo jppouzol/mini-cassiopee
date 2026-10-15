@@ -17,11 +17,16 @@ export const DEFAULT_PARAMS: Readonly<Params> = Object.freeze({
   xRudder: -4.3, // position du safran (m)
   rudderWash: 0.7, // efficacité du flux d'hélice sur le safran
   rudderFlow: 900, // efficacité de l'erre sur le safran
+  rudderGrip: 0.5, // résistance du safran au dérapage de l'arrière
+  keelLift: 5000, // portance de la quille contre le dérapage
+  xKeel: 0.3, // position de la quille (m)
+  keelShift: 1.2, // déplacement du centre de poussée vers l'extrémité qui ouvre la route (m)
   dragXq: 420,
   dragXl: 180,
-  dragYq: 4500, // résistance latérale répartie (plan anti-dérive)
+  dragYq: 4500, // résistance latérale répartie (plan anti-dérive), seule à l'arrêt
   dragYl: 2600,
-  yawL: 30000,
+  dragYCenter: 1, // concentration de la résistance latérale vers le milieu (0 à 1)
+  yawL: 2000, // amortissement de lacet propre, en plus de la résistance latérale
   windFaible: 450, // force du vent par le travers (N)
   windSoutenu: 1400,
   windLongRatio: 0.35,

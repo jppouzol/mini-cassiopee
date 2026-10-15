@@ -1,0 +1,10 @@
+{
+  "format": 1,
+  "id": "eau-libre",
+  "titre": "Bateau libre en eau libre",
+  "description": "Aucune amarre, sans vent, loin du quai : pour mesurer la giration du bateau libre.",
+  "quai": { "type": "long-side" },
+  "bateau": { "x": 0, "distanceQuai": 40, "bordAuQuai": "babord" },
+  "aussieres": [],
+  "vent": { "direction": "quai", "force": "aucun" }
+}
