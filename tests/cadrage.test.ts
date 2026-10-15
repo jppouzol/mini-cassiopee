@@ -5,7 +5,7 @@ import { loadSituation } from './helpers.ts';
 import { buildState } from '../src/situations/build.ts';
 import { camera } from '../src/render/renderer.ts';
 import {
-  CADRAGE_DEFAUT, ZOOM_MAX, bornerCadrage, echelleDefaut, estDefaut, longueurEchelle, pincer, zoomerAutour,
+  CADRAGE_DEFAUT, ZOOM_MAX, ZOOM_MIN, bornerCadrage, echelleDefaut, estDefaut, longueurEchelle, pincer, zoomerAutour,
   type Cadrage,
 } from '../src/render/cadrage.ts';
 
@@ -18,18 +18,19 @@ const proche = (a: number, b: number, tol = 1e-9) => Math.abs(a - b) <= tol;
 /** Demi-largeur et demi-hauteur (m) du cadrage par défaut. */
 const demi = (W: number, H: number) => [W / 2 / echelleDefaut(W, H), H / 2 / echelleDefaut(W, H)];
 
-test('cadrage : zoom borné entre ×1 et ×4, sans décalage à ×1', () => {
+test('cadrage : zoom borné entre ×0,5 et ×4, sans décalage à ×1', () => {
   for (const { W, H } of [TELEPHONE, PC]) {
-    assert.deepEqual(bornerCadrage({ k: 0.3, ox: 5, oy: -5 }, W, H), CADRAGE_DEFAUT);
+    assert.deepEqual(bornerCadrage({ k: 1, ox: 5, oy: -5 }, W, H), CADRAGE_DEFAUT);
+    assert.equal(bornerCadrage({ k: 0.1, ox: 0, oy: 0 }, W, H).k, ZOOM_MIN);
     assert.equal(bornerCadrage({ k: 9, ox: 0, oy: 0 }, W, H).k, ZOOM_MAX);
     assert.deepEqual(bornerCadrage({ k: Number.NaN, ox: 1, oy: 1 }, W, H), CADRAGE_DEFAUT);
-    // Dézoomer à la molette depuis le cadrage par défaut ne change rien.
-    assert.deepEqual(zoomerAutour(CADRAGE_DEFAUT, W, H, 10, 10, 0.5), CADRAGE_DEFAUT);
-    assert.ok(estDefaut(zoomerAutour({ k: 2, ox: 1, oy: 1 }, W, H, 50, 60, 0.1)));
+    // Dézoomer depuis un zoom ×2 d'un facteur 2 revient au cadrage par défaut, quel que soit le point visé.
+    assert.ok(estDefaut(zoomerAutour({ k: 2, ox: 1, oy: 1 }, W, H, 50, 60, 0.5)));
+    assert.equal(zoomerAutour(CADRAGE_DEFAUT, W, H, 10, 10, 0.01).k, ZOOM_MIN);
   }
 });
 
-test('cadrage : la vue zoomée reste dans le cadrage par défaut', () => {
+test('cadrage : zoomée, la vue reste dans le cadrage par défaut ; dézoomée, elle le contient', () => {
   for (const { W, H } of [TELEPHONE, PC]) {
     const [hw, hh] = demi(W, H);
     for (const k of [1.5, 2, ZOOM_MAX]) {
@@ -37,6 +38,12 @@ test('cadrage : la vue zoomée reste dans le cadrage par défaut', () => {
       // Bord droit et bord bas de la vue zoomée sur ceux du cadrage par défaut.
       assert.ok(proche(c.ox + hw / k, hw));
       assert.ok(proche(c.oy - hh / k, -hh));
+    }
+    for (const k of [0.8, ZOOM_MIN]) {
+      const c = bornerCadrage({ k, ox: 1000, oy: -1000 }, W, H);
+      // Bord gauche et bord haut du cadrage par défaut sur ceux de la vue dézoomée.
+      assert.ok(proche(c.ox - hw / k, -hw));
+      assert.ok(proche(c.oy + hh / k, hh));
     }
   }
 });
@@ -53,6 +60,11 @@ test('cadrage : le point sous le pointeur reste en place quand on zoome', () => 
       assert.ok(proche(avant[0], apres[0], 1e-6) && proche(avant[1], apres[1], 1e-6), `${avant} ≠ ${apres}`);
     }
     assert.ok(proche(c.k, 1.6 * 1.5 * 1.3));
+    // Dézoomer autour du centre de la scène : le centre ne bouge pas, les bornes ne jouent pas.
+    const centre = camera(s, W, H).toWorld(W / 2, H / 2);
+    const large = zoomerAutour(CADRAGE_DEFAUT, W, H, W / 2, H / 2, 0.6);
+    const vu = camera(s, W, H, large).toWorld(W / 2, H / 2);
+    assert.ok(proche(large.k, 0.6) && proche(centre[0], vu[0], 1e-6) && proche(centre[1], vu[1], 1e-6));
   }
 });
 
@@ -89,6 +101,8 @@ test('cadrage : le suivi du bateau est conservé quand on zoome', () => {
 });
 
 test('cadrage : l’échelle se raccourcit quand on zoome', () => {
+  assert.equal(longueurEchelle(ZOOM_MIN), 10);
+  assert.equal(longueurEchelle(0.7), 5);
   assert.equal(longueurEchelle(1), 5);
   assert.equal(longueurEchelle(2), 2);
   assert.equal(longueurEchelle(2.5), 2);
