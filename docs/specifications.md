@@ -143,7 +143,7 @@ Le quai reste en haut de l'écran ; en perpendiculaire, le catway et le bateau d
 Le bateau paraît petit sur un téléphone, et le chenal y est vite hors de l'écran : l'élève peut zoomer sur la scène pour regarder un taquet, une aussière ou un voisin de près, ou dézoomer pour voir plus large.
 
 - **Sur téléphone et tablette** : le pincement à deux doigts zoome et déplace la vue en même temps. Un doigt garde ses rôles (toucher un taquet ou une bitte, glisser le bateau en préparation) ; poser un second doigt annule le geste à un doigt en cours, sans sélection ni déplacement du bateau.
-- **Sur PC** : la molette, ou le pincement du pavé tactile, zoome autour du pointeur.
+- **Sur PC** : la molette, ou le pincement du pavé tactile, zoome autour du pointeur. Un glisser à la souris déplace la vue, comme deux doigts sur téléphone ; en préparation, un glisser commencé sur le bateau le déplace toujours, et un clic garde son rôle.
 - **Bornes** : de ×0,5 à ×4 autour du cadrage par défaut (×1). Dézoomer sert surtout sur téléphone, pour voir le chenal devant un catway pendant la manœuvre. Zoomée, la vue reste à l'intérieur du cadrage par défaut ; dézoomée, elle le contient : on ne s'éloigne jamais du bateau.
 - **Suivi** : la vue reste accrochée au bateau, décalée de ce que l'élève a déplacé ; en manœuvre, le bateau ne sort pas de l'écran pour autant.
 - **Rendu** : seules les distances changent. Traits, textes, bittes et cibles tactiles gardent leur taille à l'écran ; l'échelle change de longueur (10 m, 5 m, 2 m ou 1 m) pour garder sa taille dans son coin.

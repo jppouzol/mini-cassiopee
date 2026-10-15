@@ -113,8 +113,9 @@ kbd { font-family: var(--f-label); font-weight: 600; border: 1px solid var(--rul
 @media (prefers-reduced-motion: reduce) { * { scroll-behavior: auto; } }
 
 /* Édition des aussières en préparation */
+canvas.zoomed { cursor: grab; }
 canvas.editing { cursor: pointer; }
-canvas.editing.dragging { cursor: grabbing; }
+canvas.dragging, canvas.editing.dragging { cursor: grabbing; }
 .count { font-family: var(--f-label); font-weight: 600; font-size: 13px; color: var(--muted); font-variant-numeric: tabular-nums; }
 .line .name {
   background: none; border: 0; padding: 6px 0; text-align: left; cursor: pointer; min-height: 32px;

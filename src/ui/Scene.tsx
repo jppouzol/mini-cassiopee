@@ -42,6 +42,10 @@ interface Gesture {
   onBoat: boolean;
   moved: boolean;
   dragging: boolean;
+  /** Souris : un glisser commencé hors du bateau déplace la vue, comme deux doigts sur téléphone. */
+  mouse: boolean;
+  /** Vue en cours de déplacement à la souris : dernière position du pointeur. */
+  pan: { x: number; y: number } | null;
 }
 
 /** Milieu et écart des deux premiers doigts posés. */
@@ -161,7 +165,16 @@ export function Scene({ state, ghost, debug, bollards, otherBollards, edition, o
       if (doigts.current.size === 2) pinch.current = pincement(doigts.current);
       return;
     }
-    if (!edition || bloque.current) return;
+    if (bloque.current) return;
+    const mouse = e.pointerType === 'mouse';
+    if (!edition) {
+      // En simulation, seule la souris a un geste à un bouton : déplacer la vue.
+      if (mouse && e.button === 0) {
+        gesture.current = { pointer: e.pointerId, px, py, pick: { kind: 'none' }, onBoat: false, moved: false, dragging: false, mouse, pan: null };
+      }
+      return;
+    }
+    if (mouse && e.button !== 0) return;
     const cam = camera(state, r.width, r.height, cadrage);
     let best: Pick = { kind: 'none' };
     let bestD = TOUCH_RADIUS;
@@ -175,7 +188,7 @@ export function Scene({ state, ghost, debug, bollards, otherBollards, edition, o
       if (d < bestD) { bestD = d; best = { kind: 'bollard', p: b }; }
     }
     const boat = best.kind === 'cleat' || (best.kind === 'none' && onHull(state.body, cam.toWorld(px, py)));
-    gesture.current = { pointer: e.pointerId, px, py, pick: best, onBoat: boat, moved: false, dragging: false };
+    gesture.current = { pointer: e.pointerId, px, py, pick: best, onBoat: boat, moved: false, dragging: false, mouse, pan: null };
   };
 
   const onPointerMove = (e: PointerEvent<HTMLCanvasElement>) => {
@@ -191,14 +204,24 @@ export function Scene({ state, ghost, debug, bollards, otherBollards, edition, o
       return;
     }
     const g = gesture.current;
-    if (!g || g.pointer !== e.pointerId || !edition) return;
+    if (!g || g.pointer !== e.pointerId) return;
     if (!g.moved && Math.hypot(px - g.px, py - g.py) > DRAG_THRESHOLD) {
       g.moved = true;
-      if (g.onBoat) {
+      if (g.onBoat && edition) {
         g.dragging = true;
         setDragging(true);
         onDragStart();
+      } else if (g.mouse) {
+        // Souris hors du bateau : la vue suit le pointeur depuis le début du geste.
+        g.pan = { x: g.px, y: g.py };
+        setDragging(true);
       }
+    }
+    if (g.pan) {
+      const d = { x: g.pan.x, y: g.pan.y, d: 1 };
+      g.pan = { x: px, y: py };
+      setCadrage(pincer(cadrageRef.current, r.width, r.height, d, { x: px, y: py, d: 1 }));
+      return;
     }
     // Le déplacement est mesuré depuis le début du geste : la position visée ne dérive pas.
     if (g.dragging) {
@@ -224,10 +247,10 @@ export function Scene({ state, ghost, debug, bollards, otherBollards, edition, o
     <>
     <canvas ref={ref} onPointerDown={onPointerDown} onPointerMove={onPointerMove}
       onPointerUp={(e) => endGesture(e, false)} onPointerCancel={(e) => endGesture(e, true)}
-      className={edition ? (dragging ? 'editing dragging' : 'editing') : undefined}
+      className={[edition ? 'editing' : '', dragging ? 'dragging' : '', estDefaut(cadrage) ? '' : 'zoomed'].filter(Boolean).join(' ') || undefined}
       aria-label={edition
-        ? `Vue de dessus du bateau amarré ${state.catways.length ? 'le long d’un catway' : 'au quai'}. Touchez un taquet du bateau, puis une bitte du quai${state.catways.length ? ' ou du catway' : ''}, pour ajouter une aussière. Faites glisser le bateau pour le déplacer le long du ${state.catways.length ? 'catway' : 'quai'}. Pincez à deux doigts pour zoomer.`
-        : `Vue de dessus du bateau amarré ${state.catways.length ? 'le long d’un catway' : 'au quai'}. Pincez à deux doigts pour zoomer.`} />
+        ? `Vue de dessus du bateau amarré ${state.catways.length ? 'le long d’un catway' : 'au quai'}. Touchez un taquet du bateau, puis une bitte du quai${state.catways.length ? ' ou du catway' : ''}, pour ajouter une aussière. Faites glisser le bateau pour le déplacer le long du ${state.catways.length ? 'catway' : 'quai'}. Pincez à deux doigts, ou utilisez la molette, pour zoomer.`
+        : `Vue de dessus du bateau amarré ${state.catways.length ? 'le long d’un catway' : 'au quai'}. Pincez à deux doigts, ou utilisez la molette, pour zoomer.`} />
     {!estDefaut(cadrage) && (
       <button type="button" className="btn recadrer" onClick={() => setCadrage(CADRAGE_DEFAUT)}
         title="Revenir au cadrage par défaut">Recadrer</button>
