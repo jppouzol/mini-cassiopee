@@ -10,7 +10,7 @@ import {
 } from './quai.ts';
 import {
   ECART_VOISIN_MIN, PLAFOND_DEFAUT, PLAFOND_MAX, cotesVoisin, plafond,
-  type Cleat, type CoteVoisin, type SensHelice, type Situation, type SituationLine,
+  type Cleat, type CoteVoisin, type SensHelice, type Situation, type SituationLine, type WindDirection,
 } from './schema.ts';
 
 /**
@@ -229,6 +229,77 @@ export function deplacerBateau(sit: Situation, origine: Pick<Situation, 'bateau'
     next.voisins = v;
   }
   return next;
+}
+
+/** Repères du vent échangés quand le bateau change de bord : le vent garde sa direction dans le port. */
+const VENT_MIROIR_QUAI: Record<string, string> = { avant: 'arriere', arriere: 'avant' };
+const VENT_MIROIR_CATWAY: Record<string, string> = { catway: 'large', large: 'catway' };
+
+/** Direction du vent, dans les repères d'un bateau retourné, qui souffle du même côté du port. */
+function ventMiroir(direction: WindDirection, perp: boolean): WindDirection {
+  const echange = perp ? VENT_MIROIR_CATWAY : VENT_MIROIR_QUAI;
+  return direction.split('-').map((r) => echange[r] ?? r).join('-') as WindDirection;
+}
+
+/**
+ * Le long du quai, place le bateau en `x` en emportant ses aussières (leur `bitte`
+ * relative ne change pas) ; les voisins restent en place, leur écart change.
+ */
+function decaler(sit: Situation, x: number): Situation {
+  if (x === sit.bateau.x) return sit;
+  const next: Situation = { ...sit, bateau: { ...sit.bateau, x } };
+  if (sit.voisins) {
+    const d = bowSign(sit) * (x - sit.bateau.x);
+    const v: Partial<Record<CoteVoisin, number>> = {};
+    if (sit.voisins.avant !== undefined) v.avant = arrondi(sit.voisins.avant - d);
+    if (sit.voisins.arriere !== undefined) v.arriere = arrondi(sit.voisins.arriere + d);
+    next.voisins = v;
+  }
+  return next;
+}
+
+/**
+ * Retourne le bateau, bâbord ou tribord au support (quai ou catway). Le long du quai,
+ * il pivote sur place autour de son centre ; en perpendiculaire, il passe de l'autre
+ * côté de son catway, avec le même bout au quai.
+ *
+ * Les aussières passent en miroir : leur taquet (côté support ou côté large) et leur
+ * bitte relative au bateau ne changent pas, si bien que chacune garde son rôle, son
+ * mou, son état et son nom choisi. Le vent garde sa direction dans le port : son
+ * repère change. Le long du quai, les voisins restent à leur place, retournés comme
+ * le bateau (ils ont son cap) : le voisin devant passe derrière. En perpendiculaire,
+ * leurs places se rapportent au bateau et le suivent, comme le second catway.
+ *
+ * Le long du quai, la rangée de bittes n'est symétrique qu'autour des mètres entiers :
+ * bateau sur un demi-mètre, le miroir d'une bitte tomberait entre deux bittes. Le
+ * bateau se décale alors de 1 m vers sa position d'origine (sinon dans l'autre sens),
+ * dans les bornes du déplacement. Renvoie la même situation si le bord ne change pas.
+ */
+export function changerBord(sit: Situation, origine: Pick<Situation, 'bateau'>, bord: 'babord' | 'tribord'): Situation {
+  if (bord === sit.bateau.bordAuQuai) return sit;
+  const perp = perpendiculaire(sit);
+  const retourne: Situation = {
+    ...sit,
+    bateau: { ...sit.bateau, bordAuQuai: bord },
+    vent: { ...sit.vent, direction: ventMiroir(sit.vent.direction, perp) },
+  };
+  if (perp) return retourne;
+  if (sit.voisins) {
+    const { avant, arriere } = sit.voisins;
+    const v: Partial<Record<CoteVoisin, number>> = {};
+    if (arriere !== undefined) v.avant = arriere;
+    if (avant !== undefined) v.arriere = avant;
+    retourne.voisins = v;
+  }
+  const x = sit.bateau.x;
+  const versOrigine = origine.bateau.x < x ? -1 : 1;
+  for (const nx of [x, arrondi(x + versOrigine), arrondi(x - versOrigine)]) {
+    const candidat = decaler(retourne, nx);
+    const [lo, hi] = bornesDeplacement(candidat, origine);
+    if (nx < lo - 1e-9 || nx > hi + 1e-9) continue;
+    if (candidat.aussieres.every((a) => surLaRangee(candidat, a))) return candidat;
+  }
+  throw new EditionError('Pas de place pour retourner le bateau ici : ramenez-le vers sa place d’origine.');
 }
 
 /** Écarts proposés pour un voisin dans l'éditeur, le long du quai (m) : serré et large. */

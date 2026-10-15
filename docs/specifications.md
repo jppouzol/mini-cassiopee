@@ -181,6 +181,7 @@ Les bittes des situations du catalogue sont placées sur les rangées de bittes 
 L'éditeur agit pendant la préparation, c'est-à-dire tant que la simulation est à son instant de départ. Revenir au départ (⏮) après une manœuvre permet de modifier à nouveau la situation ; la manœuvre enregistrée est alors effacée, comme pour un changement de vent.
 
 - Déplacer le bateau le long du quai ou du catway.
+- Choisir le bord du bateau au quai ou au catway : bâbord ou tribord.
 - Ajouter, retirer ou déplacer une aussière entre un taquet du bateau et une bitte du quai ou du catway.
 - Indiquer pour chaque aussière si elle est tendue au moment de la mise en mouvement, et si elle file dès ce moment.
 - Régler la direction et la force du vent.
@@ -196,7 +197,17 @@ L'éditeur agit pendant la préparation, c'est-à-dire tant que la simulation es
 - La rangée de bittes se répète tous les 2 m : seule compte la position du bateau par rapport aux bittes. Décalé de 1 m par rapport aux situations du catalogue, le bateau peut recevoir à la fois un traversier avant et un traversier arrière.
 - **En perpendiculaire** : le bateau glisse le long du catway, vers le quai ou vers le chenal, avec les mêmes pas et bornes ; il s'arrête à 0,5 m du quai. Les boutons deviennent ▲ ▼, et Maj + flèches haut et bas sur PC. Les aussières tournées sur le quai gardent leur bitte, comme les autres.
 - « Situation d'origine » remet le bateau à sa place ; « ⏮ » garde la position choisie.
-- Le choix du bord au quai et l'écart au quai au départ ne sont pas proposés par l'éditeur à ce stade.
+- L'écart au quai au départ n'est pas proposé par l'éditeur à ce stade.
+
+#### Choisir le bord au quai
+
+- **Commande** : sous l'intitulé « Bord au quai » (« Bord au catway » en perpendiculaire), deux boutons « Bâbord » et « Tribord ». La situation du catalogue fixe le bord de départ.
+- **Le bateau se retourne** : le long du quai, il pivote sur place autour de son centre, l'étrave passant de l'autre côté ; sur catway, il passe de l'autre côté de son catway, à la place symétrique, avec le même bout au quai.
+- **Aussières en miroir** : chacune garde son rôle, son mou, son état (« file ») et le nom choisi par l'élève, et passe sur la bitte symétrique : la garde avant reste la garde avant, son taquet change de bord avec le flanc au quai.
+- **Le long du quai, entre deux bittes** : si le bateau a été glissé d'un demi-mètre (ou de 1,5 m, 2,5 m…), le miroir de ses aussières tomberait entre deux bittes ; le bateau se décale alors de 1 m vers sa place d'origine en se retournant. Sans aussière, il ne bouge pas.
+- **Vent fixe dans le port** : il garde sa direction à l'écran, si bien que son repère change. Le long du quai, « de l'avant » devient « de l'arrière », et inversement ; sur catway, « du catway » devient « du large », et inversement. « Du quai » et « du chenal » ne changent pas.
+- **Voisins** : le long du quai, ils restent à leur place dans le port et se retournent sur eux-mêmes, pour garder le cap du bateau : le voisin devant passe derrière, avec le même réglage. Sur catway, leurs places sont définies par rapport au bateau : ils le suivent, côté catway comme côté large, et le second catway passe de l'autre côté avec lui.
+- « Situation d'origine » remet le bord du catalogue ; « ⏮ » garde le bord choisi. Comme toute modification, changer de bord efface la manœuvre enregistrée.
 
 #### Ajouter et supprimer une aussière
 
@@ -237,7 +248,7 @@ Aucune sauvegarde ni partage de situation n'est prévu à ce stade : la situatio
 
 ## Évolutions
 
-Le socle est livré : amarrage le long du quai, aussières fixes, moteur avant, neutre et arrière, largage individuel, barre, vent faible ou soutenu, tension des aussières et point de pivot, pause, pas à pas et retour arrière, catalogue et éditeur. Depuis, l'élève peut aussi choquer une aussière, placer des bateaux voisins devant et derrière, manœuvrer un bateau amarré perpendiculaire au quai, le long d'un catway, avec ses voisins de part et d'autre, et zoomer sur la scène. Il peut aussi activer le pas d'hélice, à droite ou à gauche.
+Le socle est livré : amarrage le long du quai, aussières fixes, moteur avant, neutre et arrière, largage individuel, barre, vent faible ou soutenu, tension des aussières et point de pivot, pause, pas à pas et retour arrière, catalogue et éditeur. Depuis, l'élève peut aussi choquer une aussière, placer des bateaux voisins devant et derrière, manœuvrer un bateau amarré perpendiculaire au quai, le long d'un catway, avec ses voisins de part et d'autre, et zoomer sur la scène. Il peut aussi activer le pas d'hélice, à droite ou à gauche, et choisir le bord du bateau au quai ou au catway.
 
 Le projet s'enrichit ensuite progressivement, une fonctionnalité à la fois, sans paliers ni jalons : l'ordre suit les envies et les retours des élèves. Le backlog est tenu dans les issues GitHub du dépôt ; chaque issue devient une branche et une demande de fusion, qui met à jour ce document si elle change le périmètre.
 
