@@ -102,10 +102,15 @@ export interface Params {
   xRudder: number;
   rudderWash: number;
   rudderFlow: number;
+  rudderGrip: number;
+  keelLift: number;
+  xKeel: number;
+  keelShift: number;
   dragXq: number;
   dragXl: number;
   dragYq: number;
   dragYl: number;
+  dragYCenter: number;
   yawL: number;
   windFaible: number;
   windSoutenu: number;

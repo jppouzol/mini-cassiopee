@@ -35,24 +35,70 @@ export const engine: Effect = (s, p, f) => {
   addBody(f, s.body, t, 0, p.xProp, 0);
 };
 
-/** Safran unique dans le flux d'hélice : efficace en marche avant même sans erre. */
+/**
+ * Vitesse du flux d'hélice au safran (m/s) : en marche avant seulement, l'hélice
+ * soufflant sur le safran. Déduite de son effet (`rudderWash`) et de l'efficacité
+ * du safran (`rudderFlow`). Un bi-safran (#11), hors du flux, la mettra à zéro.
+ */
+export function washSpeed(engine: number, p: Params): number {
+  return engine > 0 ? Math.sqrt((p.rudderWash * p.thrustFwd) / p.rudderFlow) : 0;
+}
+
+/**
+ * Safran unique dans le flux d'hélice, traité comme un aileron. Deux causes
+ * d'incidence s'additionnent :
+ * - la barre, avec le flux d'hélice (efficace en marche avant même sans erre) et
+ *   l'erre (signée : en marche arrière, la barre agit dans l'autre sens) ;
+ * - l'eau qui arrive de côté quand l'arrière dérape : le safran s'y oppose, d'autant
+ *   plus que l'eau passe vite, ce qui freine le dérapage et resserre la giration.
+ */
 export const rudder: Effect = (s, p, f) => {
-  const [u] = bodyVelocity(s.body);
-  const wash = s.engine > 0 ? p.rudderWash * p.thrustFwd : 0;
-  const flow = p.rudderFlow * u * Math.abs(u);
-  addBody(f, s.body, 0, -s.rudder * (wash + flow), p.xRudder, 0);
+  const b = s.body;
+  const [u, v] = bodyVelocity(b);
+  const uw = washSpeed(s.engine, p);
+  const deflection = p.rudderFlow * (uw * uw + u * Math.abs(u)) * s.rudder;
+  const vr = v + b.w * p.xRudder;
+  const grip = p.rudderFlow * p.rudderGrip * Math.hypot(u, uw) * vr;
+  addBody(f, b, 0, -(deflection + grip), p.xRudder, 0);
 };
 
-/** Résistance de l'eau : longitudinale, latérale répartie le long de la coque, lacet. */
+/**
+ * Part de la résistance latérale portée par chaque tranche de coque, de somme 1.
+ * Avec `center` = 0, elle est uniforme ; en l'augmentant (jusqu'à 1), elle se
+ * concentre vers le milieu, où la quille et le tirant d'eau la portent, et
+ * s'amenuise aux extrémités. Le total ne change pas : la dérive au vent non plus.
+ */
+const weightCache = new Map<number, number[]>();
+export function sliceWeights(center: number): number[] {
+  let w = weightCache.get(center);
+  if (!w) {
+    const raw = SLICES.map((x) => 1 - center + center * (1 - (x / HALF_LENGTH) ** 2));
+    const sum = raw.reduce((a, b) => a + b, 0);
+    w = raw.map((r) => r / sum);
+    weightCache.set(center, w);
+  }
+  return w;
+}
+
+/**
+ * Résistance de l'eau : longitudinale, latérale répartie le long de la coque, lacet,
+ * et portance de la quille. La quille, en avançant ou en reculant, s'oppose au
+ * dérapage en proportion de la vitesse : c'est elle qui tient le bateau en
+ * giration et place le point de pivot. Bateau arrêté, seule reste la résistance latérale répartie.
+ */
 export const hydrodynamics: Effect = (s, p, f) => {
   const b = s.body;
   const [u, v] = bodyVelocity(b);
   addBody(f, b, -p.dragXq * u * Math.abs(u) - p.dragXl * u, 0, 0, 0);
-  const n = SLICES.length;
-  for (const xi of SLICES) {
+  const weights = sliceWeights(p.dragYCenter);
+  SLICES.forEach((xi, i) => {
     const vl = v + b.w * xi;
-    addBody(f, b, 0, -(p.dragYq * vl * Math.abs(vl) + p.dragYl * vl) / n, xi, 0);
-  }
+    addBody(f, b, 0, -(p.dragYq * vl * Math.abs(vl) + p.dragYl * vl) * weights[i], xi, 0);
+  });
+  // Comme sur un aileron, le centre de poussée se porte vers l'extrémité qui ouvre
+  // la route : vers l'avant en marche avant, vers l'arrière en marche arrière.
+  const xk = p.xKeel + Math.sign(u) * p.keelShift;
+  addBody(f, b, 0, -p.keelLift * Math.abs(u) * (v + b.w * xk), xk, 0);
   f.m += -p.yawL * b.w;
 };
 
