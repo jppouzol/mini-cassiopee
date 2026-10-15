@@ -48,11 +48,14 @@ Le moteur est écrit sur mesure plutôt qu'adossé à une bibliothèque physique
 
 - Corps rigide plan à trois degrés de liberté (x, y, cap), masses différentes en longitudinal et en latéral pour tenir compte de l'eau entraînée.
 - Intégration d'Euler semi-implicite à pas fixe de 1/240 s, quatre sous-pas par image de 1/60 s. Le pas ne dépend jamais de la fréquence d'affichage.
-- Forces du socle : moteur, safran (flux d'hélice en marche avant et erre), résistances longitudinale et latérale, vent au centre, aussières, contact et frottement sur le quai et le catway, contact avec les voisins.
+- Forces du socle : moteur, safran, résistances longitudinale et latérale, portance de la quille, vent au centre, aussières, contact et frottement sur le quai et le catway, contact avec les voisins.
+- Safran : traité comme un aileron, dont l'incidence a deux causes. La barre, avec le flux d'hélice en marche avant (vitesse déduite de son effet, `washSpeed`) et l'erre, signée : en marche arrière, la barre agit dans l'autre sens. Et l'eau qui arrive de côté quand l'arrière dérape (`v + w · xRudder`) : le safran s'y oppose d'autant plus que l'eau passe vite (`rudderGrip`), ce qui freine le dérapage et resserre la giration.
+- Quille : en route, elle s'oppose au dérapage en proportion de la vitesse longitudinale (`keelLift`), comme une aile. Son centre de poussée se porte vers l'extrémité qui ouvre la route (`keelShift`) : c'est ce qui place le pivot dans la moitié avant en marche avant et dans la moitié arrière en marche arrière. Bateau arrêté, elle ne porte pas.
+- Résistance latérale : répartie en tranches le long de la coque, concentrée vers le milieu où la quille et le tirant d'eau la portent (`dragYCenter`, `sliceWeights`), et faible aux extrémités. Son total ne dépend pas de cette répartition : la dérive au vent du bateau arrêté non plus.
 - Catways : l'état porte une liste `catways`, vide le long du quai : le catway du bateau et le second, côté large. Chacun est un rectangle immobile accroché au bord du quai, qui descend dans l'eau (y < 0) sur une longueur fixe, à une abscisse donnée. L'effet `catwayContact` les traite comme le quai : il repousse les points de la coque entrés dans un rectangle selon le flanc ou le bout le plus proche, et la coque là où un angle du bout d'un catway y est entré. Ses points d'appui rejoignent ceux du quai (`contacts`). Sans catway, l'effet n'ajoute rien.
 - Bateaux voisins : l'état porte une liste `neighbors` de coques identiques et immobiles (position et cap fixes). L'effet `neighborContact` les traite comme le quai : ressort amorti qui ne tire jamais, plus frottement, appliqué à chaque point de la coque entré dans un voisin et, en sens inverse, là où un point d'un voisin est entré dans la coque (un angle de tableau contre le flanc). La coque étant convexe, la pénétration se mesure sous l'arête la plus proche (`hullPenetration`, dans `src/sim/geometry.ts`). Les points touchés sont gardés par voisin pour l'affichage. Sans voisin, la liste est vide et l'effet n'ajoute rien : ce n'est pas un effet optionnel mais un élément de la scène, absent par défaut.
 - Aussières : ressort amorti qui ne travaille qu'en traction. Chacune est bloquée ou choquée (`payingOut`). Choquée, elle file sans retenue : à chaque sous-pas, sa longueur rejoint la distance du taquet à la bitte dès que le bateau s'en éloigne, et ne raccourcit jamais. Ce n'est pas un effet optionnel mais un état de l'aussière, changé par une action de l'élève.
-- Point de pivot calculé à chaque image : point de l'axe dont la vitesse latérale est nulle, lissé et masqué quand le bateau translate sans tourner.
+- Point de pivot calculé à chaque image : point de l'axe dont la vitesse latérale est nulle, lissé et masqué quand le bateau translate sans tourner. L'affichage le borne à la coque, de l'étrave à l'arrière ; le montrer hors de la coque est une option envisagée (#45).
 
 ### Effets activables
 
@@ -61,7 +64,7 @@ Chaque force est un **effet** (`src/sim/effects.ts`) : une fonction qui reçoit 
 | Effet | Principe |
 | --- | --- |
 | Pas d'hélice | Poussée latérale à l'arrière, surtout en marche arrière, sens selon la rotation de l'hélice |
-| Bi-safran | Safrans hors du flux d'hélice : effet de barre seulement avec de l'erre |
+| Bi-safran | Safrans hors du flux d'hélice (`washSpeed` nulle) : effet de barre et tenue au dérapage seulement avec de l'erre |
 | Fardage de l'étrave | Point d'application du vent avancé : le vent fait abattre l'avant |
 
 ### Paramètres
@@ -79,12 +82,16 @@ Les valeurs par défaut ont été réglées pour que pivots et translations soie
 | Vent faible (`windFaible`) | 450 N par le travers | Environ 12 à 14 nœuds (force 4). Dérive du bateau libre : environ 0,3 nœud |
 | Vent soutenu (`windSoutenu`) | 1 400 N par le travers | Environ 22 à 25 nœuds (force 6). Dérive du bateau libre : environ 0,7 nœud |
 | Vent dans l'axe (`windLongRatio`) | 35 % de la force par le travers | Fardage plus faible de face que de travers |
+| Giration barre à fond, marche avant | Diamètre de 18 m (1,8 longueur), pivot 2,4 m en avant du centre | Demi-tour depuis l'arrêt avec 18 m de décalage latéral, en 18 s ; dérive de 15° en giration |
+| Giration barre à fond, marche arrière | Diamètre de 19 m (1,9 longueur), pivot 1,2 m en arrière du centre | Demi-tour depuis l'arrêt avec 21 m de décalage latéral, en 26 s |
+| Dérive sous moteur, vent soutenu par le travers | 4° en marche avant, 8° en marche arrière | À l'arrêt, le bateau dérive à 0,7 nœud comme sans quille portante |
 
-Hypothèses : pour le vent, surface exposée par le travers de 15 à 18 m² (coque et gréement) et coefficient de traînée proche de 1 ; les vitesses limites et les dérives découlent des résistances du modèle (`dragXq`, `dragXl`, `dragYq`, `dragYl`).
+Hypothèses : pour le vent, surface exposée par le travers de 15 à 18 m² (coque et gréement) et coefficient de traînée proche de 1 ; les vitesses limites et les dérives découlent des résistances du modèle (`dragXq`, `dragXl`, `dragYq`, `dragYl`). La giration découle du safran (`rudderFlow`, `rudderWash`, `rudderGrip`), de la quille (`keelLift`, `keelShift`) et de la répartition de la résistance latérale (`dragYCenter`), réglés sur les repères de la littérature pour un voilier de 10 m à quille aileron : diamètre d'environ deux longueurs barre à fond, presque aussi manœuvrant en arrière qu'en avant, pivot vers le tiers avant en marche avant et vers l'arrière en marche arrière.
 
 Conséquences pour la pédagogie :
 - le vent « faible » est déjà une bonne brise ;
-- le vent soutenu vaut plus de la moitié de la poussée avant et presque toute la poussée arrière, ce qui rend le recul au vent difficile, comme sur l'eau.
+- le vent soutenu vaut plus de la moitié de la poussée avant et presque toute la poussée arrière, ce qui rend le recul au vent difficile, comme sur l'eau ;
+- le bateau fait demi-tour dans une allée de port réaliste ; sous moteur, il remonte légèrement au vent, faute de fardage de l'étrave (#12) pour faire abattre l'avant.
 
 ## Historique et relecture
 
@@ -283,6 +290,11 @@ Les tests ne dépendent pas du catalogue. Le catalogue est une aide aux élèves
 | Sortie en marche arrière, voisin sous le vent | Tout largué, le bateau touche le voisin ; sur les gardes du catway, l'arrière remonte au vent et le bateau sort sans contact, quel que soit le moment où on largue les gardes |
 | Édition des voisins sur catway | Placer et retirer ; côtés du long du quai refusés, et inversement ; voisin côté large refusé faute de place ; voisins fixes et course inchangée quand on glisse le bateau |
 | Relecture d'un contact avec un voisin sur catway | Le contact se rejoue à l'identique |
+| Giration en marche avant | Bateau libre, sans vent, barre à fond bâbord ou tribord : diamètre de 1,5 à 2,5 longueurs, pivot sur la coque dans la moitié avant, à l'affichage aussi |
+| Giration en marche arrière | Barre à fond bâbord ou tribord : pivot sur la coque dans la moitié arrière |
+| Demi-tour | Depuis l'arrêt, barre à fond en marche avant : moins de 20 m de décalage latéral |
+| Barre et giration | Plus de barre, cercle plus serré |
+| Dérive à l'arrêt | La répartition de la résistance latérale ne change pas la dérive au vent du bateau arrêté |
 
 S'y ajoutent des tests de stabilité numérique (aucune valeur non finie, pas d'oscillation résiduelle) et des tests du format des situations. Le reste de l'interface se vérifie à la main sur PC, Android et iOS avant chaque version.
 
@@ -294,6 +306,7 @@ Chaque choix structurant est noté ici avec son statut ; une décision ne change
 | --- | --- | --- |
 | Application sans serveur | Fichiers statiques, tout dans le navigateur | Décidé |
 | Moteur physique | Moteur maison | Décidé |
+| Giration et pivot | Safran traité comme un aileron (barre et eau qui arrive de côté), quille portante dont le centre de poussée se porte vers l'extrémité qui ouvre la route, résistance latérale concentrée au milieu ; barre à fond, diamètre d'environ deux longueurs et pivot sur la coque ; correction du socle, sans option ; vitesse de manœuvre (#44) et pivot hors de la coque (#45) traités à part | Décidé |
 | Relecture | Journal d'actions et images clés toutes les secondes | Décidé |
 | Stack | TypeScript, React, Vite ; tests avec le lanceur intégré à Node.js | Décidé |
 | Rendu | Canvas 2D | Décidé |
