@@ -4,7 +4,7 @@ import { buildState } from '../situations/build.ts';
 import { CATALOGUE, GROUPES } from '../situations/catalogue.ts';
 import {
   ECARTS_VOISIN, EditionError, PAS_DEPLACEMENT, ajouterAussiere, basculerFile, basculerMou, bornesDeplacement,
-  deplacerBateau, ecartVoisin, etraveVoisinCatway, reglerPasHelice, reglerPlafond, reglerVoisin, renommerAussiere, supprimerAussiere, taquetsProposes,
+  changerBord, deplacerBateau, ecartVoisin, etraveVoisinCatway, reglerPasHelice, reglerPlafond, reglerVoisin, renommerAussiere, supprimerAussiere, taquetsProposes,
 } from '../situations/edit.ts';
 import { bitteDepuisPoint, bittesAutresCatways, bittesDuPort, perpendiculaire } from '../situations/quai.ts';
 import {
@@ -51,6 +51,11 @@ const FORCES: { value: WindSetting['force']; label: string }[] = [
 const AMARRAGES: { value: Situation['quai']['type']; label: string }[] = [
   { value: 'long-side', label: 'Le long du quai' },
   { value: 'perpendiculaire', label: 'Sur catway' },
+];
+/** Bord du bateau tourné vers le quai ou le catway. */
+const BORDS: { value: Situation['bateau']['bordAuQuai']; label: string }[] = [
+  { value: 'babord', label: 'Bâbord' },
+  { value: 'tribord', label: 'Tribord' },
 ];
 const ENGINE: { value: Engine; label: string }[] = [
   { value: -1, label: 'Arrière' },
@@ -223,6 +228,12 @@ export function App() {
     if (x0 !== null) edit((sit) => deplacerBateau(sit, origine, x0 + (perpendiculaire(sit) ? -dy : dx)));
   };
   const moveBoat = (sens: 1 | -1) => edit((sit) => deplacerBateau(sit, origine, sit.bateau.x + sens * PAS_DEPLACEMENT));
+  // Retourner le bateau : aussières en miroir, vent et voisins fixes dans le port (voir changerBord).
+  const chooseBord = (bord: 'babord' | 'tribord') => {
+    if (bord === preparee.bateau.bordAuQuai) return;
+    setSelected(null);
+    edit((sit) => changerBord(sit, origine, bord));
+  };
   // Choquer : en préparation, l'aussière file dès la mise en mouvement ; ensuite, bascule notée dans le journal.
   const togglePayOut = (index: number) => {
     if (preparing) {
@@ -398,6 +409,16 @@ export function App() {
             </div>
           </div>
           {preparing && <p className="hint">Faites glisser le bateau ou utilisez {catway ? '▲ ▼' : '◀ ▶'} : les aussières restent tournées sur leurs bittes.</p>}
+          <div className="row">
+            <span>Bord au {support}</span>
+            <div className="seg seg-court push-right" role="group" aria-label={`Bord du bateau au ${support}`}>
+              {BORDS.map((b) => (
+                <button key={b.value} aria-pressed={preparee.bateau.bordAuQuai === b.value} disabled={!preparing}
+                  title={`${b.label} au ${support} : le bateau se retourne, ses aussières passent en miroir`}
+                  onClick={() => chooseBord(b.value)}>{b.label}</button>
+              ))}
+            </div>
+          </div>
           <select id="wind-direction" value={wind.direction} disabled={!preparing} aria-label="Direction du vent"
             onChange={(e) => changeWind({ ...wind, direction: e.target.value as WindDirection })}>
             {directionsVent(typeQuai).map((d) => <option key={d} value={d}>{WIND_LABELS[d]}</option>)}
