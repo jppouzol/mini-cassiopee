@@ -4,12 +4,12 @@ import { buildState } from '../situations/build.ts';
 import { CATALOGUE, GROUPES } from '../situations/catalogue.ts';
 import {
   ECARTS_VOISIN, EditionError, PAS_DEPLACEMENT, ajouterAussiere, basculerFile, basculerMou, bornesDeplacement,
-  deplacerBateau, ecartVoisin, etraveVoisinCatway, reglerPlafond, reglerVoisin, renommerAussiere, supprimerAussiere, taquetsProposes,
+  deplacerBateau, ecartVoisin, etraveVoisinCatway, reglerPasHelice, reglerPlafond, reglerVoisin, renommerAussiere, supprimerAussiere, taquetsProposes,
 } from '../situations/edit.ts';
 import { bitteDepuisPoint, bittesAutresCatways, bittesDuPort, perpendiculaire } from '../situations/quai.ts';
 import {
   PLAFOND_DEFAUT, PLAFOND_MAX, cotesVoisin, directionsVent, plafond,
-  type Cleat, type CoteVoisin, type Situation, type WindDirection,
+  type Cleat, type CoteVoisin, type SensHelice, type Situation, type WindDirection,
 } from '../situations/schema.ts';
 import { DEFAULT_PARAMS, FPS } from '../sim/params.ts';
 import type { Engine, Params } from '../sim/types.ts';
@@ -18,6 +18,13 @@ import { Scene, type Pick } from './Scene.tsx';
 import { Tuning } from './Tuning.tsx';
 
 type WindSetting = Situation['vent'];
+
+/** Choix du pas d'hélice dans les options avancées ; « aucun » est la valeur vide. */
+const PAS_HELICE: { value: SensHelice | ''; label: string }[] = [
+  { value: '', label: 'Aucun' },
+  { value: 'droite', label: 'Hélice à droite' },
+  { value: 'gauche', label: 'Hélice à gauche' },
+];
 
 const WIND_LABELS: Record<WindDirection, string> = {
   quai: 'Vent du quai',
@@ -543,6 +550,14 @@ export function App() {
             <p className="hint" aria-live="polite">{voisinNotice ?? (catway
               ? 'Bateaux amarrés étrave au quai, de l’autre côté du catway ou contre le catway voisin, immobiles : le bateau peut s’y appuyer ou les toucher. Se règlent au départ.'
               : 'Bateaux amarrés devant ou derrière, immobiles : le bateau peut s’y appuyer ou les toucher. Se règlent au départ.')}</p>
+            <div className="row">
+              <label htmlFor="pas-helice">Pas d’hélice</label>
+              <select id="pas-helice" className="push-right" value={preparee.options?.pasHelice ?? ''} disabled={!preparing}
+                onChange={(e) => edit((sit) => reglerPasHelice(sit, (e.target.value || null) as SensHelice | null))}>
+                {PAS_HELICE.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
+              </select>
+            </div>
+            <p className="hint">Poussée de l’hélice qui fait partir l’arrière de côté quand le moteur tourne, surtout en marche arrière. Se règle au départ.</p>
           </div>
         </details>
 

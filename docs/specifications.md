@@ -46,7 +46,8 @@ La scène se compose d'un seul bateau, d'un quai, d'aussières et du vent. Chaqu
 
 - Un modèle unique et générique, aux proportions d'un voilier de croisière de 10 m.
 - Taquets : quatre, quelle que soit la situation, deux à l'étrave et deux à l'arrière, un sur chaque bord ; option pour en ajouter au maître-bau. L'éditeur propose ces quatre taquets tant que le maître-bau n'est pas livré. Ils permettent par exemple deux pointes arrière cul à quai, ou deux pointes avant étrave au quai, indispensables à la sortie en marche arrière.
-- Paramètres avancés : pas d'hélice activable, avec choix du sens de rotation ; choix entre mono-safran et bi-safran.
+- Paramètres avancés : pas d'hélice, avec choix du sens de rotation ; choix entre mono-safran et bi-safran (envisagé).
+- **Pas d'hélice** : un seul réglage, « Pas d'hélice » : aucun (par défaut), hélice à droite ou hélice à gauche. Quand le moteur tourne, l'hélice pousse l'arrière de côté. L'effet est net en marche arrière : hélice à droite, l'arrière part vers bâbord ; hélice à gauche, vers tribord. En marche avant, il est léger et de sens contraire. Il est le plus fort au démarrage, bateau arrêté, et faiblit quand le bateau prend de l'erre : lancé en marche arrière, barre à fond, on arrive à reculer droit. Rien n'est ajouté à la scène : on le voit à l'arrière qui part de côté. Aucune situation du catalogue ne l'active : l'élève l'ajoute sur n'importe laquelle. Comme les voisins, il se règle en préparation ; « Situation d'origine » ou le choix d'une autre situation le retire.
 - Le type de quille n'est pas paramétrable.
 
 ### Quai et environnement
@@ -94,7 +95,7 @@ La simulation est en deux dimensions, vue de dessus, et vise un comportement qua
 - **Contact avec le quai** : traitement simple qui empêche le bateau de traverser le quai et peut servir de point d'appui ; les défenses ne sont pas modélisées dans le socle. Le catway reçoit le même traitement, sur ses deux flancs et son bout.
 - **Contact avec un voisin** : même traitement que le quai, coque contre coque. Le voisin, immobile, arrête le bateau et peut servir de point d'appui (l'étrave contre son tableau, par exemple).
 - **Amortissement** : le bateau ralentit naturellement dans l'eau, pour éviter des oscillations ou des glissements irréalistes.
-- **Effets avancés, désactivés par défaut** : pas d'hélice selon le sens de rotation, différence mono/bi-safran, pivot sous l'effet du vent sur l'étrave.
+- **Effets avancés, désactivés par défaut** : pas d'hélice selon le sens de rotation (livré) ; différence mono/bi-safran et pivot sous l'effet du vent sur l'étrave (envisagés).
 - **Reproductibilité** : à conditions de départ et actions identiques, la simulation produit le même résultat. C'est la condition du pas à pas et du retour arrière.
 
 ## Commandes et interactions
@@ -183,7 +184,7 @@ L'éditeur agit pendant la préparation, c'est-à-dire tant que la simulation es
 - Ajouter, retirer ou déplacer une aussière entre un taquet du bateau et une bitte du quai ou du catway.
 - Indiquer pour chaque aussière si elle est tendue au moment de la mise en mouvement, et si elle file dès ce moment.
 - Régler la direction et la force du vent.
-- Activer les options avancées, dont le plafond d'aussières et les bateaux voisins.
+- Activer les options avancées : plafond d'aussières, bateaux voisins, pas d'hélice.
 
 #### Déplacer le bateau
 
@@ -236,13 +237,12 @@ Aucune sauvegarde ni partage de situation n'est prévu à ce stade : la situatio
 
 ## Évolutions
 
-Le socle est livré : amarrage le long du quai, aussières fixes, moteur avant, neutre et arrière, largage individuel, barre, vent faible ou soutenu, tension des aussières et point de pivot, pause, pas à pas et retour arrière, catalogue et éditeur. Depuis, l'élève peut aussi choquer une aussière, placer des bateaux voisins devant et derrière, manœuvrer un bateau amarré perpendiculaire au quai, le long d'un catway, avec ses voisins de part et d'autre, et zoomer sur la scène.
+Le socle est livré : amarrage le long du quai, aussières fixes, moteur avant, neutre et arrière, largage individuel, barre, vent faible ou soutenu, tension des aussières et point de pivot, pause, pas à pas et retour arrière, catalogue et éditeur. Depuis, l'élève peut aussi choquer une aussière, placer des bateaux voisins devant et derrière, manœuvrer un bateau amarré perpendiculaire au quai, le long d'un catway, avec ses voisins de part et d'autre, et zoomer sur la scène. Il peut aussi activer le pas d'hélice, à droite ou à gauche.
 
 Le projet s'enrichit ensuite progressivement, une fonctionnalité à la fois, sans paliers ni jalons : l'ordre suit les envies et les retours des élèves. Le backlog est tenu dans les issues GitHub du dépôt ; chaque issue devient une branche et une demande de fusion, qui met à jour ce document si elle change le périmètre.
 
 Enrichissements envisagés, chacun optionnel et sans effet sur le comportement de base :
 
-- pas d'hélice et son sens de rotation ;
 - mono ou bi-safran ;
 - pivot du vent sur l'étrave (fardage) ;
 - longueur de catway réglable ;
@@ -297,6 +297,7 @@ Les points suivants n'ont pas été tranchés et figurent dans les points ouvert
 | Choquer / reprendre | Donner du mou à une aussière / la raccourcir |
 | Point de pivot | Point autour duquel le bateau tourne à un instant donné |
 | Pas d'hélice | Poussée latérale de l'hélice, surtout en marche arrière, qui fait dériver l'arrière d'un côté |
+| Hélice à droite / à gauche | Sens de rotation de l'hélice, vue de l'arrière en marche avant : à droite, dans le sens des aiguilles d'une montre. Hélice à droite, l'arrière part vers bâbord en marche arrière ; hélice à gauche, vers tribord |
 | Fardage | Prise au vent de la coque et du gréement |
 | Maître-bau | Partie la plus large du bateau |
 | Long side | Amarrage le long du quai, flanc contre le quai |

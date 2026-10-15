@@ -1,5 +1,5 @@
 import type { Effect, Forces, Params, SimState } from './types.ts';
-import { BASE_EFFECTS } from './effects.ts';
+import { activeEffects } from './effects.ts';
 import { DT, SUBSTEPS } from './params.ts';
 
 /** Un sous-pas d'intégration (Euler semi-implicite). */
@@ -35,8 +35,11 @@ function updatePivot(s: SimState, p: Params): void {
   s.pivot = s.pivot === null ? raw : s.pivot + 0.15 * (raw - s.pivot);
 }
 
-/** Fait avancer la simulation d'une image (1/60 s). Modifie l'état en place. */
-export function tick(s: SimState, p: Params, effects: readonly Effect[] = BASE_EFFECTS): void {
+/**
+ * Fait avancer la simulation d'une image (1/60 s). Modifie l'état en place.
+ * Par défaut, les effets sont ceux du socle et les effets optionnels activés par l'état.
+ */
+export function tick(s: SimState, p: Params, effects: readonly Effect[] = activeEffects(s)): void {
   for (let i = 0; i < SUBSTEPS; i++) substep(s, p, effects);
   updatePivot(s, p);
   s.frame += 1;
@@ -55,5 +58,6 @@ export function cloneState(s: SimState): SimState {
     catways: s.catways.map((c) => ({ ...c })),
     neighbors: s.neighbors.map((n) => ({ ...n, contacts: n.contacts.map((c) => [c[0], c[1]]) })),
     pivot: s.pivot,
+    options: { ...s.options },
   };
 }

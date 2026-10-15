@@ -7,7 +7,7 @@ Ce document traduit les [spécifications](specifications.md) en choix techniques
 Mini Cassiopée est une application web statique, sans serveur, écrite en TypeScript, dont le cœur est un moteur de simulation maison isolé de l'affichage.
 
 - **Moteur de simulation maison**, en TypeScript pur, sans dépendance au navigateur : corps rigide 2D, pas de temps fixe, aussières en traction seule, contact simple avec le quai.
-- **Effets physiques activables** : chaque enrichissement envisagé (pas d'hélice, bi-safran, fardage) est un module qu'on branche ou non, sans toucher au socle.
+- **Effets physiques activables** : chaque enrichissement (pas d'hélice, puis bi-safran, fardage) est un module qu'on branche ou non, sans toucher au socle.
 - **Relecture par journal d'actions et images clés**, qui rend le retour arrière fiable et peu gourmand en mémoire.
 - **Situations décrites en JSON**, chargées par le catalogue et, à terme, produites par l'éditeur.
 - **Rendu Canvas 2D**, interface en React, construction avec Vite.
@@ -59,13 +59,13 @@ Le moteur est écrit sur mesure plutôt qu'adossé à une bibliothèque physique
 
 ### Effets activables
 
-Chaque force est un **effet** (`src/sim/effects.ts`) : une fonction qui reçoit l'état et les paramètres, et ajoute une force et un moment. Le socle en active une liste fixe, dans un ordre fixe ; les enrichissements à venir ajouteront des effets optionnels, déclarés dans la situation :
+Chaque force est un **effet** (`src/sim/effects.ts`) : une fonction qui reçoit l'état et les paramètres, et ajoute une force et un moment. Le socle en active une liste fixe, dans un ordre fixe. Les effets optionnels sont déclarés dans la situation, sous `options`, et recopiés dans l'état (`options`, fixé pour toute la manœuvre et conservé dans les images clés). `activeEffects(state)` renvoie le socle suivi des effets optionnels activés, toujours dans le même ordre ; c'est la liste qu'utilise `tick` par défaut. Sans option, c'est exactement la liste du socle : le comportement de base ne change pas.
 
-| Effet | Principe |
-| --- | --- |
-| Pas d'hélice | Poussée latérale à l'arrière, surtout en marche arrière, sens selon la rotation de l'hélice |
-| Bi-safran | Safrans hors du flux d'hélice (`washSpeed` nulle) : effet de barre et tenue au dérapage seulement avec de l'erre |
-| Fardage de l'étrave | Point d'application du vent avancé : le vent fait abattre l'avant |
+| Effet | Principe | Statut |
+| --- | --- | --- |
+| Pas d'hélice (`propWalk`) | Poussée latérale à l'hélice (`xProp`) quand le moteur tourne. Hélice à droite (`options.propWalk = 'droite'`), l'arrière part vers bâbord en marche arrière (`propWalkRev`) ; en marche avant, effet plus faible et de sens contraire (`propWalkFwd`). Hélice à gauche, tout s'inverse. La poussée est divisée par 1 + (u / `propWalkSpeed`)² : maximale bateau arrêté, elle faiblit avec l'erre, si bien que la barre reprend le dessus | Livré |
+| Bi-safran | Safrans hors du flux d'hélice (`washSpeed` nulle) : effet de barre et tenue au dérapage seulement avec de l'erre | Envisagé |
+| Fardage de l'étrave | Point d'application du vent avancé : le vent fait abattre l'avant | Envisagé |
 
 ### Paramètres
 
@@ -85,6 +85,8 @@ Les valeurs par défaut ont été réglées pour que pivots et translations soie
 | Giration barre à fond, marche avant | Diamètre de 18 m (1,8 longueur), pivot 2,4 m en avant du centre | Demi-tour depuis l'arrêt avec 18 m de décalage latéral, en 18 s ; dérive de 15° en giration |
 | Giration barre à fond, marche arrière | Diamètre de 19 m (1,9 longueur), pivot 1,2 m en arrière du centre | Demi-tour depuis l'arrêt avec 21 m de décalage latéral, en 26 s |
 | Dérive sous moteur, vent soutenu par le travers | 4° en marche avant, 8° en marche arrière | À l'arrêt, le bateau dérive à 0,7 nœud comme sans quille portante |
+| Pas d'hélice en marche arrière (`propWalkRev`) | 800 N à l'hélice, bateau arrêté ; moitié moins à 0,8 m/s d'erre (`propWalkSpeed`) | Option activée, depuis l'arrêt, barre au centre : environ 11° de cap en 5 s et 17° en 8 s, le temps de reculer d'une longueur. Barre à fond dans l'autre sens dès le départ, l'arrière part d'abord de côté, puis la barre reprend le dessus vers 5 s |
+| Pas d'hélice en marche avant (`propWalkFwd`) | 120 N à l'hélice, de sens contraire | Environ 1° de cap en 5 s, barre au centre : à peine visible |
 
 Hypothèses : pour le vent, surface exposée par le travers de 15 à 18 m² (coque et gréement) et coefficient de traînée proche de 1 ; les vitesses limites et les dérives découlent des résistances du modèle (`dragXq`, `dragXl`, `dragYq`, `dragYl`). La giration découle du safran (`rudderFlow`, `rudderWash`, `rudderGrip`), de la quille (`keelLift`, `keelShift`) et de la répartition de la résistance latérale (`dragYCenter`), réglés sur les repères de la littérature pour un voilier de 10 m à quille aileron : diamètre d'environ deux longueurs barre à fond, presque aussi manœuvrant en arrière qu'en avant, pivot vers le tiers avant en marche avant et vers l'arrière en marche arrière.
 
@@ -137,6 +139,7 @@ Chaque situation du catalogue est un fichier JSON lisible à la main, dans `src/
 - `file` est facultatif : `true` pour une aussière choquée dès la mise en mouvement ; absent, elle est bloquée. Le validateur ne garde que `true`.
 - `plafondAussieres` est facultatif : nombre maximal d'aussières de la situation, entier de 6 à 12, 6 par défaut, jamais inférieur au nombre d'aussières déclarées.
 - `voisins` est facultatif, chaque côté aussi ; un objet vide ne déclare aucun voisin. Le long du quai : `{ "avant": écart, "arriere": écart }`. L'écart, en mètres de 0,5 à 20, sépare l'étrave (ou le tableau arrière) du bateau au départ de l'extrémité du voisin. Le voisin a la même coque, le même cap et le même écart au quai que le bateau (`xVoisin` dans `src/situations/quai.ts`). En perpendiculaire : `{ "catway": distance, "large": distance }`. Le voisin côté catway est amarré de l'autre flanc du catway du bateau, le voisin côté large contre le second catway, chacun au même écart de son catway que le bateau (`distanceQuai`) et toujours étrave au quai ; la distance, de 0,5 à 5 m, sépare son étrave du bord du quai (`poseVoisin`). Un voisin côté large est refusé si le bateau, trop écarté de son catway, laisse moins de 0,5 m entre les coques (`ecartVoisinLarge` : 0,6 m pour l'écart de 0,3 m du catalogue).
+- `options` est facultatif : effets avancés de la situation. `{ "pasHelice": "droite" }` ou `"gauche"` active le pas d'hélice (#10) ; absent, pas de pas d'hélice. Une option inconnue est refusée. Les situations du catalogue n'en déclarent pas.
 - `vent.direction`, le long du quai, vaut `quai`, `large`, `avant`, `arriere` ou une combinaison (`quai-avant`, `large-arriere`…) ; `avant` et `arriere` se rapportent au cap du bateau au départ. En perpendiculaire, elle vaut `catway`, `large` (côté opposé au catway), `quai`, `chenal` ou une combinaison (`catway-quai`, `large-chenal`…). `vent.force` vaut `aucun`, `faible` ou `soutenu`.
 - `format` permet de faire évoluer le schéma en gardant la lecture des anciennes situations.
 
@@ -152,9 +155,9 @@ Chaque situation du catalogue est un fichier JSON lisible à la main, dans `src/
 }
 ```
 
-Évolutions prévues : `quai` accueillera `longueurCatway` (#29) ; les effets avancés s'ajouteront sous `options`.
+Évolutions prévues : `quai` accueillera `longueurCatway` (#29) ; les autres effets avancés (bi-safran #11, fardage #12) s'ajouteront sous `options`.
 
-Une fonction de validation (`src/situations/schema.ts`) accompagne le format ; une situation invalide est refusée au chargement avec un message lisible. Les nouvelles règles (bitte sur la rangée, doublons, plafond, nom facultatif, voisins, catway, voisins sur catway) restent compatibles avec le format 1 : seul le catalogue existant est recalé sur la rangée de bittes.
+Une fonction de validation (`src/situations/schema.ts`) accompagne le format ; une situation invalide est refusée au chargement avec un message lisible. Les nouvelles règles (bitte sur la rangée, doublons, plafond, nom facultatif, voisins, catway, voisins sur catway, options) restent compatibles avec le format 1 : seul le catalogue existant est recalé sur la rangée de bittes.
 
 La géométrie du port est regroupée dans `src/situations/quai.ts` : sens de l'étrave le long du support (`bowSign`), position monde d'une bitte (`pointBitte`), axes des catways (`axesCatways`), place des voisins (`poseVoisin`, `ecartVoisinLarge`), rangée du quai (`bittesQuai`), bittes proposées (`bittesDuPort`) et bittes de l'autre catway (`bittesAutresCatways`), bitte touchée dans l'éditeur (`bitteDepuisPoint`), et position d'une bitte dans le repère du bateau tourné vers le support (`bitteRepereBateau`), qui sert au nom déduit. Le catway du bateau a son axe en x = 0 ; le bateau est placé d'un côté ou de l'autre selon le bord au catway et le bout au quai, et le second catway est de son côté large, à 8 m de bord à bord (`ECART_CATWAYS`).
 
@@ -164,6 +167,7 @@ L'éditeur produit des situations au même format que le catalogue. Les opérati
 
 - `ajouterAussiere(situation, taquet, bitte, sur)`, refusée avec un message lisible en cas de doublon ou de plafond atteint ;
 - `supprimerAussiere`, `basculerMou` (tendue ou 0,5 m de mou), `basculerFile` (bloquée ou choquée au départ), `renommerAussiere`, `reglerPlafond` ;
+- `reglerPasHelice(situation, sens)` : `droite`, `gauche` ou `null` (aucun) ; sans option, le champ `options` disparaît de la situation ;
 - `nomDeduit(situation, aussiere)` : traversier si l'aussière fait moins de 20° avec la perpendiculaire au bateau, sinon pointe ou garde selon que la bitte est en dehors ou en dedans du taquet le long du bateau, avant ou arrière selon le taquet. Le calcul se fait en repère bateau, ce qui le rend indépendant du bord au quai ; en perpendiculaire, il s'applique tel quel aux bittes du catway comme à celles du quai. `nomsAffiches(situation)` garde les noms choisis ; il départage les noms déduits identiques par leur bord (`bordAussiere` : celui du taquet) quand chacun est sur un bord différent, et sinon les numérote ; `buildState` l'utilise pour nommer les aussières de la simulation ;
 - `taquetsProposes(situation)` : les taquets offerts à l'éditeur et leur position, selon le bord au quai ;
 - `deplacerBateau(situation, origine, x)` : place le bateau en `x` le long du support, arrondi au pas de 0,5 m (`PAS_DEPLACEMENT`) et borné à 4 m (`DEPLACEMENT_MAX`) autour de la position de la situation d'origine, à 0,5 m au moins de chaque voisin et, en perpendiculaire, du quai (`bornesDeplacement`, qui sert aussi aux boutons ◀ ▶ ou ▲ ▼). Les aussières tournées sur le quai en perpendiculaire gardent leur `bitte`, l'axe du bateau ne bougeant pas le long du quai. Les aussières gardent leur bitte dans le repère monde : leur `bitte` relative est recalculée, et la longueur et le nom déduit suivent à la construction de l'état. Les voisins restent eux aussi en place : leur écart est recalculé. La fonction renvoie la même situation quand la position ne change pas, ce qui évite une session inutile pendant un glisser.
@@ -187,6 +191,7 @@ La scène est dessinée en Canvas 2D par un module impératif (`src/render`) ; l
 - **Couleurs** : tirées des variables CSS du thème, clair et sombre.
 - **Disposition** : scène et commandes côte à côte sur PC et tablette en paysage ; scène en haut et commandes dessous sur téléphone, avec les commandes de manœuvre (moteur, barre, largage) accessibles au pouce sans défilement.
 - **Choix de la situation** : deux boutons « Le long du quai » et « Sur catway », puis un menu limité aux situations de ce type (`quai.type`), rangées en groupes (`<optgroup>`, dont les intertitres s'affichent aussi dans les sélecteurs natifs des téléphones). Les groupes sont déclarés dans `src/situations/catalogue.ts` (`GROUPES` : famille, intitulé, situations, dans l'ordre d'affichage) ; `CATALOGUE` en est la mise à plat. Un groupe relève de la présentation du menu : le format JSON des situations n'en sait rien. Une situation rangée dans le groupe d'une autre famille est refusée au chargement.
+- **Options avancées** : sous le plafond d'aussières et les voisins, un menu « Pas d'hélice » (aucun, hélice à droite, hélice à gauche). Rien n'est dessiné de plus dans la scène.
 - **Liste des aussières** : chaque ligne montre le nom et l'état (tendue, molle, file, larguée), puis sur une seconde rangée les boutons « Choquer », à bascule, et « Larguer » (« Supprimer » en préparation).
 - **Clavier** sur PC : raccourcis pour la lecture, le moteur, la barre, le largage (chiffre), le choquer (Maj + chiffre), le pas à pas et, en préparation, le déplacement du bateau (Maj + flèches gauche et droite le long du quai, haut et bas le long du catway), rappelés en bas du panneau de commandes. Les chiffres sont repérés par la touche et non par le caractère, pour fonctionner pareil en AZERTY et en QWERTY.
 - **Accessibilité** : commandes utilisables au clavier, contrastes suffisants dans les deux thèmes, état des aussières indiqué par la couleur et par un libellé.
@@ -297,6 +302,12 @@ Les tests ne dépendent pas du catalogue. Le catalogue est une aide aux élèves
 | Demi-tour | Depuis l'arrêt, barre à fond en marche avant : moins de 20 m de décalage latéral |
 | Barre et giration | Plus de barre, cercle plus serré |
 | Dérive à l'arrêt | La répartition de la résistance latérale ne change pas la dérive au vent du bateau arrêté |
+| Pas d'hélice, recul depuis l'arrêt | Sans amarre, marche arrière, barre au centre : hélice à droite, l'arrière part vers bâbord ; hélice à gauche, vers tribord, symétrique exact ; sans option, le bateau recule droit |
+| Pas d'hélice en marche avant | Effet de sens contraire à la marche arrière, et plus faible |
+| Pas d'hélice et erre | La poussée latérale faiblit quand l'erre augmente ; lancé en marche arrière, barre à fond, le bateau tourne du côté de la barre malgré le pas d'hélice |
+| Pas d'hélice sans option | Situation sans `options` : même manœuvre, image par image, qu'avec la liste du socle |
+| Format des options | `pasHelice` vaut `droite` ou `gauche` ; option ou valeur inconnue refusée ; réglage dans l'éditeur, retrait de l'option |
+| Relecture du pas d'hélice | Une manœuvre avec pas d'hélice se rejoue à l'identique après un retour arrière |
 | Cadrage | Zoom borné entre ×0,5 et ×4 ; à ×1, aucun décalage ; zoomée, la vue reste dans le cadrage par défaut, dézoomée, elle le contient ; le point sous le pointeur ou entre les doigts reste en place quand on zoome ; un pincement sans écarter les doigts déplace seulement la vue |
 
 S'y ajoutent des tests de stabilité numérique (aucune valeur non finie, pas d'oscillation résiduelle) et des tests du format des situations. Le reste de l'interface se vérifie à la main sur PC, Android et iOS avant chaque version.
@@ -322,6 +333,7 @@ Chaque choix structurant est noté ici avec son statut ; une décision ne change
 | Amarrage perpendiculaire | Catway de longueur fixe (2/3 du bateau), étrave ou arrière au quai selon la situation ; second catway côté large, à 8 m de bord à bord, encadrant deux places ; deux bittes par catway, au milieu et près du bout ; bittes du quai alignées sur les bords des catways puis tous les 2 m ; contact comme le quai ; nommage inchangé ; vent en repères du port (catway, large, quai, chenal) ; type d'amarrage fixé par le catalogue ; bateau déplaçable le long du catway jusqu'à 0,5 m du quai ; pas de longueur réglable (#29) | Décidé |
 | Menu du catalogue | Deux familles, le long du quai et sur catway, choisies par deux boutons ; menu filtré par `quai.type`, en groupes à intertitre déclarés dans `catalogue.ts` ; titres sans le type d'amarrage | Décidé |
 | Zoom de la scène | Pincement à deux doigts (zoom et déplacement) ; sur PC, molette pour zoomer et glisser à la souris pour déplacer la vue ; de ×0,5 à ×4 ; zoomée, la vue reste dans le cadrage par défaut, dézoomée, elle le contient ; suivi du bateau conservé ; seules les distances changent ; bouton « Recadrer », et recadrage au changement de situation ; réglage d'affichage sans effet sur la simulation ; zoom au clavier écarté | Décidé |
+| Pas d'hélice | Effet optionnel (`propWalk`) déclaré sous `options.pasHelice` (droite ou gauche), réglé par un seul menu dans les options avancées ; net en marche arrière, léger et inverse en marche avant, maximal à l'arrêt et faiblissant avec l'erre, contrable à la barre une fois lancé ; rien d'ajouté à la scène ; aucune situation du catalogue ne l'active | Décidé |
 | Taquets proposés | Quatre taquets partout : étrave et arrière, sur chaque bord ; deux aussières de même nom départagées par le bord, sinon par un numéro | Décidé |
 | Hébergement | Dépôt public et GitHub Pages | Décidé |
 | Déploiement | GitHub Actions : tests sur chaque proposition, déploiement à chaque fusion ; un déploiement en cours n'est jamais annulé | Décidé |

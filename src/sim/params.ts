@@ -36,6 +36,9 @@ export const DEFAULT_PARAMS: Readonly<Params> = Object.freeze({
   contactC: 30000,
   contactMu: 0.35,
   contactCt: 40000,
+  propWalkRev: 800, // pas d'hélice en marche arrière, bateau arrêté (N, à l'hélice)
+  propWalkFwd: 120, // pas d'hélice en marche avant, dans l'autre sens (N)
+  propWalkSpeed: 0.8, // erre (m/s) à laquelle le pas d'hélice est divisé par deux
 });
 
 /** Pas d'intégration (s) et nombre de sous-pas par image de 1/60 s. */

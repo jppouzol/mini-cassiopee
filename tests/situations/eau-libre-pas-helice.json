@@ -1,0 +1,11 @@
+{
+  "format": 1,
+  "id": "eau-libre-pas-helice",
+  "titre": "Bateau libre, hélice à droite",
+  "description": "Aucune amarre, sans vent, loin du quai, avec le pas d'hélice d'une hélice à droite : pour voir l'arrière partir de côté.",
+  "quai": { "type": "long-side" },
+  "bateau": { "x": 0, "distanceQuai": 40, "bordAuQuai": "babord" },
+  "aussieres": [],
+  "vent": { "direction": "quai", "force": "aucun" },
+  "options": { "pasHelice": "droite" }
+}

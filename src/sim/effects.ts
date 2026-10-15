@@ -1,9 +1,10 @@
-import type { Body, Catway, Effect, Forces, Params, Vec } from './types.ts';
+import type { Body, Catway, Effect, Forces, Params, SimState, Vec } from './types.ts';
 import { CONTACT_POINTS, HALF_LENGTH, SLICES, hullPenetration, pointVelocity, rotate, toLocal, toWorld } from './geometry.ts';
 
 // Chaque effet est une fonction pure de l'état et des paramètres, qui ajoute
-// une force et un moment. Le socle en active une liste fixe ; les enrichissements
-// à venir ajouteront des effets optionnels (pas d'hélice, bi-safran, fardage…).
+// une force et un moment. Le socle en active une liste fixe ; les effets
+// optionnels (pas d'hélice, puis bi-safran, fardage…) s'y ajoutent selon les
+// options de l'état (`activeEffects`).
 
 /** Ajoute une force exprimée en repère bateau, appliquée au point (px, py) du bateau. */
 function addBody(f: Forces, b: Body, fbx: number, fby: number, px: number, py: number): void {
@@ -243,7 +244,34 @@ export const catwayContact: Effect = (s, p, f) => {
   }
 };
 
+/**
+ * Pas d'hélice (effet optionnel) : poussée latérale à l'hélice, quand le moteur
+ * tourne. Hélice à droite, l'arrière part vers bâbord en marche arrière ; en
+ * marche avant, l'effet est plus faible et de sens contraire. Hélice à gauche,
+ * tout s'inverse. Il est le plus fort bateau arrêté et faiblit quand l'erre
+ * augmente (de moitié à `propWalkSpeed`), l'eau qui passe régularisant le flux
+ * de l'hélice : avec de l'erre, la barre reprend le dessus.
+ */
+export const propWalk: Effect = (s, p, f) => {
+  if (s.engine === 0 || !s.options.propWalk) return;
+  const [u] = bodyVelocity(s.body);
+  const hand = s.options.propWalk === 'droite' ? 1 : -1;
+  const side = s.engine < 0 ? hand * p.propWalkRev : -hand * p.propWalkFwd;
+  const r = u / p.propWalkSpeed;
+  addBody(f, s.body, 0, side / (1 + r * r), p.xProp, 0);
+};
+
 /** Effets du socle, dans un ordre fixe (gage de déterminisme). */
 export const BASE_EFFECTS: readonly Effect[] = [
   engine, rudder, hydrodynamics, wind, mooringLines, quayContact, catwayContact, neighborContact,
 ];
+
+const WITH_PROP_WALK: readonly Effect[] = [...BASE_EFFECTS, propWalk];
+
+/**
+ * Effets actifs d'après les options de l'état : le socle, puis les effets
+ * optionnels activés, toujours dans le même ordre.
+ */
+export function activeEffects(s: SimState): readonly Effect[] {
+  return s.options.propWalk ? WITH_PROP_WALK : BASE_EFFECTS;
+}
