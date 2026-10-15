@@ -10,7 +10,7 @@ import {
 } from './quai.ts';
 import {
   ECART_VOISIN_MIN, PLAFOND_DEFAUT, PLAFOND_MAX, cotesVoisin, plafond,
-  type Cleat, type CoteVoisin, type Situation, type SituationLine,
+  type Cleat, type CoteVoisin, type SensHelice, type Situation, type SituationLine,
 } from './schema.ts';
 
 /**
@@ -148,6 +148,15 @@ export function reglerPlafond(sit: Situation, valeur: number): Situation {
     return reste;
   }
   return { ...sit, plafondAussieres: p };
+}
+
+/**
+ * Règle le pas d'hélice : hélice à droite, à gauche, ou aucun (`null`). Sans option
+ * active, le champ `options` disparaît : la situation redevient celle du socle.
+ */
+export function reglerPasHelice(sit: Situation, sens: SensHelice | null): Situation {
+  const { options: _anciennes, ...reste } = sit;
+  return sens === null ? reste : { ...reste, options: { pasHelice: sens } };
 }
 
 /** Pas du déplacement du bateau le long du quai ou du catway (m). */

@@ -57,6 +57,13 @@ const NOM_COTE: Record<CoteVoisin, string> = {
   avant: 'avant', arriere: 'arrière', catway: 'côté catway', large: 'côté large',
 };
 
+/**
+ * Sens de rotation de l'hélice, pour le pas d'hélice : à droite (sens des aiguilles
+ * d'une montre vue de l'arrière, en marche avant) ou à gauche.
+ */
+export const SENS_HELICE = ['droite', 'gauche'] as const;
+export type SensHelice = (typeof SENS_HELICE)[number];
+
 /** Plafond d'aussières par défaut, et bornes de son réglage. */
 export const PLAFOND_DEFAUT = 6;
 export const PLAFOND_MAX = 12;
@@ -117,6 +124,11 @@ export interface Situation {
    * distance (m) entre l'étrave du voisin et le bord du quai.
    */
   voisins?: Partial<Record<CoteVoisin, number>>;
+  /** effets avancés ; absents, le comportement de base est inchangé */
+  options?: {
+    /** pas d'hélice, selon le sens de rotation de l'hélice ; absent, pas de pas d'hélice */
+    pasHelice?: SensHelice;
+  };
 }
 
 /** Plafond d'aussières effectif d'une situation. */
@@ -255,6 +267,13 @@ export function parseSituation(input: unknown): Situation {
       voisins[cote] = e;
     }
     if (Object.keys(voisins).length > 0) sit.voisins = voisins;
+  }
+
+  if (input.options !== undefined) {
+    const o = input.options;
+    if (!isObj(o)) throw new SituationError(`${id} : « options » doit être un objet ({ "pasHelice": "droite" }).`);
+    for (const k of Object.keys(o)) oneOf(k, ['pasHelice'] as const, `${id} : chaque option`);
+    if (o.pasHelice !== undefined) sit.options = { pasHelice: oneOf(o.pasHelice, SENS_HELICE, `${id} : options.pasHelice`) };
   }
   return sit;
 }

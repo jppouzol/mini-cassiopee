@@ -71,6 +71,18 @@ export interface Catway {
   length: number;
 }
 
+/**
+ * Sens de rotation de l'hélice, vue de l'arrière en marche avant : à droite
+ * (sens des aiguilles d'une montre) ou à gauche.
+ */
+export type PropHand = 'droite' | 'gauche';
+
+/** Effets avancés activés par la situation ; absents, le comportement de base est inchangé. */
+export interface SimOptions {
+  /** pas d'hélice et sens de rotation ; absent, pas de pas d'hélice */
+  propWalk?: PropHand;
+}
+
 export interface SimState {
   /** numéro d'image (60 images par seconde) */
   frame: number;
@@ -88,6 +100,8 @@ export interface SimState {
   neighbors: Neighbor[];
   /** position du point de pivot sur l'axe (m, repère bateau), null si le bateau ne tourne pas */
   pivot: number | null;
+  /** effets avancés activés, fixés pour toute la manœuvre */
+  options: SimOptions;
 }
 
 export interface Params {
@@ -121,6 +135,9 @@ export interface Params {
   contactC: number;
   contactMu: number;
   contactCt: number;
+  propWalkRev: number;
+  propWalkFwd: number;
+  propWalkSpeed: number;
 }
 
 /** Accumulateur de forces exprimées dans le repère monde, moment autour du centre. */

@@ -56,5 +56,8 @@ export function buildState(sit: Situation, windOverride?: Situation['vent']): Si
   }
   // Catway du bateau et second catway, côté large ; aucun le long du quai.
   const catways = axesCatways(sit).map((x) => ({ x, halfWidth: DEMI_LARGEUR_CATWAY, length: LONGUEUR_CATWAY }));
-  return { frame: 0, body, lines, engine: 0, rudder: 0, wind, contacts: [], catways, neighbors, pivot: null };
+  // Effets avancés : seuls ceux que la situation active.
+  const options: SimState['options'] = {};
+  if (sit.options?.pasHelice) options.propWalk = sit.options.pasHelice;
+  return { frame: 0, body, lines, engine: 0, rudder: 0, wind, contacts: [], catways, neighbors, pivot: null, options };
 }
