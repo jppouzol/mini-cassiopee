@@ -33,6 +33,12 @@ body { margin: 0; background: var(--bg); color: var(--ink); font-family: var(--f
 .stage { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 10px; }
 .scene { position: relative; flex: 1; min-height: 260px; border: 1px solid var(--rule); border-radius: 10px; overflow: hidden; background: var(--water); }
 canvas { display: block; width: 100%; height: 100%; touch-action: none; }
+/* Bouton « Recadrer », visible quand l'élève a zoomé : à droite, au-dessus du vent, à portée du pouce. */
+.recadrer {
+  position: absolute; right: 10px; bottom: 88px; min-height: 36px;
+  font-family: var(--f-label); font-weight: 600; font-size: 13px; letter-spacing: .04em; text-transform: uppercase;
+  box-shadow: 0 1px 4px rgb(0 0 0 / .15);
+}
 .badge {
   position: absolute; left: 12px; top: 10px; font-family: var(--f-label); font-weight: 600; font-size: 13px;
   letter-spacing: .04em; text-transform: uppercase; background: var(--panel); color: var(--ink);
@@ -107,8 +113,9 @@ kbd { font-family: var(--f-label); font-weight: 600; border: 1px solid var(--rul
 @media (prefers-reduced-motion: reduce) { * { scroll-behavior: auto; } }
 
 /* Édition des aussières en préparation */
+canvas.zoomed { cursor: grab; }
 canvas.editing { cursor: pointer; }
-canvas.editing.dragging { cursor: grabbing; }
+canvas.dragging, canvas.editing.dragging { cursor: grabbing; }
 .count { font-family: var(--f-label); font-weight: 600; font-size: 13px; color: var(--muted); font-variant-numeric: tabular-nums; }
 .line .name {
   background: none; border: 0; padding: 6px 0; text-align: left; cursor: pointer; min-height: 32px;

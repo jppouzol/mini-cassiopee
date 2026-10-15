@@ -330,7 +330,7 @@ export function App() {
       <div className="stage">
         <div className="scene">
           <Scene state={s} ghost={ghost ? session.initialState.body : null} debug={debug} bollards={bollards} otherBollards={otherBollards}
-            edition={edition} onPick={onPick} onDragStart={onDragStart} onDrag={onDrag} />
+            edition={edition} onPick={onPick} onDragStart={onDragStart} onDrag={onDrag} cadrageCle={origine.id} />
           <div className="badge">{status}</div>
         </div>
         <div className="player">

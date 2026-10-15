@@ -138,6 +138,18 @@ L'écran de simulation est une vue de dessus 2D, la plus épurée possible, dans
 
 Le quai reste en haut de l'écran ; en perpendiculaire, le catway et le bateau descendent verticalement depuis le quai.
 
+### Zoom
+
+Le bateau paraît petit sur un téléphone, et le chenal y est vite hors de l'écran : l'élève peut zoomer sur la scène pour regarder un taquet, une aussière ou un voisin de près, ou dézoomer pour voir plus large.
+
+- **Sur téléphone et tablette** : le pincement à deux doigts zoome et déplace la vue en même temps. Un doigt garde ses rôles (toucher un taquet ou une bitte, glisser le bateau en préparation) ; poser un second doigt annule le geste à un doigt en cours, sans sélection ni déplacement du bateau.
+- **Sur PC** : la molette, ou le pincement du pavé tactile, zoome autour du pointeur. Un glisser à la souris déplace la vue, comme deux doigts sur téléphone ; en préparation, un glisser commencé sur le bateau le déplace toujours, et un clic garde son rôle.
+- **Bornes** : de ×0,5 à ×4 autour du cadrage par défaut (×1). Dézoomer sert surtout sur téléphone, pour voir le chenal devant un catway pendant la manœuvre. Zoomée, la vue reste à l'intérieur du cadrage par défaut ; dézoomée, elle le contient : on ne s'éloigne jamais du bateau.
+- **Suivi** : la vue reste accrochée au bateau, décalée de ce que l'élève a déplacé ; en manœuvre, le bateau ne sort pas de l'écran pour autant.
+- **Rendu** : seules les distances changent. Traits, textes, bittes et cibles tactiles gardent leur taille à l'écran ; l'échelle change de longueur (10 m, 5 m, 2 m ou 1 m) pour garder sa taille dans son coin.
+- **Recadrer** : un bouton sur la scène, visible seulement quand le cadrage a changé, revient au cadrage par défaut. Changer de situation ou de famille recadre aussi ; « Situation d'origine » et « ⏮ » gardent le zoom choisi.
+- Le zoom est un réglage d'affichage : il ne change rien à la simulation ni à la manœuvre enregistrée.
+
 Rien d'autre n'est affiché par défaut. Toute aide visuelle supplémentaire (trajectoire, flèches de forces, position fantôme de départ) devra être optionnelle.
 
 ## Préparation des situations
@@ -224,7 +236,7 @@ Aucune sauvegarde ni partage de situation n'est prévu à ce stade : la situatio
 
 ## Évolutions
 
-Le socle est livré : amarrage le long du quai, aussières fixes, moteur avant, neutre et arrière, largage individuel, barre, vent faible ou soutenu, tension des aussières et point de pivot, pause, pas à pas et retour arrière, catalogue et éditeur. Depuis, l'élève peut aussi choquer une aussière, placer des bateaux voisins devant et derrière, et manœuvrer un bateau amarré perpendiculaire au quai, le long d'un catway, avec ses voisins de part et d'autre.
+Le socle est livré : amarrage le long du quai, aussières fixes, moteur avant, neutre et arrière, largage individuel, barre, vent faible ou soutenu, tension des aussières et point de pivot, pause, pas à pas et retour arrière, catalogue et éditeur. Depuis, l'élève peut aussi choquer une aussière, placer des bateaux voisins devant et derrière, manœuvrer un bateau amarré perpendiculaire au quai, le long d'un catway, avec ses voisins de part et d'autre, et zoomer sur la scène.
 
 Le projet s'enrichit ensuite progressivement, une fonctionnalité à la fois, sans paliers ni jalons : l'ordre suit les envies et les retours des élèves. Le backlog est tenu dans les issues GitHub du dépôt ; chaque issue devient une branche et une demande de fusion, qui met à jour ce document si elle change le périmètre.
 

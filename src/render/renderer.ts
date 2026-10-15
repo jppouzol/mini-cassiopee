@@ -1,5 +1,6 @@
 import type { Body, SimState, Vec } from '../sim/types.ts';
 import { HULL, toWorld } from '../sim/geometry.ts';
+import { CADRAGE_DEFAUT, bornerCadrage, echelleDefaut, longueurEchelle, type Cadrage } from './cadrage.ts';
 
 export interface Palette {
   water: string; grid: string; quay: string; quayEdge: string; bollard: string;
@@ -22,6 +23,8 @@ export interface View {
   otherBollards: Vec[];
   /** édition des aussières en préparation, ou null */
   edition: EditionView | null;
+  /** zoom choisi par l'élève, relatif au cadrage par défaut */
+  cadrage: Cadrage;
 }
 
 /** Ce que le rendu montre pendant l'édition des aussières. */
@@ -36,6 +39,8 @@ export interface EditionView {
 export interface Camera {
   /** pixels par mètre */
   sc: number;
+  /** pixels par mètre du cadrage par défaut : tailles à l'écran qui ne grossissent pas avec le zoom */
+  sc0: number;
   X: (x: number) => number;
   Y: (y: number) => number;
   /** point écran vers point monde */
@@ -62,20 +67,27 @@ export function readPalette(el: Element): Palette {
   };
 }
 
-/** Caméra : quai en haut, on suit le bateau quand il s'éloigne. */
-export function camera(s: Readonly<SimState>, W: number, H: number): Camera & { cx: number; cy: number; halfW: number; halfH: number } {
+/**
+ * Caméra : quai en haut, on suit le bateau quand il s'éloigne. Le cadrage de l'élève (zoom et décalage)
+ * s'ajoute au cadrage par défaut, qui continue de suivre le bateau.
+ */
+export function camera(s: Readonly<SimState>, W: number, H: number, cadrage: Cadrage = CADRAGE_DEFAUT): Camera & { cx: number; cy: number; halfW: number; halfH: number } {
   const b = s.body;
-  const narrow = W < 520;
-  const sc = Math.max(6, Math.min(W / (narrow ? 21 : 30), H / 17)); // pixels par mètre
-  const halfW = W / 2 / sc, halfH = H / 2 / sc;
+  const sc0 = echelleDefaut(W, H);
+  const halfW0 = W / 2 / sc0, halfH0 = H / 2 / sc0;
   let cx = 0;
-  let cy = 3.2 - halfH;
-  const mx = halfW * 0.55;
+  let cy = 3.2 - halfH0;
+  const mx = halfW0 * 0.55;
   if (b.x - cx > mx) cx = b.x - mx; else if (cx - b.x > mx) cx = b.x + mx;
-  const lowY = cy - halfH * 0.45;
+  const lowY = cy - halfH0 * 0.45;
   if (b.y < lowY) cy += b.y - lowY;
+  const z = bornerCadrage(cadrage, W, H);
+  const sc = sc0 * z.k;
+  cx += z.ox;
+  cy += z.oy;
+  const halfW = W / 2 / sc, halfH = H / 2 / sc;
   return {
-    sc, cx, cy, halfW, halfH,
+    sc, sc0, cx, cy, halfW, halfH,
     X: (x: number) => W / 2 + (x - cx) * sc,
     Y: (y: number) => H / 2 - (y - cy) * sc,
     toWorld: (px: number, py: number): Vec => [cx + (px - W / 2) / sc, cy - (py - H / 2) / sc],
@@ -87,7 +99,7 @@ export function render(ctx: CanvasRenderingContext2D, s: Readonly<SimState>, v: 
   const { width: W, height: H, palette: C } = v;
   if (W <= 0 || H <= 0) return;
   const b = s.body;
-  const { sc, cx, cy, halfW, halfH, X, Y } = camera(s, W, H);
+  const { sc, sc0, cx, cy, halfW, halfH, X, Y } = camera(s, W, H, v.cadrage);
 
   ctx.setTransform(v.dpr, 0, 0, v.dpr, 0, 0);
   ctx.fillStyle = C.water;
@@ -111,7 +123,7 @@ export function render(ctx: CanvasRenderingContext2D, s: Readonly<SimState>, v: 
   ctx.font = `600 12px ${v.labelFont}`;
   ctx.textAlign = 'right';
   // Libellé au-dessus de la rangée de bittes, pour ne pas la chevaucher.
-  const yRow = v.bollards.length ? Y(v.bollards[0][1]) - Math.max(3, 0.22 * sc) - 6 : Y(0) - 8;
+  const yRow = v.bollards.length ? Y(v.bollards[0][1]) - Math.max(3, 0.22 * sc0) - 6 : Y(0) - 8;
   ctx.fillText('QUAI', W - 12, Math.max(14, yRow));
 
   // Catways : pontons accrochés au quai, de la couleur du quai, bordés sur leurs flancs et leur bout.
@@ -142,7 +154,8 @@ export function render(ctx: CanvasRenderingContext2D, s: Readonly<SimState>, v: 
   // Pendant l'édition, un taquet sélectionné met en évidence les bittes où l'on peut tourner l'aussière.
   const used = new Set(s.lines.filter((l) => l.attached).map((l) => l.bollard.join(',')));
   const choosing = v.edition !== null && v.edition.selected !== null;
-  const rBollard = Math.max(3, 0.22 * sc);
+  // Rayon tiré de l'échelle par défaut : les bittes gardent leur taille à l'écran quand on zoome.
+  const rBollard = Math.max(3, 0.22 * sc0);
   ctx.fillStyle = C.bollard;
   ctx.globalAlpha = 0.35;
   for (const p of v.otherBollards) {
@@ -345,16 +358,17 @@ export function render(ctx: CanvasRenderingContext2D, s: Readonly<SimState>, v: 
     ctx.fillText(`VENT ${s.wind.force.toUpperCase()}`, ox, oy + 34);
   }
 
-  // Échelle
+  // Échelle : raccourcie quand on zoome (5, 2 ou 1 m), pour tenir dans son coin.
+  const lEch = longueurEchelle(sc / sc0);
   const sx = 14, sy = H - 16;
   ctx.strokeStyle = C.ink;
   ctx.lineWidth = 2;
   ctx.beginPath();
-  ctx.moveTo(sx, sy - 5); ctx.lineTo(sx, sy); ctx.lineTo(sx + 5 * sc, sy); ctx.lineTo(sx + 5 * sc, sy - 5);
+  ctx.moveTo(sx, sy - 5); ctx.lineTo(sx, sy); ctx.lineTo(sx + lEch * sc, sy); ctx.lineTo(sx + lEch * sc, sy - 5);
   ctx.stroke();
   ctx.fillStyle = C.ink;
   ctx.textAlign = 'left';
-  ctx.fillText('5 m', sx + 5 * sc + 6, sy);
+  ctx.fillText(`${lEch} m`, sx + lEch * sc + 6, sy);
 
   if (v.debug) {
     const speed = Math.hypot(b.vx, b.vy);
