@@ -231,6 +231,15 @@ L'éditeur agit pendant la préparation, c'est-à-dire tant que la simulation es
 
 Aucune sauvegarde ni partage de situation n'est prévu à ce stade : la situation préparée n'est pas conservée d'une visite à l'autre. Le stockage local dans le navigateur est envisageable (par exemple pour retrouver la dernière situation).
 
+#### Pendant la manœuvre
+
+En manœuvre, l'élève a besoin du moteur, de la barre et des amarres, pas des réglages de départ, qu'il ne peut de toute façon plus changer : le panneau ne montre plus qu'eux, pour qu'ils soient le plus accessibles possible.
+
+- **Masqué** : dès qu'on quitte la préparation (lecture, pause en cours de manœuvre, ou pas à pas depuis le départ), le titre de l'application, la section « Situation » (famille, situation, position, bord, vent) et les options avancées disparaissent, ainsi que les textes d'aide (« Barre à roue… », « revenez au départ… »).
+- **Restent** : moteur, barre avec l'angle affiché, amarres avec leur état, puis l'affichage. Sur PC, le rappel des raccourcis clavier reste en bas du panneau.
+- **Retour au départ** : « ⏮ » fait tout réapparaître, comme en préparation. Changer de situation passe donc par le retour au départ.
+- Même comportement sur téléphone, tablette et PC.
+
 ## Exigences techniques et non fonctionnelles
 
 | Thème | Exigence |
@@ -248,7 +257,7 @@ Aucune sauvegarde ni partage de situation n'est prévu à ce stade : la situatio
 
 ## Évolutions
 
-Le socle est livré : amarrage le long du quai, aussières fixes, moteur avant, neutre et arrière, largage individuel, barre, vent faible ou soutenu, tension des aussières et point de pivot, pause, pas à pas et retour arrière, catalogue et éditeur. Depuis, l'élève peut aussi choquer une aussière, placer des bateaux voisins devant et derrière, manœuvrer un bateau amarré perpendiculaire au quai, le long d'un catway, avec ses voisins de part et d'autre, et zoomer sur la scène. Il peut aussi activer le pas d'hélice, à droite ou à gauche, et choisir le bord du bateau au quai ou au catway.
+Le socle est livré : amarrage le long du quai, aussières fixes, moteur avant, neutre et arrière, largage individuel, barre, vent faible ou soutenu, tension des aussières et point de pivot, pause, pas à pas et retour arrière, catalogue et éditeur. Depuis, l'élève peut aussi choquer une aussière, placer des bateaux voisins devant et derrière, manœuvrer un bateau amarré perpendiculaire au quai, le long d'un catway, avec ses voisins de part et d'autre, et zoomer sur la scène. Il peut aussi activer le pas d'hélice, à droite ou à gauche, et choisir le bord du bateau au quai ou au catway. En manœuvre, le panneau ne montre plus que les commandes : moteur, barre et amarres.
 
 Le projet s'enrichit ensuite progressivement, une fonctionnalité à la fois, sans paliers ni jalons : l'ordre suit les envies et les retours des élèves. Le backlog est tenu dans les issues GitHub du dépôt ; chaque issue devient une branche et une demande de fusion, qui met à jour ce document si elle change le périmètre.
 
