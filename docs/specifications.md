@@ -231,6 +231,16 @@ L'éditeur agit pendant la préparation, c'est-à-dire tant que la simulation es
 
 Aucune sauvegarde ni partage de situation n'est prévu à ce stade : la situation préparée n'est pas conservée d'une visite à l'autre. Le stockage local dans le navigateur est envisageable (par exemple pour retrouver la dernière situation).
 
+#### Réglages repliés pendant la manœuvre
+
+En manœuvre, l'élève a besoin du moteur, de la barre et des amarres, pas des réglages de départ, qu'il ne peut de toute façon plus changer.
+
+- **Repli** : dès qu'on quitte la préparation (lecture, ou pas à pas depuis le départ), la section « Situation » et les options avancées se replient derrière un résumé d'une ligne : titre de la situation, vent, options actives (voisins, pas d'hélice) et « modifiée » si la situation préparée diffère de l'origine. Le résumé rappelle que « ⏮ » permet de modifier la situation.
+- **Déplier** : un appui sur le résumé montre les réglages, grisés comme avant ; le choix de la famille et de la situation reste possible. Ils restent dépliés jusqu'au retour au départ, et se replient de nouveau à la mise en mouvement suivante. Rien n'est retenu d'une visite à l'autre.
+- **Retour au départ** : « ⏮ » rouvre tout le réglage, comme en préparation.
+- **Aides** : les rappels « revenez au départ » sous le vent et sous les amarres disparaissent, remplacés par celui du résumé.
+- Même comportement sur téléphone, tablette et PC.
+
 ## Exigences techniques et non fonctionnelles
 
 | Thème | Exigence |
@@ -248,7 +258,7 @@ Aucune sauvegarde ni partage de situation n'est prévu à ce stade : la situatio
 
 ## Évolutions
 
-Le socle est livré : amarrage le long du quai, aussières fixes, moteur avant, neutre et arrière, largage individuel, barre, vent faible ou soutenu, tension des aussières et point de pivot, pause, pas à pas et retour arrière, catalogue et éditeur. Depuis, l'élève peut aussi choquer une aussière, placer des bateaux voisins devant et derrière, manœuvrer un bateau amarré perpendiculaire au quai, le long d'un catway, avec ses voisins de part et d'autre, et zoomer sur la scène. Il peut aussi activer le pas d'hélice, à droite ou à gauche, et choisir le bord du bateau au quai ou au catway.
+Le socle est livré : amarrage le long du quai, aussières fixes, moteur avant, neutre et arrière, largage individuel, barre, vent faible ou soutenu, tension des aussières et point de pivot, pause, pas à pas et retour arrière, catalogue et éditeur. Depuis, l'élève peut aussi choquer une aussière, placer des bateaux voisins devant et derrière, manœuvrer un bateau amarré perpendiculaire au quai, le long d'un catway, avec ses voisins de part et d'autre, et zoomer sur la scène. Il peut aussi activer le pas d'hélice, à droite ou à gauche, et choisir le bord du bateau au quai ou au catway. En manœuvre, les réglages de départ se replient pour laisser la place aux commandes.
 
 Le projet s'enrichit ensuite progressivement, une fonctionnalité à la fois, sans paliers ni jalons : l'ordre suit les envies et les retours des élèves. Le backlog est tenu dans les issues GitHub du dépôt ; chaque issue devient une branche et une demande de fusion, qui met à jour ce document si elle change le périmètre.
 
