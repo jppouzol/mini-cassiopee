@@ -160,9 +160,16 @@ export function App() {
     return () => cancelAnimationFrame(raf);
   }, [playing, speed, session, refresh]);
 
+  // Réglages de départ dépliés pendant la manœuvre, à la demande de l'élève. Ils se replient
+  // de nouveau à chaque retour en préparation, pour la mise en mouvement suivante.
+  const [reglagesDeplies, setReglagesDeplies] = useState(false);
+
   // En quittant la préparation, on abandonne une sélection ou un renommage en cours.
   useEffect(() => {
-    if (preparing) return;
+    if (preparing) {
+      setReglagesDeplies(false);
+      return;
+    }
     setSelected(null);
     setRenaming(null);
     setNotice(null);
@@ -342,6 +349,65 @@ export function App() {
     ? (session.atEnd ? 'Simulation' : 'Relecture')
     : selected ? `Touchez ${bitteLabel}`
     : atStart ? 'Prêt · appuyez sur Lecture' : 'En pause';
+  // Résumé des réglages de départ, affiché à leur place quand ils sont repliés pendant la manœuvre.
+  const nbVoisins = Object.values(preparee.voisins ?? {}).filter((v) => v !== undefined).length;
+  const resume = [
+    origine.titre,
+    wind.force === 'aucun' ? 'Pas de vent' : `${WIND_LABELS[wind.direction]}, ${wind.force}`,
+    nbVoisins > 0 ? (nbVoisins > 1 ? `${nbVoisins}\u00a0voisins` : '1\u00a0voisin') : null,
+    PAS_HELICE.find((o) => o.value !== '' && o.value === preparee.options?.pasHelice)?.label ?? null,
+    modified ? 'modifiée' : null,
+  ].filter((x) => x !== null).join(' · ');
+
+  // Options avancées : à leur place en préparation, dans le repli des réglages de départ pendant la manœuvre.
+  const optionsAvancees = (
+    <details>
+      <summary>Options avancées</summary>
+      <div className="advanced">
+        <div className="row">
+          <span>Aussières au maximum</span>
+          <div className="stepper push-right" role="group" aria-label="Plafond d'aussières">
+            <button className="btn" disabled={!preparing || max <= Math.max(PLAFOND_DEFAUT, preparee.aussieres.length)}
+              aria-label="Diminuer le plafond" onClick={() => edit((sit) => reglerPlafond(sit, max - 1))}>−</button>
+            <output aria-live="polite">{max}</output>
+            <button className="btn" disabled={!preparing || max >= PLAFOND_MAX}
+              aria-label="Augmenter le plafond" onClick={() => edit((sit) => reglerPlafond(sit, max + 1))}>+</button>
+          </div>
+        </div>
+        <p className="hint">De {PLAFOND_DEFAUT} à {PLAFOND_MAX}, jamais moins que le nombre d’aussières en place. Se règle au départ.</p>
+        {cotesVoisin(preparee.quai.type).map((cote) => {
+          const ecart = ecartVoisin(preparee, origine, cote);
+          // Sur catway, un voisin est présent ou absent : sa place découle des catways.
+          const options = catway
+            ? [{ value: null, label: 'Aucun' }, { value: etraveVoisinCatway(origine), label: 'Présent' }]
+            : VOISINS;
+          const actif = (v: number | null) => (catway ? (ecart !== null) === (v !== null) : ecart === v);
+          return (
+            <div className="voisin" key={cote}>
+              <span>{COTE_LABELS[cote]}</span>
+              <div className="seg" role="group" aria-label={COTE_LABELS[cote]}>
+                {options.map((o) => (
+                  <button key={o.label} aria-pressed={actif(o.value)} disabled={!preparing}
+                    onClick={() => setVoisin(cote, o.value)}>{o.label}</button>
+                ))}
+              </div>
+            </div>
+          );
+        })}
+        <p className="hint" aria-live="polite">{voisinNotice ?? (catway
+          ? 'Bateaux amarrés étrave au quai, de l’autre côté du catway ou contre le catway voisin, immobiles : le bateau peut s’y appuyer ou les toucher. Se règlent au départ.'
+          : 'Bateaux amarrés devant ou derrière, immobiles : le bateau peut s’y appuyer ou les toucher. Se règlent au départ.')}</p>
+        <div className="row">
+          <label htmlFor="pas-helice">Pas d’hélice</label>
+          <select id="pas-helice" className="push-right" value={preparee.options?.pasHelice ?? ''} disabled={!preparing}
+            onChange={(e) => edit((sit) => reglerPasHelice(sit, (e.target.value || null) as SensHelice | null))}>
+            {PAS_HELICE.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
+          </select>
+        </div>
+        <p className="hint">Poussée de l’hélice qui fait partir l’arrière de côté quand le moteur tourne, surtout en marche arrière. Se règle au départ.</p>
+      </div>
+    </details>
+  );
 
   return (
     <div className="app">
@@ -369,69 +435,82 @@ export function App() {
         <h1>Mini Cassiopée<small>Manœuvres de port · voilier de 10 m</small></h1>
 
         <section>
-          <h2>Situation</h2>
-          <div className="seg" role="group" aria-label="Type d'amarrage">
-            {AMARRAGES.map((a) => (
-              <button key={a.value} aria-pressed={origine.quai.type === a.value}
-                onClick={() => {
-                  // Changer de famille ouvre sa première situation ; rester dans la même ne change rien.
-                  if (origine.quai.type === a.value) return;
-                  const premiere = CATALOGUE.find((x) => x.quai.type === a.value);
-                  if (premiere) chooseSituation(premiere);
-                }}>{a.label}</button>
-            ))}
-          </div>
-          <select id="situation" value={origine.id} aria-label="Situation de départ"
-            onChange={(e) => chooseSituation(CATALOGUE.find((x) => x.id === e.target.value) ?? CATALOGUE[0])}>
-            {GROUPES.filter((g) => g.type === origine.quai.type).map((g) => (
-              <optgroup key={`${g.type}-${g.titre}`} label={g.titre}>
-                {g.situations.map((x) => <option key={x.id} value={x.id}>{x.titre}</option>)}
-              </optgroup>
-            ))}
-          </select>
-          <p className="hint">{origine.description}</p>
-          {modified && (
-            <div className="row">
-              <span className="hint">Situation modifiée.</span>
-              <button className="btn push-right" disabled={!preparing} onClick={() => chooseSituation(origine)}
-                title="Revenir à la situation telle qu'elle est dans le catalogue">Situation d’origine</button>
+          {preparing ? <h2>Situation</h2> : (
+            <h2 className="replie">
+              <button aria-expanded={reglagesDeplies} aria-controls="reglages-depart"
+                title={reglagesDeplies ? 'Replier les réglages de départ' : 'Voir les réglages de départ'}
+                onClick={() => setReglagesDeplies((d) => !d)}>
+                <span className="replie-titre">Situation <span aria-hidden="true">{reglagesDeplies ? '▾' : '▸'}</span></span>
+                <span className="replie-resume">{resume}</span>
+              </button>
+            </h2>
+          )}
+          {!preparing && <p className="hint">Revenez au départ (⏮) pour modifier la situation ; une modification efface la manœuvre enregistrée.</p>}
+          {(preparing || reglagesDeplies) && (
+            <div id="reglages-depart" className="reglages">
+              <div className="seg" role="group" aria-label="Type d'amarrage">
+                {AMARRAGES.map((a) => (
+                  <button key={a.value} aria-pressed={origine.quai.type === a.value}
+                    onClick={() => {
+                      // Changer de famille ouvre sa première situation ; rester dans la même ne change rien.
+                      if (origine.quai.type === a.value) return;
+                      const premiere = CATALOGUE.find((x) => x.quai.type === a.value);
+                      if (premiere) chooseSituation(premiere);
+                    }}>{a.label}</button>
+                ))}
+              </div>
+              <select id="situation" value={origine.id} aria-label="Situation de départ"
+                onChange={(e) => chooseSituation(CATALOGUE.find((x) => x.id === e.target.value) ?? CATALOGUE[0])}>
+                {GROUPES.filter((g) => g.type === origine.quai.type).map((g) => (
+                  <optgroup key={`${g.type}-${g.titre}`} label={g.titre}>
+                    {g.situations.map((x) => <option key={x.id} value={x.id}>{x.titre}</option>)}
+                  </optgroup>
+                ))}
+              </select>
+              <p className="hint">{origine.description}</p>
+              {modified && (
+                <div className="row">
+                  <span className="hint">Situation modifiée.</span>
+                  <button className="btn push-right" disabled={!preparing} onClick={() => chooseSituation(origine)}
+                    title="Revenir à la situation telle qu'elle est dans le catalogue">Situation d’origine</button>
+                </div>
+              )}
+              <div className="row">
+                <span>Bateau le long du {support}</span>
+                <div className="stepper push-right" role="group" aria-label={`Position du bateau le long du ${support}`}>
+                  <button className="btn" disabled={!preparing || preparee.bateau.x <= xMin}
+                    aria-label={catway ? 'Rapprocher le bateau du quai' : 'Déplacer le bateau vers la gauche'}
+                    title={catway ? 'Vers le quai (Maj + ↑)' : 'Vers la gauche (Maj + ←)'} onClick={() => moveBoat(-1)}>{catway ? '▲' : '◀'}</button>
+                  <button className="btn" disabled={!preparing || preparee.bateau.x >= xMax}
+                    aria-label={catway ? 'Éloigner le bateau du quai' : 'Déplacer le bateau vers la droite'}
+                    title={catway ? 'Vers le chenal (Maj + ↓)' : 'Vers la droite (Maj + →)'} onClick={() => moveBoat(1)}>{catway ? '▼' : '▶'}</button>
+                </div>
+              </div>
+              {preparing && <p className="hint">Faites glisser le bateau ou utilisez {catway ? '▲ ▼' : '◀ ▶'} : les aussières restent tournées sur leurs bittes.</p>}
+              <div className="row">
+                <span>Bord au {support}</span>
+                <div className="seg seg-court push-right" role="group" aria-label={`Bord du bateau au ${support}`}>
+                  {BORDS.map((b) => (
+                    <button key={b.value} aria-pressed={preparee.bateau.bordAuQuai === b.value} disabled={!preparing}
+                      title={`${b.label} au ${support} : le bateau se retourne, ses aussières passent en miroir`}
+                      onClick={() => chooseBord(b.value)}>{b.label}</button>
+                  ))}
+                </div>
+              </div>
+              <select id="wind-direction" value={wind.direction} disabled={!preparing} aria-label="Direction du vent"
+                onChange={(e) => changeWind({ ...wind, direction: e.target.value as WindDirection })}>
+                {directionsVent(typeQuai).map((d) => <option key={d} value={d}>{WIND_LABELS[d]}</option>)}
+              </select>
+              <div className="seg" role="group" aria-label="Force du vent">
+                {FORCES.map((f) => (
+                  <button key={f.value} aria-pressed={wind.force === f.value} disabled={!preparing}
+                    onClick={() => changeWind({ ...wind, force: f.value })}>{f.label}</button>
+                ))}
+              </div>
+              {preparing && <p className="hint">Le vent se règle avant le départ et reste fixe pendant la manœuvre.</p>}
+              {!preparing && optionsAvancees}
             </div>
           )}
-          <div className="row">
-            <span>Bateau le long du {support}</span>
-            <div className="stepper push-right" role="group" aria-label={`Position du bateau le long du ${support}`}>
-              <button className="btn" disabled={!preparing || preparee.bateau.x <= xMin}
-                aria-label={catway ? 'Rapprocher le bateau du quai' : 'Déplacer le bateau vers la gauche'}
-                title={catway ? 'Vers le quai (Maj + ↑)' : 'Vers la gauche (Maj + ←)'} onClick={() => moveBoat(-1)}>{catway ? '▲' : '◀'}</button>
-              <button className="btn" disabled={!preparing || preparee.bateau.x >= xMax}
-                aria-label={catway ? 'Éloigner le bateau du quai' : 'Déplacer le bateau vers la droite'}
-                title={catway ? 'Vers le chenal (Maj + ↓)' : 'Vers la droite (Maj + →)'} onClick={() => moveBoat(1)}>{catway ? '▼' : '▶'}</button>
-            </div>
-          </div>
-          {preparing && <p className="hint">Faites glisser le bateau ou utilisez {catway ? '▲ ▼' : '◀ ▶'} : les aussières restent tournées sur leurs bittes.</p>}
-          <div className="row">
-            <span>Bord au {support}</span>
-            <div className="seg seg-court push-right" role="group" aria-label={`Bord du bateau au ${support}`}>
-              {BORDS.map((b) => (
-                <button key={b.value} aria-pressed={preparee.bateau.bordAuQuai === b.value} disabled={!preparing}
-                  title={`${b.label} au ${support} : le bateau se retourne, ses aussières passent en miroir`}
-                  onClick={() => chooseBord(b.value)}>{b.label}</button>
-              ))}
-            </div>
-          </div>
-          <select id="wind-direction" value={wind.direction} disabled={!preparing} aria-label="Direction du vent"
-            onChange={(e) => changeWind({ ...wind, direction: e.target.value as WindDirection })}>
-            {directionsVent(typeQuai).map((d) => <option key={d} value={d}>{WIND_LABELS[d]}</option>)}
-          </select>
-          <div className="seg" role="group" aria-label="Force du vent">
-            {FORCES.map((f) => (
-              <button key={f.value} aria-pressed={wind.force === f.value} disabled={!preparing}
-                onClick={() => changeWind({ ...wind, force: f.value })}>{f.label}</button>
-            ))}
-          </div>
-          <p className="hint">{atStart
-            ? 'Le vent se règle avant le départ et reste fixe pendant la manœuvre.'
-            : 'Vent fixé pendant la manœuvre. Revenez au départ (⏮) pour le modifier.'}</p>
         </section>
 
         <section>
@@ -524,9 +603,6 @@ export function App() {
                   : `Pour ajouter une aussière, touchez un taquet du bateau (cercle bleu), puis ${bitteLabel}.`)}
             </p>
           )}
-          {!atStart && (
-            <p className="hint">Pour ajouter ou supprimer une aussière, revenez au départ (⏮) : la manœuvre enregistrée sera effacée.</p>
-          )}
         </section>
 
         <section>
@@ -535,52 +611,7 @@ export function App() {
           <label className="check"><input id="debug" type="checkbox" checked={debug} onChange={(e) => setDebug(e.target.checked)} /> Valeurs de mise au point</label>
         </section>
 
-        <details>
-          <summary>Options avancées</summary>
-          <div className="advanced">
-            <div className="row">
-              <span>Aussières au maximum</span>
-              <div className="stepper push-right" role="group" aria-label="Plafond d'aussières">
-                <button className="btn" disabled={!preparing || max <= Math.max(PLAFOND_DEFAUT, preparee.aussieres.length)}
-                  aria-label="Diminuer le plafond" onClick={() => edit((sit) => reglerPlafond(sit, max - 1))}>−</button>
-                <output aria-live="polite">{max}</output>
-                <button className="btn" disabled={!preparing || max >= PLAFOND_MAX}
-                  aria-label="Augmenter le plafond" onClick={() => edit((sit) => reglerPlafond(sit, max + 1))}>+</button>
-              </div>
-            </div>
-            <p className="hint">De {PLAFOND_DEFAUT} à {PLAFOND_MAX}, jamais moins que le nombre d’aussières en place. Se règle au départ.</p>
-            {cotesVoisin(preparee.quai.type).map((cote) => {
-              const ecart = ecartVoisin(preparee, origine, cote);
-              // Sur catway, un voisin est présent ou absent : sa place découle des catways.
-              const options = catway
-                ? [{ value: null, label: 'Aucun' }, { value: etraveVoisinCatway(origine), label: 'Présent' }]
-                : VOISINS;
-              const actif = (v: number | null) => (catway ? (ecart !== null) === (v !== null) : ecart === v);
-              return (
-                <div className="voisin" key={cote}>
-                  <span>{COTE_LABELS[cote]}</span>
-                  <div className="seg" role="group" aria-label={COTE_LABELS[cote]}>
-                    {options.map((o) => (
-                      <button key={o.label} aria-pressed={actif(o.value)} disabled={!preparing}
-                        onClick={() => setVoisin(cote, o.value)}>{o.label}</button>
-                    ))}
-                  </div>
-                </div>
-              );
-            })}
-            <p className="hint" aria-live="polite">{voisinNotice ?? (catway
-              ? 'Bateaux amarrés étrave au quai, de l’autre côté du catway ou contre le catway voisin, immobiles : le bateau peut s’y appuyer ou les toucher. Se règlent au départ.'
-              : 'Bateaux amarrés devant ou derrière, immobiles : le bateau peut s’y appuyer ou les toucher. Se règlent au départ.')}</p>
-            <div className="row">
-              <label htmlFor="pas-helice">Pas d’hélice</label>
-              <select id="pas-helice" className="push-right" value={preparee.options?.pasHelice ?? ''} disabled={!preparing}
-                onChange={(e) => edit((sit) => reglerPasHelice(sit, (e.target.value || null) as SensHelice | null))}>
-                {PAS_HELICE.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
-              </select>
-            </div>
-            <p className="hint">Poussée de l’hélice qui fait partir l’arrière de côté quand le moteur tourne, surtout en marche arrière. Se règle au départ.</p>
-          </div>
-        </details>
+        {preparing && optionsAvancees}
 
         {showTuning && <Tuning params={params} onChange={changeParams} />}
 

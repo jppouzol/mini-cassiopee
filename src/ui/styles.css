@@ -97,6 +97,16 @@ h2 { margin: 0; font-family: var(--f-label); font-weight: 600; font-size: 13px; 
 /* Bouton à bascule enfoncé : l'aussière file. */
 .line .btn.toggle[aria-pressed="true"] { background: var(--accent); color: var(--panel); border-color: var(--accent); font-weight: 700; }
 
+/* Réglages de départ repliés pendant la manœuvre : un intitulé et un résumé d'une ligne, dépliables. */
+.reglages { display: flex; flex-direction: column; gap: 8px; }
+h2.replie button {
+  display: flex; flex-direction: column; align-items: stretch; gap: 3px; width: 100%; min-height: 44px; padding: 6px 0;
+  background: transparent; border: 0; color: inherit; font: inherit; letter-spacing: inherit; text-transform: inherit;
+  text-align: left; cursor: pointer;
+}
+.replie-resume {
+  font-family: var(--f-body); font-weight: 400; font-size: 14px; letter-spacing: 0; text-transform: none; color: var(--ink);
+}
 details { border-top: 1px solid var(--rule); padding-top: 10px; }
 summary { cursor: pointer; font-family: var(--f-label); font-weight: 600; font-size: 13px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
 .tune { display: flex; flex-direction: column; gap: 8px; margin: 10px 0; font-size: 13px; }
