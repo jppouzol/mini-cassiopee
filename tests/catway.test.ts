@@ -248,7 +248,7 @@ test('éditeur : ajouter une aussière sur le catway ou sur le quai, voisins du 
   assert.deepEqual(nomsAffiches(avec), ['Garde avant', 'Pointe avant']);
   // Cul à quai : une pointe arrière depuis chaque taquet arrière, proposés tous deux par l'éditeur.
   const cul = sansAmarre(sortieAvant());
-  assert.deepEqual(taquetsProposes(cul).map((c) => c.name), ['etrave', 'etrave-large', 'arriere', 'arriere-large']);
+  assert.deepEqual(taquetsProposes(cul).map((c) => c.name), ['etrave', 'etrave-large', 'maitre-bau', 'maitre-bau-large', 'arriere', 'arriere-large']);
   const deux = ajouterAussiere(ajouterAussiere(cul, 'arriere', 2, 'quai'), 'arriere-large', -2, 'quai');
   assert.deepEqual(nomsAffiches(deux), ['Pointe arrière bâbord', 'Pointe arrière tribord']);
   assert.deepEqual(buildState(deux).lines.map((l) => l.bollard), [[-0.5, 0.6], [-4.5, 0.6]]);
