@@ -6,7 +6,7 @@ import {
   ECARTS_VOISIN, EditionError, PAS_DEPLACEMENT, ajouterAussiere, basculerFile, basculerMou, bornesDeplacement,
   changerBord, deplacerBateau, ecartVoisin, etraveVoisinCatway, reglerPasHelice, reglerPlafond, reglerVoisin, renommerAussiere, supprimerAussiere, taquetsProposes,
 } from '../situations/edit.ts';
-import { bitteDepuisPoint, bittesAutresCatways, bittesDuPort, perpendiculaire } from '../situations/quai.ts';
+import { bitteDepuisPoint, bittesAutresCatways, bittesDuPort, libre, perpendiculaire } from '../situations/quai.ts';
 import {
   PLAFOND_DEFAUT, PLAFOND_MAX, cotesVoisin, directionsVent, plafond,
   type Cleat, type CoteVoisin, type SensHelice, type Situation, type WindDirection,
@@ -41,6 +41,12 @@ const WIND_LABELS: Record<WindDirection, string> = {
   'catway-chenal': 'Du catway, du chenal',
   'large-quai': 'Du large, du quai',
   'large-chenal': 'Du large, du chenal',
+  babord: 'Vent de bâbord',
+  tribord: 'Vent de tribord',
+  'avant-babord': "De l'avant, de bâbord",
+  'avant-tribord': "De l'avant, de tribord",
+  'arriere-babord': "De l'arrière, de bâbord",
+  'arriere-tribord': "De l'arrière, de tribord",
 };
 const FORCES: { value: WindSetting['force']; label: string }[] = [
   { value: 'aucun', label: 'Pas de vent' },
@@ -51,6 +57,7 @@ const FORCES: { value: WindSetting['force']; label: string }[] = [
 const AMARRAGES: { value: Situation['quai']['type']; label: string }[] = [
   { value: 'long-side', label: 'Le long du quai' },
   { value: 'perpendiculaire', label: 'Sur catway' },
+  { value: 'libre', label: 'Libre' },
 ];
 /** Bord du bateau tourné vers le quai ou le catway. */
 const BORDS: { value: Situation['bateau']['bordAuQuai']; label: string }[] = [
@@ -133,6 +140,8 @@ export function App() {
   const wind = preparee.vent;
   // Amarrage perpendiculaire : le bateau est le long d'un catway, qu'on dessine vertical sous le quai.
   const catway = perpendiculaire(preparee);
+  // Situation libre : ni quai, ni aussière, ni voisin ; seuls le vent et le pas d'hélice se règlent.
+  const enLibre = libre(preparee);
   const typeQuai = preparee.quai.type;
   // Les rangées de bittes dépendent du bord du bateau tourné vers le catway (côté du second catway).
   const bollards = useMemo(() => bittesDuPort(preparee), [preparee]);
@@ -331,8 +340,9 @@ export function App() {
   }, [act, seek, step]);
 
   const edition = useMemo<EditionView | null>(
-    () => (preparing ? { cleats: taquetsProposes(preparee), selected } : null),
-    [preparing, preparee, selected],
+    // En libre, rien à éditer sur la scène : un glisser à la souris y déplace la vue.
+    () => (preparing && !enLibre ? { cleats: taquetsProposes(preparee), selected } : null),
+    [preparing, enLibre, preparee, selected],
   );
   const rudderDeg = rudderToDeg(s.rudder);
   const showTuning = typeof location !== 'undefined' && location.hash === '#reglages';
@@ -348,6 +358,7 @@ export function App() {
     <details>
       <summary>Options avancées</summary>
       <div className="advanced">
+        {!enLibre && <>
         <div className="row">
           <span>Aussières au maximum</span>
           <div className="stepper push-right" role="group" aria-label="Plafond d'aussières">
@@ -381,6 +392,7 @@ export function App() {
         <p className="hint" aria-live="polite">{voisinNotice ?? (catway
           ? 'Bateaux amarrés étrave au quai, de l’autre côté du catway ou contre le catway voisin, immobiles : le bateau peut s’y appuyer ou les toucher. Se règlent au départ.'
           : 'Bateaux amarrés devant ou derrière, immobiles : le bateau peut s’y appuyer ou les toucher. Se règlent au départ.')}</p>
+        </>}
         <div className="row">
           <label htmlFor="pas-helice">Pas d’hélice</label>
           <select id="pas-helice" className="push-right" value={preparee.options?.pasHelice ?? ''}
@@ -448,6 +460,7 @@ export function App() {
                   title="Revenir à la situation telle qu'elle est dans le catalogue">Situation d’origine</button>
               </div>
             )}
+            {!enLibre && <>
             <div className="row">
               <span>Bateau le long du {support}</span>
               <div className="stepper push-right" role="group" aria-label={`Position du bateau le long du ${support}`}>
@@ -470,6 +483,7 @@ export function App() {
                 ))}
               </div>
             </div>
+            </>}
             <select id="wind-direction" value={wind.direction} aria-label="Direction du vent"
               onChange={(e) => changeWind({ ...wind, direction: e.target.value as WindDirection })}>
               {directionsVent(typeQuai).map((d) => <option key={d} value={d}>{WIND_LABELS[d]}</option>)}
@@ -480,7 +494,9 @@ export function App() {
                   onClick={() => changeWind({ ...wind, force: f.value })}>{f.label}</button>
               ))}
             </div>
-            <p className="hint">Le vent se règle avant le départ et reste fixe pendant la manœuvre.</p>
+            <p className="hint">{enLibre
+              ? 'Le vent se règle par rapport au bateau au départ, puis reste fixe : le bateau tourne dedans.'
+              : 'Le vent se règle avant le départ et reste fixe pendant la manœuvre.'}</p>
           </section>
         )}
 
@@ -509,7 +525,7 @@ export function App() {
           {preparing && <p className="hint">Barre à roue : le bateau tourne du côté choisi.</p>}
         </section>
 
-        <section>
+        {!enLibre && <section>
           <div className="row">
             <h2>Amarres</h2>
             {preparing && <span className="count push-right">{preparee.aussieres.length} / {max}</span>}
@@ -574,7 +590,7 @@ export function App() {
                   : `Pour ajouter une aussière, touchez un taquet du bateau (cercle bleu), puis ${bitteLabel}.`)}
             </p>
           )}
-        </section>
+        </section>}
 
         <section>
           <h2>Affichage</h2>
@@ -588,8 +604,11 @@ export function App() {
 
         <p className="keys">
           <kbd>Espace</kbd> lecture · <kbd>↑</kbd><kbd>↓</kbd> moteur · <kbd>←</kbd><kbd>→</kbd> barre · <kbd>C</kbd> centrer ·
+          {!enLibre && <>
           {' '}<kbd>Maj</kbd>+{catway ? <><kbd>↑</kbd><kbd>↓</kbd></> : <><kbd>←</kbd><kbd>→</kbd></>} bateau ·
-          {' '}<kbd>1</kbd>–<kbd>9</kbd> larguer · <kbd>Maj</kbd>+<kbd>1</kbd>–<kbd>9</kbd> choquer · <kbd>,</kbd><kbd>.</kbd> pas à pas · <kbd>R</kbd> départ · <kbd>Échap</kbd> annuler
+          {' '}<kbd>1</kbd>–<kbd>9</kbd> larguer · <kbd>Maj</kbd>+<kbd>1</kbd>–<kbd>9</kbd> choquer ·
+          </>}
+          {' '}<kbd>,</kbd><kbd>.</kbd> pas à pas · <kbd>R</kbd> départ{!enLibre && <> · <kbd>Échap</kbd> annuler</>}
         </p>
       </aside>
     </div>

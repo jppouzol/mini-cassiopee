@@ -68,8 +68,15 @@ export function readPalette(el: Element): Palette {
 }
 
 /**
+ * Marge laissée au bateau en situation libre, entre son centre et le bord de la vue (m) :
+ * sa demi-longueur et un mètre d'eau, pour qu'il reste entier à l'écran.
+ */
+export const MARGE_LIBRE = 6;
+
+/**
  * Caméra : quai en haut, on suit le bateau quand il s'éloigne. Le cadrage de l'élève (zoom et décalage)
- * s'ajoute au cadrage par défaut, qui continue de suivre le bateau.
+ * s'ajoute au cadrage par défaut, qui continue de suivre le bateau. Sans quai (situation libre), la vue
+ * est centrée sur l'origine, où part le bateau, et n'est recalée que quand le bateau approche d'un bord.
  */
 export function camera(s: Readonly<SimState>, W: number, H: number, cadrage: Cadrage = CADRAGE_DEFAUT): Camera & { cx: number; cy: number; halfW: number; halfH: number } {
   const b = s.body;
@@ -77,10 +84,18 @@ export function camera(s: Readonly<SimState>, W: number, H: number, cadrage: Cad
   const halfW0 = W / 2 / sc0, halfH0 = H / 2 / sc0;
   let cx = 0;
   let cy = 3.2 - halfH0;
-  const mx = halfW0 * 0.55;
-  if (b.x - cx > mx) cx = b.x - mx; else if (cx - b.x > mx) cx = b.x + mx;
-  const lowY = cy - halfH0 * 0.45;
-  if (b.y < lowY) cy += b.y - lowY;
+  if (!s.quay) {
+    // Libre : la vue ne bouge que si le centre du bateau sort de la zone centrale.
+    cy = 0;
+    const lx = Math.max(0, halfW0 - MARGE_LIBRE), ly = Math.max(0, halfH0 - MARGE_LIBRE);
+    cx = Math.min(b.x + lx, Math.max(b.x - lx, cx));
+    cy = Math.min(b.y + ly, Math.max(b.y - ly, cy));
+  } else {
+    const mx = halfW0 * 0.55;
+    if (b.x - cx > mx) cx = b.x - mx; else if (cx - b.x > mx) cx = b.x + mx;
+    const lowY = cy - halfH0 * 0.45;
+    if (b.y < lowY) cy += b.y - lowY;
+  }
   const z = bornerCadrage(cadrage, W, H);
   const sc = sc0 * z.k;
   cx += z.ox;
@@ -113,18 +128,20 @@ export function render(ctx: CanvasRenderingContext2D, s: Readonly<SimState>, v: 
   for (let y = Math.floor((cy - halfH) / 5) * 5; y < cy + halfH; y += 5) { ctx.moveTo(0, Y(y)); ctx.lineTo(W, Y(y)); }
   ctx.stroke();
 
-  // Quai
-  ctx.fillStyle = C.quay;
-  ctx.fillRect(0, 0, W, Y(0));
-  ctx.strokeStyle = C.quayEdge;
-  ctx.lineWidth = 2;
-  ctx.beginPath(); ctx.moveTo(0, Y(0)); ctx.lineTo(W, Y(0)); ctx.stroke();
-  ctx.fillStyle = C.quayEdge;
-  ctx.font = `600 12px ${v.labelFont}`;
-  ctx.textAlign = 'right';
-  // Libellé au-dessus de la rangée de bittes, pour ne pas la chevaucher.
-  const yRow = v.bollards.length ? Y(v.bollards[0][1]) - Math.max(3, 0.22 * sc0) - 6 : Y(0) - 8;
-  ctx.fillText('QUAI', W - 12, Math.max(14, yRow));
+  // Quai, sauf en situation libre : le quadrillage de l'eau reste le seul repère.
+  if (s.quay) {
+    ctx.fillStyle = C.quay;
+    ctx.fillRect(0, 0, W, Y(0));
+    ctx.strokeStyle = C.quayEdge;
+    ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.moveTo(0, Y(0)); ctx.lineTo(W, Y(0)); ctx.stroke();
+    ctx.fillStyle = C.quayEdge;
+    ctx.font = `600 12px ${v.labelFont}`;
+    ctx.textAlign = 'right';
+    // Libellé au-dessus de la rangée de bittes, pour ne pas la chevaucher.
+    const yRow = v.bollards.length ? Y(v.bollards[0][1]) - Math.max(3, 0.22 * sc0) - 6 : Y(0) - 8;
+    ctx.fillText('QUAI', W - 12, Math.max(14, yRow));
+  }
 
   // Catways : pontons accrochés au quai, de la couleur du quai, bordés sur leurs flancs et leur bout.
   for (const c of s.catways) {

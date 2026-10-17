@@ -2,7 +2,7 @@
 // l'éditeur produit le même format.
 
 import {
-  BOLLARD_SPACING, ECART_QUAI_MIN, LONGUEUR_CATWAY, ecartVoisinLarge, surLaRangee, type BoutAuQuai, type TypeQuai,
+  BATEAU_LIBRE, BOLLARD_SPACING, ECART_QUAI_MIN, LONGUEUR_CATWAY, ecartVoisinLarge, surLaRangee, type BoutAuQuai, type TypeQuai,
 } from './quai.ts';
 import { HALF_LENGTH } from '../sim/geometry.ts';
 
@@ -19,14 +19,24 @@ export const WIND_DIRECTIONS_CATWAY = [
   'catway', 'large', 'quai', 'chenal',
   'catway-quai', 'catway-chenal', 'large-quai', 'large-chenal',
 ] as const;
-export type WindDirection = (typeof WIND_DIRECTIONS)[number] | (typeof WIND_DIRECTIONS_CATWAY)[number];
+/**
+ * Directions du vent en situation libre, sans repère du port : par rapport au bateau
+ * au départ, de l'avant, de l'arrière, de bâbord, de tribord.
+ */
+export const WIND_DIRECTIONS_LIBRE = [
+  'avant', 'arriere', 'babord', 'tribord',
+  'avant-babord', 'avant-tribord', 'arriere-babord', 'arriere-tribord',
+] as const;
+export type WindDirection =
+  | (typeof WIND_DIRECTIONS)[number] | (typeof WIND_DIRECTIONS_CATWAY)[number] | (typeof WIND_DIRECTIONS_LIBRE)[number];
 
 /** Directions du vent proposées pour un type de quai. */
 export function directionsVent(type: TypeQuai): readonly WindDirection[] {
+  if (type === 'libre') return WIND_DIRECTIONS_LIBRE;
   return type === 'perpendiculaire' ? WIND_DIRECTIONS_CATWAY : WIND_DIRECTIONS;
 }
 
-export const TYPES_QUAI = ['long-side', 'perpendiculaire'] as const;
+export const TYPES_QUAI = ['long-side', 'perpendiculaire', 'libre'] as const;
 export const BOUTS_AU_QUAI = ['etrave', 'arriere'] as const;
 
 export const WIND_FORCES = ['aucun', 'faible', 'soutenu'] as const;
@@ -47,8 +57,9 @@ export const ECART_VOISIN_MAX = 20;
 /** En perpendiculaire, distance maximale entre l'étrave d'un voisin et le bord du quai (m). */
 export const ETRAVE_VOISIN_MAX = 5;
 
-/** Côtés où l'on peut placer un voisin selon le type de quai. */
+/** Côtés où l'on peut placer un voisin selon le type de quai ; aucun en situation libre. */
 export function cotesVoisin(type: TypeQuai): readonly CoteVoisin[] {
+  if (type === 'libre') return [];
   return type === 'perpendiculaire' ? COTES_VOISIN_CATWAY : COTES_VOISIN;
 }
 
@@ -97,8 +108,9 @@ export interface Situation {
   id: string;
   titre: string;
   description: string;
-  /** long du quai, ou perpendiculaire, le long d'un catway */
+  /** long du quai, perpendiculaire, le long d'un catway, ou libre, sans quai */
   quai: { type: TypeQuai };
+  /** absent du fichier en situation libre : la validation y met BATEAU_LIBRE */
   bateau: {
     /**
      * position du centre le long du support (m) : abscisse monde le long du quai ;
@@ -150,6 +162,52 @@ function oneOf<T extends string>(v: unknown, values: readonly T[], where: string
   return v as T;
 }
 
+/** Vent d'une situation, validé pour son type de quai. */
+function parseVent(input: Obj, id: string, type: TypeQuai): Situation['vent'] {
+  const vent = input.vent;
+  if (!isObj(vent)) throw new SituationError(`${id} : le champ « vent » est obligatoire.`);
+  return {
+    direction: oneOf(vent.direction, directionsVent(type), `${id} : vent.direction`),
+    force: oneOf(vent.force, WIND_FORCES, `${id} : vent.force`),
+  };
+}
+
+/** Options avancées d'une situation, validées ; undefined sans option. */
+function parseOptions(input: Obj, id: string): Situation['options'] {
+  if (input.options === undefined) return undefined;
+  const o = input.options;
+  if (!isObj(o)) throw new SituationError(`${id} : « options » doit être un objet ({ "pasHelice": "droite" }).`);
+  for (const k of Object.keys(o)) oneOf(k, ['pasHelice'] as const, `${id} : chaque option`);
+  return o.pasHelice !== undefined ? { pasHelice: oneOf(o.pasHelice, SENS_HELICE, `${id} : options.pasHelice`) } : undefined;
+}
+
+/**
+ * Situation libre : le bateau seul, en milieu de port. Ni bateau à placer le long d'un
+ * support, ni aussière, ni voisin, ni plafond ; le vent se rapporte au bateau au départ.
+ */
+function parseLibre(input: Obj, id: string): Situation {
+  if (input.bateau !== undefined) throw new SituationError(`${id} : en situation libre, « bateau » est sans objet : le bateau part du milieu du port.`);
+  if (!Array.isArray(input.aussieres) || input.aussieres.length > 0) {
+    throw new SituationError(`${id} : en situation libre, « aussieres » doit être une liste vide.`);
+  }
+  for (const k of ['voisins', 'plafondAussieres'] as const) {
+    if (input[k] !== undefined) throw new SituationError(`${id} : en situation libre, « ${k} » est sans objet.`);
+  }
+  const sit: Situation = {
+    format: 1,
+    id,
+    titre: input.titre as string,
+    description: input.description as string,
+    quai: { type: 'libre' },
+    bateau: { ...BATEAU_LIBRE },
+    aussieres: [],
+    vent: parseVent(input, id, 'libre'),
+  };
+  const options = parseOptions(input, id);
+  if (options) sit.options = options;
+  return sit;
+}
+
 /** Valide une situation lue depuis un JSON. Lève une SituationError au message lisible. */
 export function parseSituation(input: unknown): Situation {
   if (!isObj(input)) throw new SituationError('La situation doit être un objet JSON.');
@@ -162,6 +220,7 @@ export function parseSituation(input: unknown): Situation {
   if (!isObj(quai)) throw new SituationError(`${id} : le champ « quai » est obligatoire.`);
   const type = oneOf(quai.type, TYPES_QUAI, `${id} : quai.type`);
   const perp = type === 'perpendiculaire';
+  if (type === 'libre') return parseLibre(input, id);
 
   const bateau = input.bateau;
   if (!isObj(bateau) || !isNum(bateau.x) || !isNum(bateau.distanceQuai)) {
@@ -229,8 +288,6 @@ export function parseSituation(input: unknown): Situation {
     throw new SituationError(`${id} : ${aussieres.length} aussières pour un plafond de ${max}.`);
   }
 
-  const vent = input.vent;
-  if (!isObj(vent)) throw new SituationError(`${id} : le champ « vent » est obligatoire.`);
   const sit: Situation = {
     format: 1,
     id,
@@ -239,10 +296,7 @@ export function parseSituation(input: unknown): Situation {
     quai: { type },
     bateau: navire,
     aussieres,
-    vent: {
-      direction: oneOf(vent.direction, directionsVent(type), `${id} : vent.direction`),
-      force: oneOf(vent.force, WIND_FORCES, `${id} : vent.force`),
-    },
+    vent: parseVent(input, id, type),
   };
   if (plafondAussieres !== undefined) sit.plafondAussieres = plafondAussieres;
 
@@ -269,11 +323,7 @@ export function parseSituation(input: unknown): Situation {
     if (Object.keys(voisins).length > 0) sit.voisins = voisins;
   }
 
-  if (input.options !== undefined) {
-    const o = input.options;
-    if (!isObj(o)) throw new SituationError(`${id} : « options » doit être un objet ({ "pasHelice": "droite" }).`);
-    for (const k of Object.keys(o)) oneOf(k, ['pasHelice'] as const, `${id} : chaque option`);
-    if (o.pasHelice !== undefined) sit.options = { pasHelice: oneOf(o.pasHelice, SENS_HELICE, `${id} : options.pasHelice`) };
-  }
+  const options = parseOptions(input, id);
+  if (options) sit.options = options;
   return sit;
 }
