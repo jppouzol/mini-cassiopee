@@ -5,6 +5,7 @@ import amarreQuatreAmarres from './catalogue/03-amarre-quatre-amarres.json';
 import catwayVerification from './catalogue/06-catway-verification.json';
 import catwaySortieArriere from './catalogue/07-catway-sortie-arriere.json';
 import catwaySortieAvant from './catalogue/08-catway-sortie-avant.json';
+import libreSansVent from './catalogue/09-libre-sans-vent.json';
 
 /** Groupe du menu : une famille (type de quai), un intertitre et ses situations. */
 export interface GroupeCatalogue {
@@ -22,6 +23,7 @@ export const GROUPES: readonly GroupeCatalogue[] = ([
   { type: 'long-side', titre: 'Départs', situations: [departGardeAvant, departGardeArriere] },
   { type: 'perpendiculaire', titre: 'Amarrage', situations: [catwayVerification] },
   { type: 'perpendiculaire', titre: 'Sorties', situations: [catwaySortieAvant, catwaySortieArriere] },
+  { type: 'libre', titre: 'Manœuvres', situations: [libreSansVent] },
 ] as const).map((g) => {
   const situations = g.situations.map(parseSituation);
   // Une situation rangée dans le groupe d'une autre famille n'apparaîtrait pas là où on l'attend.

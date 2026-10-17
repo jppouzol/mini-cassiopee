@@ -248,7 +248,9 @@ export function Scene({ state, ghost, debug, bollards, otherBollards, edition, o
     <canvas ref={ref} onPointerDown={onPointerDown} onPointerMove={onPointerMove}
       onPointerUp={(e) => endGesture(e, false)} onPointerCancel={(e) => endGesture(e, true)}
       className={[edition ? 'editing' : '', dragging ? 'dragging' : '', estDefaut(cadrage) ? '' : 'zoomed'].filter(Boolean).join(' ') || undefined}
-      aria-label={edition
+      aria-label={!state.quay
+        ? 'Vue de dessus du bateau libre, en milieu de port, sans quai ni amarre. Pincez à deux doigts, ou utilisez la molette, pour zoomer.'
+        : edition
         ? `Vue de dessus du bateau amarré ${state.catways.length ? 'le long d’un catway' : 'au quai'}. Touchez un taquet du bateau, puis une bitte du quai${state.catways.length ? ' ou du catway' : ''}, pour ajouter une aussière. Faites glisser le bateau pour le déplacer le long du ${state.catways.length ? 'catway' : 'quai'}. Pincez à deux doigts, ou utilisez la molette, pour zoomer.`
         : `Vue de dessus du bateau amarré ${state.catways.length ? 'le long d’un catway' : 'au quai'}. Pincez à deux doigts, ou utilisez la molette, pour zoomer.`} />
     {!estDefaut(cadrage) && (

@@ -1,0 +1,9 @@
+{
+  "format": 1,
+  "id": "libre",
+  "titre": "Bateau libre en milieu de port",
+  "description": "Sans quai ni amarre, sans vent : le bateau seul, arrêté, étrave vers le haut.",
+  "quai": { "type": "libre" },
+  "aussieres": [],
+  "vent": { "direction": "avant", "force": "aucun" }
+}

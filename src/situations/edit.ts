@@ -4,7 +4,7 @@
 
 import { HALF_LENGTH, cleatPosition } from '../sim/geometry.ts';
 import {
-  ECART_QUAI_MIN, bitteDepuisSupport, bitteRepereBateau, bitteVersSupport, bowSign, ecartVoisinLarge, perpendiculaire,
+  ECART_QUAI_MIN, bitteDepuisSupport, bitteRepereBateau, bitteVersSupport, bowSign, ecartVoisinLarge, libre, perpendiculaire,
   quaySide, surLaRangee,
   type Placement,
 } from './quai.ts';
@@ -24,8 +24,9 @@ export const TAQUETS_EDITABLES: readonly Cleat[] = [
 /** Taquet de maître-bau, d'un bord ou de l'autre. */
 const auMaitreBau = (taquet: Cleat): boolean => taquet === 'maitre-bau' || taquet === 'maitre-bau-large';
 
-/** Taquets proposés, avec leur position en repère bateau selon le bord au quai. */
-export function taquetsProposes(sit: Pick<Situation, 'bateau'>): { name: Cleat; pos: [number, number] }[] {
+/** Taquets proposés, avec leur position en repère bateau selon le bord au quai ; aucun en situation libre. */
+export function taquetsProposes(sit: Pick<Situation, 'quai' | 'bateau'>): { name: Cleat; pos: [number, number] }[] {
+  if (libre(sit)) return [];
   const quaySide = sit.bateau.bordAuQuai === 'babord' ? 1 : -1;
   return TAQUETS_EDITABLES.map((name) => ({ name, pos: cleatPosition(name, quaySide) }));
 }
@@ -104,6 +105,7 @@ export function nomsAffiches(sit: Pick<Situation, 'quai' | 'bateau' | 'aussieres
  * en perpendiculaire, `sur` = 'quai' désigne une bitte du quai plutôt que du catway).
  */
 export function ajouterAussiere(sit: Situation, taquet: Cleat, bitte: number, sur?: 'quai'): Situation {
+  if (libre(sit)) throw new EditionError('En situation libre, le bateau n’est amarré nulle part : pas d’aussière.');
   if (sur && !perpendiculaire(sit)) throw new EditionError('Cette position ne correspond à aucune bitte du quai.');
   if (!surLaRangee(sit, { bitte, sur })) {
     throw new EditionError(`Cette position ne correspond à aucune bitte du ${perpendiculaire(sit) && !sur ? 'catway' : 'quai'}.`);
@@ -186,6 +188,8 @@ function avance(sit: Placement, origine: Pick<Situation, 'bateau'>): number {
  */
 export function bornesDeplacement(sit: Situation, origine: Pick<Situation, 'bateau'>): [number, number] {
   const x0 = origine.bateau.x;
+  // Libre : pas de support le long duquel glisser.
+  if (libre(sit)) return [x0, x0];
   const sens = bowSign(sit);
   let lo = x0 - DEPLACEMENT_MAX, hi = x0 + DEPLACEMENT_MAX;
   // Course possible vers l'étrave (voisin avant) et vers le tableau (voisin arrière), en monde.
@@ -214,9 +218,10 @@ export function bornesDeplacement(sit: Situation, origine: Pick<Situation, 'bate
  * bittes du quai gardent leur position relative. Les voisins restent en place,
  * comme d'autres bouts de tissu sur la table : le long du quai, leur écart change ;
  * en perpendiculaire, leur distance au quai ne dépend pas du bateau et ne change
- * pas. Renvoie la même situation si la position ne change pas.
+ * pas. Renvoie la même situation si la position ne change pas, ou en situation libre.
  */
 export function deplacerBateau(sit: Situation, origine: Pick<Situation, 'bateau'>, x: number): Situation {
+  if (libre(sit)) return sit;
   const x0 = origine.bateau.x;
   const [lo, hi] = bornesDeplacement(sit, origine);
   const vise = x0 + Math.round((x - x0) / PAS_DEPLACEMENT) * PAS_DEPLACEMENT;
@@ -286,6 +291,7 @@ function decaler(sit: Situation, x: number): Situation {
  */
 export function changerBord(sit: Situation, origine: Pick<Situation, 'bateau'>, bord: 'babord' | 'tribord'): Situation {
   if (bord === sit.bateau.bordAuQuai) return sit;
+  if (libre(sit)) throw new EditionError('En situation libre, il n’y a ni quai ni catway : pas de bord à choisir.');
   const perp = perpendiculaire(sit);
   const retourne: Situation = {
     ...sit,
@@ -346,7 +352,7 @@ export function ecartVoisin(sit: Situation, origine: Pick<Situation, 'bateau'>, 
 export function reglerVoisin(sit: Situation, origine: Pick<Situation, 'bateau'>, cote: CoteVoisin, ecart: number | null): Situation {
   const perp = perpendiculaire(sit);
   if (!cotesVoisin(sit.quai.type).includes(cote)) {
-    throw new EditionError(perp
+    throw new EditionError(libre(sit) ? 'En situation libre, il n’y a pas de voisin.' : perp
       ? 'Sur catway, les voisins se placent côté catway ou côté large.'
       : 'Le long du quai, les voisins se placent devant ou derrière.');
   }

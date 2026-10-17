@@ -141,10 +141,15 @@ export const mooringLines: Effect = (s, p, f) => {
   }
 };
 
-/** Contact avec le bord du quai (y = 0) : réaction normale amortie et frottement. */
+/**
+ * Contact avec le bord du quai (y = 0) : réaction normale amortie et frottement.
+ * Sans quai (situation libre), aucun appui. L'effet vide toujours la liste des appuis,
+ * que le catway complète ensuite.
+ */
 export const quayContact: Effect = (s, p, f) => {
   const b = s.body;
   s.contacts = [];
+  if (!s.quay) return;
   for (const pt of CONTACT_POINTS) {
     const pw = toWorld(b, pt);
     if (pw[1] <= 0) continue;

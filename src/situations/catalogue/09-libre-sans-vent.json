@@ -1,0 +1,9 @@
+{
+  "format": 1,
+  "id": "libre-sans-vent",
+  "titre": "Sans vent",
+  "description": "Bateau libre en milieu de port, sans quai ni amarre, arrêté. Barre à fond, voyez le cercle de giration et le point de pivot, en marche avant puis en marche arrière.",
+  "quai": { "type": "libre" },
+  "aussieres": [],
+  "vent": { "direction": "babord", "force": "aucun" }
+}

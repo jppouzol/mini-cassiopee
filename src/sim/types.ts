@@ -92,6 +92,8 @@ export interface SimState {
   /** angle de barre (rad), > 0 : le bateau tourne vers bâbord */
   rudder: number;
   wind: Wind;
+  /** présence du quai (y > 0) ; faux en situation libre, où le bateau ne touche rien */
+  quay: boolean;
   /** points d'appui sur le quai et le catway à la dernière image (repère monde) */
   contacts: Vec[];
   /** catways, immobiles (liste vide le long du quai) */

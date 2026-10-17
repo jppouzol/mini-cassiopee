@@ -11,6 +11,8 @@
 // l'eau (y < 0) depuis le quai ; un second catway, côté large, encadre avec
 // lui deux places de bateau. La position le long du support est la distance au
 // bord du quai, comptée le long du catway vers le chenal (u = -y).
+// En situation libre, il n'y a ni quai ni bitte : le bateau part de l'origine,
+// étrave vers +y (le haut de l'écran).
 
 import type { Vec } from '../sim/types.ts';
 import { HALF_BEAM, HALF_LENGTH } from '../sim/geometry.ts';
@@ -37,7 +39,7 @@ export const ECART_QUAI_MIN = 0.5;
 /** Étendue des rangées de bittes du quai, bien au-delà de ce que la caméra montre (m). */
 const ETENDUE_QUAI = 200;
 
-export type TypeQuai = 'long-side' | 'perpendiculaire';
+export type TypeQuai = 'long-side' | 'perpendiculaire' | 'libre';
 export type BoutAuQuai = 'etrave' | 'arriere';
 
 /** Ce qu'il faut d'une situation pour situer le bateau et ses bittes. */
@@ -59,6 +61,18 @@ export interface Amarrage {
 export function perpendiculaire(sit: Pick<Placement, 'quai'>): boolean {
   return sit.quai.type === 'perpendiculaire';
 }
+
+/** Situation libre : le bateau seul, en milieu de port, sans quai ni amarre. */
+export function libre(sit: Pick<Placement, 'quai'>): boolean {
+  return sit.quai.type === 'libre';
+}
+
+/**
+ * Bateau d'une situation libre : valeurs neutres, jamais écrites dans un fichier, pour que
+ * les fonctions qui attendent un bateau le long d'un support restent valables. Seule
+ * poseDepart en tient compte, pour placer le bateau à l'origine.
+ */
+export const BATEAU_LIBRE: Placement['bateau'] = { x: 0, distanceQuai: 0, bordAuQuai: 'babord' };
 
 /**
  * Sens de l'étrave le long du support : +1 si elle pointe vers les positions croissantes.
@@ -87,6 +101,8 @@ export function bitteDepuisSupport(sit: Placement, u: number): number {
 
 /** Cap du bateau au départ (rad). */
 function cap(sit: Placement): number {
+  // Libre : étrave vers le haut de l'écran.
+  if (libre(sit)) return Math.PI / 2;
   if (perpendiculaire(sit)) return sit.bateau.boutAuQuai === 'etrave' ? Math.PI / 2 : -Math.PI / 2;
   // Bâbord au quai : étrave vers +x. Tribord au quai : étrave vers -x.
   return bowSign(sit) === 1 ? 0 : Math.PI;
@@ -117,6 +133,7 @@ export function axesCatways(sit: Placement): number[] {
 
 /** Position et cap du bateau au départ, en repère monde. */
 export function poseDepart(sit: Placement): { x: number; y: number; th: number } {
+  if (libre(sit)) return { x: 0, y: 0, th: cap(sit) };
   if (perpendiculaire(sit)) return { x: xAxe(sit), y: -sit.bateau.x, th: cap(sit) };
   return { x: sit.bateau.x, y: -(HALF_BEAM + sit.bateau.distanceQuai), th: cap(sit) };
 }
@@ -158,6 +175,7 @@ export function bittesEntre(xMin: number, xMax: number): number[] {
  * les 2 m entre les catways et au-delà.
  */
 export function bittesQuai(sit: Placement): number[] {
+  if (libre(sit)) return [];
   if (!perpendiculaire(sit)) return bittesEntre(-ETENDUE_QUAI, ETENDUE_QUAI);
   const bords = axesCatways(sit).sort((a, b) => a - b)
     .flatMap((a) => [a - DEMI_LARGEUR_CATWAY, a + DEMI_LARGEUR_CATWAY]);
@@ -171,8 +189,9 @@ export function bittesQuai(sit: Placement): number[] {
   return out.map(arrondi);
 }
 
-/** Bittes où l'on peut tourner une aussière, en repère monde : celles du quai, puis celles du catway du bateau. */
+/** Bittes où l'on peut tourner une aussière, en repère monde : celles du quai, puis celles du catway du bateau ; aucune en libre. */
 export function bittesDuPort(sit: Placement): Vec[] {
+  if (libre(sit)) return [];
   const quai = bittesQuai(sit).map((x): Vec => [x, BOLLARD_SETBACK]);
   if (!perpendiculaire(sit)) return quai;
   return quai.concat(BITTES_CATWAY.map((u): Vec => [X_CATWAY, -u]));
