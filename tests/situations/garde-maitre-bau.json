@@ -1,0 +1,12 @@
+{
+  "format": 1,
+  "id": "garde-maitre-bau",
+  "titre": "Garde avant au maître-bau",
+  "description": "Seule une garde avant est tournée, au taquet de maître-bau côté quai. Moteur avant et barre au large : le bateau reste le long du quai, le temps de passer les autres amarres.",
+  "quai": { "type": "long-side" },
+  "bateau": { "x": 0, "distanceQuai": 0.05, "bordAuQuai": "babord" },
+  "aussieres": [
+    { "id": "garde-mb", "taquet": "maitre-bau", "bitte": -4, "mou": 0 }
+  ],
+  "vent": { "direction": "quai", "force": "aucun" }
+}

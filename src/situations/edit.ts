@@ -14,10 +14,15 @@ import {
 } from './schema.ts';
 
 /**
- * Taquets proposés dans l'éditeur, quelle que soit la situation : deux à l'étrave et
- * deux à l'arrière, côté support et côté large (le maître-bau viendra plus tard).
+ * Taquets proposés dans l'éditeur, quelle que soit la situation : deux à l'étrave, deux au
+ * maître-bau et deux à l'arrière, côté support et côté large.
  */
-export const TAQUETS_EDITABLES: readonly Cleat[] = ['etrave', 'etrave-large', 'arriere', 'arriere-large'];
+export const TAQUETS_EDITABLES: readonly Cleat[] = [
+  'etrave', 'etrave-large', 'maitre-bau', 'maitre-bau-large', 'arriere', 'arriere-large',
+];
+
+/** Taquet de maître-bau, d'un bord ou de l'autre. */
+const auMaitreBau = (taquet: Cleat): boolean => taquet === 'maitre-bau' || taquet === 'maitre-bau-large';
 
 /** Taquets proposés, avec leur position en repère bateau selon le bord au quai. */
 export function taquetsProposes(sit: Pick<Situation, 'bateau'>): { name: Cleat; pos: [number, number] }[] {
@@ -47,9 +52,13 @@ export function nomDeduit(sit: Placement, a: Pick<SituationLine, 'taquet' | 'bit
   const across = yb - yc;
   const angle = (Math.atan2(Math.abs(along), Math.abs(across)) * 180) / Math.PI;
   const avant = xc > 0;
-  const bout = a.taquet === 'maitre-bau' ? 'au maître-bau' : avant ? 'avant' : 'arrière';
+  if (auMaitreBau(a.taquet)) {
+    if (angle < SEUIL_TRAVERSIER_DEG) return 'Traversier au maître-bau';
+    // Nommée par ce qu'elle retient : bitte en arrière, elle empêche d'avancer, comme la garde avant.
+    return `Garde ${along < 0 ? 'avant' : 'arrière'} au maître-bau`;
+  }
+  const bout = avant ? 'avant' : 'arrière';
   if (angle < SEUIL_TRAVERSIER_DEG) return `Traversier ${bout}`;
-  if (a.taquet === 'maitre-bau') return 'Garde au maître-bau';
   // Pointe : vers l'extérieur du bateau ; garde : vers l'intérieur.
   const pointe = avant ? along > 0 : along < 0;
   return `${pointe ? 'Pointe' : 'Garde'} ${bout}`;

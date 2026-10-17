@@ -30,7 +30,7 @@ export const TYPES_QUAI = ['long-side', 'perpendiculaire'] as const;
 export const BOUTS_AU_QUAI = ['etrave', 'arriere'] as const;
 
 export const WIND_FORCES = ['aucun', 'faible', 'soutenu'] as const;
-export const CLEATS = ['etrave', 'etrave-large', 'arriere', 'arriere-large', 'maitre-bau'] as const;
+export const CLEATS = ['etrave', 'etrave-large', 'arriere', 'arriere-large', 'maitre-bau', 'maitre-bau-large'] as const;
 export type Cleat = (typeof CLEATS)[number];
 
 /** Côtés du bateau où l'on peut placer un voisin, le long du quai. */

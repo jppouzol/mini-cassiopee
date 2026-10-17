@@ -72,6 +72,7 @@ function cleatLabel(sit: Situation, cleat: Cleat): string {
     case 'arriere': return `le taquet arrière ${auQuai}`;
     case 'arriere-large': return `le taquet arrière ${auLarge}`;
     case 'maitre-bau': return `le taquet de maître-bau ${auQuai}`;
+    case 'maitre-bau-large': return `le taquet de maître-bau ${auLarge}`;
   }
 }
 /** Réglages d'un voisin le long du quai : écart compté depuis la place d'origine du bateau. */

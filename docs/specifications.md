@@ -45,7 +45,7 @@ La scène se compose d'un seul bateau, d'un quai, d'aussières et du vent. Chaqu
 ### Bateau
 
 - Un modèle unique et générique, aux proportions d'un voilier de croisière de 10 m.
-- Taquets : quatre, quelle que soit la situation, deux à l'étrave et deux à l'arrière, un sur chaque bord ; option pour en ajouter au maître-bau. L'éditeur propose ces quatre taquets tant que le maître-bau n'est pas livré. Ils permettent par exemple deux pointes arrière cul à quai, ou deux pointes avant étrave au quai, indispensables à la sortie en marche arrière.
+- Taquets : six, quelle que soit la situation, deux à l'étrave, deux au maître-bau et deux à l'arrière, un sur chaque bord. Ceux du maître-bau sont au milieu de la coque, au plus large ; tant qu'on n'y tourne aucune aussière, ils ne changent rien. Les taquets d'étrave et d'arrière permettent par exemple deux pointes arrière cul à quai, ou deux pointes avant étrave au quai, indispensables à la sortie en marche arrière. Une garde avant au maître-bau, moteur avant et barre au large, tient le bateau le long du quai le temps de passer les autres amarres ; barre au centre, l'arrière s'écarte, moins qu'avec une garde à l'étrave.
 - Paramètres avancés : pas d'hélice, avec choix du sens de rotation ; choix entre mono-safran et bi-safran (envisagé).
 - **Pas d'hélice** : un seul réglage, « Pas d'hélice » : aucun (par défaut), hélice à droite ou hélice à gauche. Quand le moteur tourne, l'hélice pousse l'arrière de côté. L'effet est net en marche arrière : hélice à droite, l'arrière part vers bâbord ; hélice à gauche, vers tribord. En marche avant, il est léger et de sens contraire. Il est le plus fort au démarrage, bateau arrêté, et faiblit quand le bateau prend de l'erre : lancé en marche arrière, barre à fond, on arrive à reculer droit. Rien n'est ajouté à la scène : on le voit à l'arrière qui part de côté. Aucune situation du catalogue ne l'active : l'élève l'ajoute sur n'importe laquelle. Comme les voisins, il se règle en préparation ; « Situation d'origine » ou le choix d'une autre situation le retire.
 - Le type de quille n'est pas paramétrable.
@@ -71,7 +71,7 @@ La scène se compose d'un seul bateau, d'un quai, d'aussières et du vent. Chaqu
 
 - Chaque aussière relie un taquet du bateau à une bitte du quai ou du catway. Un même taquet peut porter plusieurs aussières (par exemple une pointe et une garde), mais deux aussières ne peuvent pas relier le même taquet à la même bitte.
 - Par défaut, sa longueur est fixée à la position de départ ; elle est soit tendue, soit molle. Une aussière molle a 0,5 m de mou ; les situations du catalogue peuvent préciser une autre valeur.
-- Son nom est déduit de la géométrie au départ : traversier si elle fait moins de 20° avec la perpendiculaire au bateau, sinon pointe si elle part vers l'extérieur du bateau (bitte en avant du taquet d'étrave, ou en arrière du taquet arrière) et garde dans le cas inverse ; avant ou arrière selon le taquet (voir le glossaire). Deux aussières de même nom sont départagées par leur bord quand elles sont sur deux bords différents (« Pointe arrière bâbord » et « Pointe arrière tribord ») : le bord de leur taquet. Sinon, un numéro les départage. L'élève peut la renommer. En perpendiculaire, la même règle s'applique, le catway jouant le rôle du quai : une aussière d'un taquet d'étrave vers le quai, devant l'étrave, est une pointe avant.
+- Son nom est déduit de la géométrie au départ : traversier si elle fait moins de 20° avec la perpendiculaire au bateau, sinon pointe si elle part vers l'extérieur du bateau (bitte en avant du taquet d'étrave, ou en arrière du taquet arrière) et garde dans le cas inverse ; avant ou arrière selon le taquet (voir le glossaire). Deux aussières de même nom sont départagées par leur bord quand elles sont sur deux bords différents (« Pointe arrière bâbord » et « Pointe arrière tribord ») : le bord de leur taquet. Sinon, un numéro les départage. Une aussière partie du maître-bau est un traversier au maître-bau selon la même règle des 20° ; sinon, c'est une garde au maître-bau, nommée par ce qu'elle retient : garde avant si sa bitte est en arrière du taquet, puisqu'elle empêche le bateau d'avancer comme la garde avant (« Garde avant au maître-bau »), garde arrière dans le cas inverse. L'élève peut la renommer. En perpendiculaire, la même règle s'applique, le catway jouant le rôle du quai : une aussière d'un taquet d'étrave vers le quai, devant l'étrave, est une pointe avant.
 - Une situation compte au plus 6 aussières par défaut. Ce plafond est réglable entre 6 et 12 dans les options avancées de l'éditeur, sans pouvoir descendre sous le nombre d'aussières en place ; une situation du catalogue peut déclarer un plafond plus élevé.
 - Larguée, elle disparaît de la scène (considérée comme remontée à bord).
 - Choquée, elle file : tant que l'élève la laisse filer, elle s'allonge aussi vite que le bateau s'éloigne de sa bitte et ne le retient plus ; une fois bloquée, elle garde sa nouvelle longueur et retient de nouveau. Une aussière molle qu'on choque ne change pas tant que le bateau ne tire pas dessus. Elle peut filer sans limite de longueur.
@@ -257,7 +257,7 @@ En manœuvre, l'élève a besoin du moteur, de la barre et des amarres, pas des 
 
 ## Évolutions
 
-Le socle est livré : amarrage le long du quai, aussières fixes, moteur avant, neutre et arrière, largage individuel, barre, vent faible ou soutenu, tension des aussières et point de pivot, pause, pas à pas et retour arrière, catalogue et éditeur. Depuis, l'élève peut aussi choquer une aussière, placer des bateaux voisins devant et derrière, manœuvrer un bateau amarré perpendiculaire au quai, le long d'un catway, avec ses voisins de part et d'autre, et zoomer sur la scène. Il peut aussi activer le pas d'hélice, à droite ou à gauche, et choisir le bord du bateau au quai ou au catway. En manœuvre, le panneau ne montre plus que les commandes : moteur, barre et amarres.
+Le socle est livré : amarrage le long du quai, aussières fixes, moteur avant, neutre et arrière, largage individuel, barre, vent faible ou soutenu, tension des aussières et point de pivot, pause, pas à pas et retour arrière, catalogue et éditeur. Depuis, l'élève peut aussi choquer une aussière, placer des bateaux voisins devant et derrière, manœuvrer un bateau amarré perpendiculaire au quai, le long d'un catway, avec ses voisins de part et d'autre, et zoomer sur la scène. Il peut aussi activer le pas d'hélice, à droite ou à gauche, et choisir le bord du bateau au quai ou au catway. Il peut tourner une aussière sur un taquet au maître-bau. En manœuvre, le panneau ne montre plus que les commandes : moteur, barre et amarres.
 
 Le projet s'enrichit ensuite progressivement, une fonctionnalité à la fois, sans paliers ni jalons : l'ordre suit les envies et les retours des élèves. Le backlog est tenu dans les issues GitHub du dépôt ; chaque issue devient une branche et une demande de fusion, qui met à jour ce document si elle change le périmètre.
 
@@ -266,7 +266,6 @@ Enrichissements envisagés, chacun optionnel et sans effet sur le comportement d
 - mono ou bi-safran ;
 - pivot du vent sur l'étrave (fardage) ;
 - longueur de catway réglable ;
-- taquet au maître-bau ;
 - reprendre une aussière pendant la manœuvre ;
 - freiner une aussière qu'on choque ;
 - longueur finie des aussières ;
@@ -319,7 +318,8 @@ Les points suivants n'ont pas été tranchés et figurent dans les points ouvert
 | Pas d'hélice | Poussée latérale de l'hélice, surtout en marche arrière, qui fait dériver l'arrière d'un côté |
 | Hélice à droite / à gauche | Sens de rotation de l'hélice, vue de l'arrière en marche avant : à droite, dans le sens des aiguilles d'une montre. Hélice à droite, l'arrière part vers bâbord en marche arrière ; hélice à gauche, vers tribord |
 | Fardage | Prise au vent de la coque et du gréement |
-| Maître-bau | Partie la plus large du bateau |
+| Maître-bau | Partie la plus large du bateau ; dans l'appli, un taquet de chaque bord, au milieu de la coque |
+| Garde au maître-bau | Aussière partant du maître-bau : garde avant si elle est frappée vers l'arrière sur le quai, garde arrière vers l'avant |
 | Long side | Amarrage le long du quai, flanc contre le quai |
 | Catway | Petit ponton perpendiculaire au quai, le long duquel le bateau est amarré ; dans l'appli, long des 2/3 du bateau |
 
