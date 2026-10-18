@@ -91,7 +91,7 @@ La scène se compose d'un seul bateau, d'un quai, d'aussières et du vent ; en s
 ### Vent
 
 - Direction et force fixées pendant la préparation, constantes pendant la simulation.
-- Force exprimée de façon qualitative, par exemple faible ou soutenu, avec un effet plus ou moins marqué sur le bateau.
+- Force exprimée de façon qualitative, par exemple faible ou soutenu, avec un effet plus ou moins marqué sur le bateau. Le vent soutenu vaut environ les deux tiers de la poussée du moteur en marche avant et presque toute sa poussée arrière : on remonte au vent, lentement, et reculer contre lui est difficile.
 - Direction exprimée par des repères du port. Le long du quai : du quai, du large, de l'avant ou de l'arrière du bateau, et leurs combinaisons. En perpendiculaire : du catway, du large, du quai ou du chenal, et leurs combinaisons. En situation libre, sans repère du port : de l'avant, de l'arrière, de bâbord ou de tribord du bateau au départ, et leurs combinaisons (de l'avant bâbord…). Le vent reste ensuite fixe : le bateau tourne dedans.
 - Enrichissement envisagé : appui du vent sur l'étrave provoquant un pivot (effet de fardage).
 
@@ -101,6 +101,7 @@ La simulation est en deux dimensions, vue de dessus, et vise un comportement qua
 
 - **Forces prises en compte dans le socle** : poussée du moteur (avant ou arrière, intensité unique, doublée pendant un coup de fouet), effort de la barre sur le safran quand le bateau a de l'erre ou que le flux de l'hélice passe sur le safran, résistance de la quille et du safran au dérapage, force du vent, retenue des aussières tendues, contact avec le quai, avec le catway et, s'il y en a, avec les bateaux voisins.
 - **Mouvements** : translation dans le plan et rotation autour d'un axe vertical. Le point de pivot résulte des aussières tendues et des points de contact ; en eau libre, de la quille et du safran, qui le placent sur la coque : dans la moitié avant en marche avant, dans la moitié arrière en marche arrière.
+- **Vitesse** : moteur en avant, le bateau libre plafonne à environ 3 nœuds, et 2,5 en marche arrière, une allure de manœuvre de port. Le coup de fouet donne le coup de moteur plus franc qui redonne de la manœuvrabilité.
 - **Giration** : barre à fond, le bateau libre tourne dans un cercle d'environ deux longueurs, comme un voilier de croisière à quille aileron, et fait demi-tour dans une allée de port réaliste, en moins de 20 m. La quille limite la dérive au vent dès que le bateau a de l'erre ; à l'arrêt, le vent le pousse comme avant.
 - **Aussières** : longueur maximale fixe ; une aussière ne retient que lorsqu'elle est tendue, jamais en compression.
 - **Contact avec le quai** : traitement simple qui empêche le bateau de traverser le quai et peut servir de point d'appui ; les défenses ne sont pas modélisées dans le socle. Le catway reçoit le même traitement, sur ses deux flancs et son bout. En situation libre, il n'y a pas de quai : aucun contact.
@@ -283,7 +284,7 @@ En manœuvre, l'élève a besoin du moteur, de la barre et des amarres, pas des 
 
 ## Évolutions
 
-Le socle est livré : amarrage le long du quai, aussières fixes, moteur avant, neutre et arrière, largage individuel, barre, vent faible ou soutenu, tension des aussières et point de pivot, pause, pas à pas et retour arrière, catalogue et éditeur. Depuis, l'élève peut aussi choquer une aussière, placer des bateaux voisins devant et derrière, manœuvrer un bateau amarré perpendiculaire au quai, le long d'un catway, avec ses voisins de part et d'autre, et zoomer sur la scène. Il peut aussi activer le pas d'hélice, à droite ou à gauche, et choisir le bord du bateau au quai ou au catway. Il peut tourner une aussière sur un taquet au maître-bau, et donner un coup de fouet au moteur, en avant comme en arrière. En manœuvre, le panneau ne montre plus que les commandes : moteur, barre et amarres. Enfin, il peut manœuvrer un bateau libre, sans quai ni amarre, en milieu de port. Les départs et les sorties du catalogue placent des voisins de part et d'autre, que l'élève peut retirer.
+Le socle est livré : amarrage le long du quai, aussières fixes, moteur avant, neutre et arrière, largage individuel, barre, vent faible ou soutenu, tension des aussières et point de pivot, pause, pas à pas et retour arrière, catalogue et éditeur. Depuis, l'élève peut aussi choquer une aussière, placer des bateaux voisins devant et derrière, manœuvrer un bateau amarré perpendiculaire au quai, le long d'un catway, avec ses voisins de part et d'autre, et zoomer sur la scène. Il peut aussi activer le pas d'hélice, à droite ou à gauche, et choisir le bord du bateau au quai ou au catway. Il peut tourner une aussière sur un taquet au maître-bau, et donner un coup de fouet au moteur, en avant comme en arrière. En manœuvre, le panneau ne montre plus que les commandes : moteur, barre et amarres. Enfin, il peut manœuvrer un bateau libre, sans quai ni amarre, en milieu de port. Le moteur pousse à une allure de manœuvre de port, autour de 3 nœuds, et le vent pèse d'autant plus. Les départs et les sorties du catalogue placent des voisins de part et d'autre, que l'élève peut retirer.
 
 Le projet s'enrichit ensuite progressivement, une fonctionnalité à la fois, sans paliers ni jalons : l'ordre suit les envies et les retours des élèves. Le backlog est tenu dans les issues GitHub du dépôt ; chaque issue devient une branche et une demande de fusion, qui met à jour ce document si elle change le périmètre.
 
@@ -296,6 +297,7 @@ Enrichissements envisagés, chacun optionnel et sans effet sur le comportement d
 - freiner une aussière qu'on choque ;
 - longueur finie des aussières ;
 - coup de fouet dosé par l'élève, tant qu'il maintient le bouton ;
+- vent fort, plus fort que le moteur en marche avant ;
 - aides visuelles en option (trajectoire, flèches de forces, position fantôme).
 
 ## Critères d'acceptation du socle
