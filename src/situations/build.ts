@@ -70,5 +70,5 @@ export function buildState(sit: Situation, windOverride?: Situation['vent']): Si
   const options: SimState['options'] = {};
   if (sit.options?.pasHelice) options.propWalk = sit.options.pasHelice;
   // Sans quai en situation libre : rien à toucher.
-  return { frame: 0, body, lines, engine: 0, rudder: 0, wind, quay: !libre(sit), contacts: [], catways, neighbors, pivot: null, options };
+  return { frame: 0, body, lines, engine: 0, kick: null, rudder: 0, wind, quay: !libre(sit), contacts: [], catways, neighbors, pivot: null, options };
 }

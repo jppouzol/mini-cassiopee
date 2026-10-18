@@ -1,10 +1,13 @@
 import type { Engine, Params, SimState } from '../sim/types.ts';
 import { cloneState, tick } from '../sim/engine.ts';
+import { startKick } from '../sim/kick.ts';
 import { FPS } from '../sim/params.ts';
 
 /** Actions de l'élève pendant la manœuvre. */
 export type Action =
   | { type: 'engine'; value: Engine }
+  /** coup de fouet, en avant (1) ou en arrière (-1) */
+  | { type: 'kick'; value: 1 | -1 }
   | { type: 'rudder'; value: number }
   | { type: 'cast-off'; lineId: string }
   /** choquer (value = true : l'aussière file) ou bloquer (false) */
@@ -22,7 +25,9 @@ export const MAX_FRAMES = FPS * 60 * 30;
 
 export function applyAction(s: SimState, a: Action): void {
   switch (a.type) {
-    case 'engine': s.engine = a.value; break;
+    // Une action moteur arrête le coup de fouet en cours.
+    case 'engine': s.engine = a.value; s.kick = null; break;
+    case 'kick': startKick(s, a.value); break;
     case 'rudder': s.rudder = a.value; break;
     case 'cast-off': {
       const line = s.lines.find((l) => l.id === a.lineId);

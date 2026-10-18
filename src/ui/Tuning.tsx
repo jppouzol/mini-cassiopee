@@ -5,6 +5,8 @@ type Key = keyof Params;
 const SETTINGS: [Key, string, number, number, number][] = [
   ['thrustFwd', 'Poussée marche avant (N)', 500, 5000, 50],
   ['thrustRev', 'Poussée marche arrière (N)', 500, 5000, 50],
+  ['kickFactor', 'Coup de fouet : poussée (× normale)', 1, 4, 0.1],
+  ['kickTime', 'Coup de fouet : durée (s)', 0.5, 5, 0.25],
   ['rudderWash', 'Effet du flux d’hélice sur le safran', 0, 1.5, 0.05],
   ['rudderFlow', 'Effet de l’erre sur le safran', 0, 3000, 50],
   ['rudderGrip', 'Tenue du safran au dérapage', 0, 1.5, 0.05],

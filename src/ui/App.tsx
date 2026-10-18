@@ -69,6 +69,11 @@ const ENGINE: { value: Engine; label: string }[] = [
   { value: 0, label: 'Neutre' },
   { value: 1, label: 'Avant' },
 ];
+/** Coups de fouet, sous la commande moteur : arrière à gauche, avant à droite, comme au-dessus. */
+const KICKS: { value: 1 | -1; label: string }[] = [
+  { value: -1, label: 'Coup arrière' },
+  { value: 1, label: 'Coup avant' },
+];
 /** Taquet sélectionné, nommé par son bord : bâbord ou tribord selon le flanc tourné vers le quai ou le catway. */
 function cleatLabel(sit: Situation, cleat: Cleat): string {
   const auQuai = sit.bateau.bordAuQuai === 'babord' ? 'bâbord' : 'tribord';
@@ -315,6 +320,9 @@ export function App() {
         case 'Escape': setSelected(null); setNotice(null); break;
         case 'ArrowUp': act({ type: 'engine', value: Math.min(1, cur.engine + 1) as Engine }); break;
         case 'ArrowDown': act({ type: 'engine', value: Math.max(-1, cur.engine - 1) as Engine }); break;
+        // Coup de fouet : la répétition automatique d'une touche maintenue ne relance pas le coup.
+        case 'PageUp': if (!e.repeat) act({ type: 'kick', value: 1 }); break;
+        case 'PageDown': if (!e.repeat) act({ type: 'kick', value: -1 }); break;
         case 'ArrowLeft': act({ type: 'rudder', value: degToRudder(Math.max(-MAX_RUDDER_DEG, deg - 5)) }); break;
         case 'ArrowRight': act({ type: 'rudder', value: degToRudder(Math.min(MAX_RUDDER_DEG, deg + 5)) }); break;
         case 'KeyC': act({ type: 'rudder', value: 0 }); break;
@@ -508,6 +516,13 @@ export function App() {
                 onClick={() => act({ type: 'engine', value: m.value })}>{m.label}</button>
             ))}
           </div>
+          <div className="seg coups" role="group" aria-label="Coup de fouet">
+            {KICKS.map((k) => (
+              <button key={k.value} aria-pressed={s.kick?.dir === k.value}
+                onClick={() => act({ type: 'kick', value: k.value })}>{k.label}</button>
+            ))}
+          </div>
+          {preparing && <p className="hint">Coup de fouet : poussée brève et forte, puis le moteur revient de lui-même.</p>}
         </section>
 
         <section>
@@ -603,7 +618,7 @@ export function App() {
         {showTuning && <Tuning params={params} onChange={changeParams} />}
 
         <p className="keys">
-          <kbd>Espace</kbd> lecture · <kbd>↑</kbd><kbd>↓</kbd> moteur · <kbd>←</kbd><kbd>→</kbd> barre · <kbd>C</kbd> centrer ·
+          <kbd>Espace</kbd> lecture · <kbd>↑</kbd><kbd>↓</kbd> moteur · <kbd>Page ↑</kbd><kbd>Page ↓</kbd> coup de fouet · <kbd>←</kbd><kbd>→</kbd> barre · <kbd>C</kbd> centrer ·
           {!enLibre && <>
           {' '}<kbd>Maj</kbd>+{catway ? <><kbd>↑</kbd><kbd>↓</kbd></> : <><kbd>←</kbd><kbd>→</kbd></>} bateau ·
           {' '}<kbd>1</kbd>–<kbd>9</kbd> larguer · <kbd>Maj</kbd>+<kbd>1</kbd>–<kbd>9</kbd> choquer ·

@@ -1,5 +1,6 @@
 import type { Effect, Forces, Params, SimState } from './types.ts';
 import { activeEffects } from './effects.ts';
+import { updateKick } from './kick.ts';
 import { DT, SUBSTEPS } from './params.ts';
 
 /** Un sous-pas d'intégration (Euler semi-implicite). */
@@ -41,6 +42,7 @@ function updatePivot(s: SimState, p: Params): void {
  */
 export function tick(s: SimState, p: Params, effects: readonly Effect[] = activeEffects(s)): void {
   for (let i = 0; i < SUBSTEPS; i++) substep(s, p, effects);
+  updateKick(s, p);
   updatePivot(s, p);
   s.frame += 1;
 }
@@ -52,6 +54,7 @@ export function cloneState(s: SimState): SimState {
     body: { ...s.body },
     lines: s.lines.map((l) => ({ ...l, cleat: [l.cleat[0], l.cleat[1]], bollard: [l.bollard[0], l.bollard[1]] })),
     engine: s.engine,
+    kick: s.kick ? { ...s.kick } : null,
     rudder: s.rudder,
     wind: { to: [s.wind.to[0], s.wind.to[1]], force: s.wind.force },
     quay: s.quay,

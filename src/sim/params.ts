@@ -39,6 +39,9 @@ export const DEFAULT_PARAMS: Readonly<Params> = Object.freeze({
   propWalkRev: 800, // pas d'hélice en marche arrière, bateau arrêté (N, à l'hélice)
   propWalkFwd: 120, // pas d'hélice en marche avant, dans l'autre sens (N)
   propWalkSpeed: 0.8, // erre (m/s) à laquelle le pas d'hélice est divisé par deux
+  kickFactor: 2, // coup de fouet : poussée multipliée (flux d'hélice et pas d'hélice compris)
+  kickTime: 2, // coup de fouet depuis le neutre ou dans le sens du moteur : durée (s)
+  kickMaxTime: 5, // coup de fouet à contre-sens, qui casse l'erre : durée maximale (s)
 });
 
 /** Pas d'intégration (s) et nombre de sous-pas par image de 1/60 s. */
