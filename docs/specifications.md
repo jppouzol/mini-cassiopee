@@ -19,7 +19,7 @@ Ces principes arbitrent toutes les décisions de conception, en particulier lors
 1. **Le bout de tissu d'abord.** Toute situation doit pouvoir se décrire aussi simplement que sur la table : un bateau, un quai, quelques aussières, un sens de moteur.
 2. **Des principes, pas un bateau réel.** La physique est qualitativement correcte : le bateau part dans le bon sens, pivote autour du bon point, avec des ordres de grandeur plausibles. Aucune valeur réelle (kN, nœuds) n'est affichée ni garantie.
 3. **Le point de pivot est l'information centrale.** C'est ce que l'outil doit rendre visible avant tout.
-4. **La complexité est optionnelle.** Chaque enrichissement du modèle ou de la scène (pas d'hélice, bi-safran, bateaux voisins…) s'active dans des paramètres avancés ; désactivé, le comportement de base reste inchangé. Une nouvelle commande (choquer une aussière…) peut rester disponible en permanence si, tant qu'on ne s'en sert pas, elle ne change rien.
+4. **La complexité est optionnelle.** Chaque enrichissement du modèle ou de la scène (pas d'hélice, fardage, bi-safran, bateaux voisins…) s'active dans des paramètres avancés ; désactivé, le comportement de base reste inchangé. Une nouvelle commande (choquer une aussière…) peut rester disponible en permanence si, tant qu'on ne s'en sert pas, elle ne change rien.
 5. **Enrichissement progressif.** On livre un socle utilisable, puis on ajoute des fonctionnalités une à une, sans ordre imposé ni palier, et sans basculer dans une simulation fine.
 6. **Mobile d'abord.** L'outil doit être utilisable au port ou à bord, sur un téléphone, sans autre matériel.
 
@@ -75,7 +75,7 @@ La scène se compose d'un seul bateau, d'un quai, d'aussières et du vent ; en s
 - **Aussières** : aucune, et on ne peut pas en ajouter ; les taquets ne sont pas proposés.
 - **Voisins** : aucun ; ils ne se règlent pas.
 - **Contact** : rien à toucher, le bateau va où il veut.
-- **Pas d'hélice** : il se règle comme ailleurs, dans les options avancées.
+- **Pas d'hélice et fardage** : ils se règlent comme ailleurs, dans les options avancées. C'est en libre que le fardage se voit le mieux : vent de face, l'avant abat.
 - Le mouillage et la bouée ne sont pas traités : voir les points ouverts.
 
 ### Aussières
@@ -93,7 +93,12 @@ La scène se compose d'un seul bateau, d'un quai, d'aussières et du vent ; en s
 - Direction et force fixées pendant la préparation, constantes pendant la simulation.
 - Force exprimée de façon qualitative, par exemple faible ou soutenu, avec un effet plus ou moins marqué sur le bateau. Le vent soutenu vaut environ les deux tiers de la poussée du moteur en marche avant et presque toute sa poussée arrière : on remonte au vent, lentement, et reculer contre lui est difficile.
 - Direction exprimée par des repères du port. Le long du quai : du quai, du large, de l'avant ou de l'arrière du bateau, et leurs combinaisons. En perpendiculaire : du catway, du large, du quai ou du chenal, et leurs combinaisons. En situation libre, sans repère du port : de l'avant, de l'arrière, de bâbord ou de tribord du bateau au départ, et leurs combinaisons (de l'avant bâbord…). Le vent reste ensuite fixe : le bateau tourne dedans.
-- Enrichissement envisagé : appui du vent sur l'étrave provoquant un pivot (effet de fardage).
+- **Fardage** : un réglage « Fardage », sans (par défaut) ou avec, dans les options avancées. Sans, le vent pousse le bateau en son milieu : il dérive sans tourner. Avec, la prise au vent de la coque et du gréement pèse plus au bout qui reçoit le vent : en avant vent de face, un peu en avant par le travers, en arrière vent arrière. Conséquences :
+  - **Vent de face** : le bateau ne reste pas étrave au vent. L'avant abat d'un côté ou de l'autre, d'abord lentement puis de plus en plus vite : par vent soutenu, près de 10° en 10 s, presque en travers en 30 s. Il abat aussi en marche arrière barre au centre ; la barre ou le pas d'hélice peuvent décider du côté.
+  - **Bateau arrêté** : il finit à peu près en travers, le vent un peu sur l'arrière du travers, quelle que soit la direction de départ ; vent arrière, il ne reste pas arrière au vent.
+  - **Côté de l'abattée** : quand rien d'autre n'en décide (vent pile de face, barre au centre, sans pas d'hélice), il est tiré au hasard à chaque préparation : il change d'un essai à l'autre, mais le retour arrière et « ⏮ » rejouent la manœuvre à l'identique. Changer un réglage en préparation tire un nouveau côté.
+  - **Amarré** : le bout du bateau qui reçoit le vent est un peu plus chargé ; l'amarrage du catalogue tient de même.
+  - Rien n'est ajouté à la scène : on le voit au bateau qui tourne. Aucune situation du catalogue ne l'active : l'élève l'ajoute sur n'importe laquelle. Comme le pas d'hélice, il se règle en préparation ; « Situation d'origine » ou le choix d'une autre situation le retire.
 
 ## Modèle de simulation
 
@@ -107,7 +112,7 @@ La simulation est en deux dimensions, vue de dessus, et vise un comportement qua
 - **Contact avec le quai** : traitement simple qui empêche le bateau de traverser le quai et peut servir de point d'appui ; les défenses ne sont pas modélisées dans le socle. Le catway reçoit le même traitement, sur ses deux flancs et son bout. En situation libre, il n'y a pas de quai : aucun contact.
 - **Contact avec un voisin** : même traitement que le quai, coque contre coque. Le voisin, immobile, arrête le bateau et peut servir de point d'appui (l'étrave contre son tableau, par exemple).
 - **Amortissement** : le bateau ralentit naturellement dans l'eau, pour éviter des oscillations ou des glissements irréalistes.
-- **Effets avancés, désactivés par défaut** : pas d'hélice selon le sens de rotation (livré) ; différence mono/bi-safran et pivot sous l'effet du vent sur l'étrave (envisagés).
+- **Effets avancés, désactivés par défaut** : pas d'hélice selon le sens de rotation et fardage, le vent pesant plus au bout qui le reçoit (livrés) ; différence mono/bi-safran (envisagée).
 - **Reproductibilité** : à conditions de départ et actions identiques, la simulation produit le même résultat. C'est la condition du pas à pas et du retour arrière.
 
 ## Commandes et interactions
@@ -210,9 +215,9 @@ L'éditeur agit pendant la préparation, c'est-à-dire tant que la simulation es
 - Ajouter, retirer ou déplacer une aussière entre un taquet du bateau et une bitte du quai ou du catway.
 - Indiquer pour chaque aussière si elle est tendue au moment de la mise en mouvement, et si elle file dès ce moment.
 - Régler la direction et la force du vent.
-- Activer les options avancées : plafond d'aussières, bateaux voisins, pas d'hélice.
+- Activer les options avancées : plafond d'aussières, bateaux voisins, pas d'hélice, fardage.
 
-En situation libre, l'éditeur ne propose que le vent et le pas d'hélice : sans quai ni aussière, la position, le bord, les amarres, le plafond d'aussières et les voisins n'ont pas de sens et sont masqués.
+En situation libre, l'éditeur ne propose que le vent, le pas d'hélice et le fardage : sans quai ni aussière, la position, le bord, les amarres, le plafond d'aussières et les voisins n'ont pas de sens et sont masqués.
 
 #### Déplacer le bateau
 
@@ -284,14 +289,13 @@ En manœuvre, l'élève a besoin du moteur, de la barre et des amarres, pas des 
 
 ## Évolutions
 
-Le socle est livré : amarrage le long du quai, aussières fixes, moteur avant, neutre et arrière, largage individuel, barre, vent faible ou soutenu, tension des aussières et point de pivot, pause, pas à pas et retour arrière, catalogue et éditeur. Depuis, l'élève peut aussi choquer une aussière, placer des bateaux voisins devant et derrière, manœuvrer un bateau amarré perpendiculaire au quai, le long d'un catway, avec ses voisins de part et d'autre, et zoomer sur la scène. Il peut aussi activer le pas d'hélice, à droite ou à gauche, et choisir le bord du bateau au quai ou au catway. Il peut tourner une aussière sur un taquet au maître-bau, et donner un coup de fouet au moteur, en avant comme en arrière. En manœuvre, le panneau ne montre plus que les commandes : moteur, barre et amarres. Enfin, il peut manœuvrer un bateau libre, sans quai ni amarre, en milieu de port. Le moteur pousse à une allure de manœuvre de port, autour de 3 nœuds, et le vent pèse d'autant plus. Les départs et les sorties du catalogue placent des voisins de part et d'autre, que l'élève peut retirer.
+Le socle est livré : amarrage le long du quai, aussières fixes, moteur avant, neutre et arrière, largage individuel, barre, vent faible ou soutenu, tension des aussières et point de pivot, pause, pas à pas et retour arrière, catalogue et éditeur. Depuis, l'élève peut aussi choquer une aussière, placer des bateaux voisins devant et derrière, manœuvrer un bateau amarré perpendiculaire au quai, le long d'un catway, avec ses voisins de part et d'autre, et zoomer sur la scène. Il peut aussi activer le pas d'hélice, à droite ou à gauche, et le fardage, qui fait abattre l'avant vent de face, et choisir le bord du bateau au quai ou au catway. Il peut tourner une aussière sur un taquet au maître-bau, et donner un coup de fouet au moteur, en avant comme en arrière. En manœuvre, le panneau ne montre plus que les commandes : moteur, barre et amarres. Enfin, il peut manœuvrer un bateau libre, sans quai ni amarre, en milieu de port. Le moteur pousse à une allure de manœuvre de port, autour de 3 nœuds, et le vent pèse d'autant plus. Les départs et les sorties du catalogue placent des voisins de part et d'autre, que l'élève peut retirer.
 
 Le projet s'enrichit ensuite progressivement, une fonctionnalité à la fois, sans paliers ni jalons : l'ordre suit les envies et les retours des élèves. Le backlog est tenu dans les issues GitHub du dépôt ; chaque issue devient une branche et une demande de fusion, qui met à jour ce document si elle change le périmètre.
 
 Enrichissements envisagés, chacun optionnel et sans effet sur le comportement de base :
 
 - mono ou bi-safran ;
-- pivot du vent sur l'étrave (fardage) ;
 - longueur de catway réglable ;
 - reprendre une aussière pendant la manœuvre ;
 - freiner une aussière qu'on choque ;
@@ -347,7 +351,7 @@ Les points suivants n'ont pas été tranchés et figurent dans les points ouvert
 | Point de pivot | Point autour duquel le bateau tourne à un instant donné |
 | Pas d'hélice | Poussée latérale de l'hélice, surtout en marche arrière, qui fait dériver l'arrière d'un côté |
 | Hélice à droite / à gauche | Sens de rotation de l'hélice, vue de l'arrière en marche avant : à droite, dans le sens des aiguilles d'une montre. Hélice à droite, l'arrière part vers bâbord en marche arrière ; hélice à gauche, vers tribord |
-| Fardage | Prise au vent de la coque et du gréement |
+| Fardage | Prise au vent de la coque et du gréement ; dans l'appli, option qui fait peser le vent plus au bout qui le reçoit : vent de face, l'avant abat |
 | Maître-bau | Partie la plus large du bateau ; dans l'appli, un taquet de chaque bord, au milieu de la coque |
 | Garde au maître-bau | Aussière partant du maître-bau : garde avant si elle est frappée vers l'arrière sur le quai, garde arrière vers l'avant |
 | Long side | Amarrage le long du quai, flanc contre le quai |
