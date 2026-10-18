@@ -54,7 +54,7 @@ test('recul depuis l’arrêt : hélice à gauche, symétrique exact de l’hél
 
 test('recul sans option : le bateau recule droit', () => {
   const s = libre(null, -1);
-  run(s, 8);
+  run(s, 10);
   assert.equal(s.body.th, 0);
   assert.ok(s.body.x < -5, 'le bateau a reculé');
 });
@@ -86,7 +86,7 @@ test('marche arrière, barre à fond dès le départ : l’arrière part d’abo
   // en marche arrière, une barre négative la fait venir vers bâbord.
   const s = libre('droite', -1, -BARRE_MAX);
   let capMin = 0;
-  for (let i = 0; i < 15 * 60; i++) {
+  for (let i = 0; i < 20 * 60; i++) {
     tick(s, DEFAULT_PARAMS);
     capMin = Math.min(capMin, s.body.th);
   }

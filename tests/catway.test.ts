@@ -269,16 +269,16 @@ test('relecture : un appui sur le catway se rejoue à l’identique', () => {
   const s = buildState(avecVent(sansAmarre(sortieAvant()), 'large-chenal'));
   const ses = new Session(s, DEFAULT_PARAMS);
   ses.act({ type: 'engine', value: 1 });
-  ses.advance(180);
+  ses.advance(240);
   ses.act({ type: 'rudder', value: 0.4 });
-  ses.advance(420);
+  ses.advance(600);
   const fin = cloneState(ses.state);
-  ses.seek(250);
-  ses.seek(600);
+  ses.seek(350);
+  ses.seek(840);
   assert.deepEqual(ses.state, fin);
   // Et le contact a bien eu lieu pendant la manœuvre.
   let touche = false;
-  for (let f = 0; f <= 600; f += 10) { ses.seek(f); if (ses.state.contacts.length) touche = true; }
+  for (let f = 0; f <= 840; f += 10) { ses.seek(f); if (ses.state.contacts.length) touche = true; }
   assert.ok(touche, 'le vent du large a plaqué le bateau sur le catway');
 });
 

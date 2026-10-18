@@ -11,8 +11,9 @@ export const DEFAULT_PARAMS: Readonly<Params> = Object.freeze({
   mx: 6500, // masse longitudinale, eau entraînée comprise (kg)
   my: 9500, // masse latérale (kg)
   I: 80000, // inertie de lacet (kg·m²)
-  thrustFwd: 2500, // poussée en marche avant (N)
-  thrustRev: 1700, // poussée en marche arrière (N)
+  // Poussée de manœuvre de port (#44) : le bateau libre plafonne vers 3 nœuds en avant, 2,5 en arrière.
+  thrustFwd: 1375, // poussée en marche avant (N)
+  thrustRev: 935, // poussée en marche arrière (N)
   xProp: -3.4, // position de l'hélice (m)
   xRudder: -4.3, // position du safran (m)
   rudderWash: 0.7, // efficacité du flux d'hélice sur le safran
@@ -27,8 +28,10 @@ export const DEFAULT_PARAMS: Readonly<Params> = Object.freeze({
   dragYl: 2600,
   dragYCenter: 1, // concentration de la résistance latérale vers le milieu (0 à 1)
   yawL: 2000, // amortissement de lacet propre, en plus de la résistance latérale
-  windFaible: 450, // force du vent par le travers (N)
-  windSoutenu: 1400,
+  // Vent abaissé un peu moins que la poussée : à faible vitesse, la résistance latérale est
+  // surtout linéaire, et le vent doit garder son poids face au moteur.
+  windFaible: 300, // force du vent par le travers (N)
+  windSoutenu: 900,
   windLongRatio: 0.35,
   lineK: 45000, // raideur des aussières (N/m)
   lineC: 9000,
@@ -36,8 +39,8 @@ export const DEFAULT_PARAMS: Readonly<Params> = Object.freeze({
   contactC: 30000,
   contactMu: 0.35,
   contactCt: 40000,
-  propWalkRev: 800, // pas d'hélice en marche arrière, bateau arrêté (N, à l'hélice)
-  propWalkFwd: 120, // pas d'hélice en marche avant, dans l'autre sens (N)
+  propWalkRev: 440, // pas d'hélice en marche arrière, bateau arrêté (N, à l'hélice)
+  propWalkFwd: 66, // pas d'hélice en marche avant, dans l'autre sens (N) ; tous deux suivent la poussée
   propWalkSpeed: 0.8, // erre (m/s) à laquelle le pas d'hélice est divisé par deux
   kickFactor: 2, // coup de fouet : poussée multipliée (flux d'hélice et pas d'hélice compris)
   kickTime: 2, // coup de fouet depuis le neutre ou dans le sens du moteur : durée (s)

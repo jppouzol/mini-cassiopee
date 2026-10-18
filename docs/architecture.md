@@ -79,23 +79,26 @@ Les valeurs par défaut ont été réglées pour que pivots et translations soie
 
 | Paramètre | Valeur | Équivalent indicatif |
 | --- | --- | --- |
-| Poussée en marche avant (`thrustFwd`) | 2 500 N, environ 250 kgf | Moteur de 20 à 30 ch à régime de manœuvre appuyé (on compte 8 à 10 kgf de poussée au point fixe par cheval). Vitesse limite du bateau libre : environ 4,3 nœuds |
-| Poussée en marche arrière (`thrustRev`) | 1 700 N, environ 170 kgf | Vitesse limite du bateau libre : environ 3,5 nœuds |
-| Vent faible (`windFaible`) | 450 N par le travers | Environ 12 à 14 nœuds (force 4). Dérive du bateau libre : environ 0,3 nœud |
-| Vent soutenu (`windSoutenu`) | 1 400 N par le travers | Environ 22 à 25 nœuds (force 6). Dérive du bateau libre : environ 0,7 nœud |
+| Poussée en marche avant (`thrustFwd`) | 1 375 N, environ 140 kgf | Moteur de 20 à 30 ch à bas régime, comme en manœuvre de port (on compte 8 à 10 kgf de poussée au point fixe par cheval). Vitesse limite du bateau libre : environ 3,1 nœuds |
+| Poussée en marche arrière (`thrustRev`) | 935 N, environ 95 kgf | Vitesse limite du bateau libre : environ 2,5 nœuds |
+| Vent faible (`windFaible`) | 300 N par le travers | Environ 10 à 11 nœuds (force 3 à 4). Dérive du bateau libre : environ 0,2 nœud |
+| Vent soutenu (`windSoutenu`) | 900 N par le travers | Environ 18 à 20 nœuds (force 5). Dérive du bateau libre : environ 0,5 nœud |
 | Vent dans l'axe (`windLongRatio`) | 35 % de la force par le travers | Fardage plus faible de face que de travers |
-| Giration barre à fond, marche avant | Diamètre de 18 m (1,8 longueur), pivot 2,4 m en avant du centre | Demi-tour depuis l'arrêt avec 18 m de décalage latéral, en 18 s ; dérive de 15° en giration |
-| Giration barre à fond, marche arrière | Diamètre de 19 m (1,9 longueur), pivot 1,2 m en arrière du centre | Demi-tour depuis l'arrêt avec 21 m de décalage latéral, en 26 s |
-| Dérive sous moteur, vent soutenu par le travers | 4° en marche avant, 8° en marche arrière | À l'arrêt, le bateau dérive à 0,7 nœud comme sans quille portante |
-| Pas d'hélice en marche arrière (`propWalkRev`) | 800 N à l'hélice, bateau arrêté ; moitié moins à 0,8 m/s d'erre (`propWalkSpeed`) | Option activée, depuis l'arrêt, barre au centre : environ 11° de cap en 5 s et 17° en 8 s, le temps de reculer d'une longueur. Barre à fond dans l'autre sens dès le départ, l'arrière part d'abord de côté, puis la barre reprend le dessus vers 5 s |
-| Pas d'hélice en marche avant (`propWalkFwd`) | 120 N à l'hélice, de sens contraire | Environ 1° de cap en 5 s, barre au centre : à peine visible |
-| Coup de fouet (`kickFactor`, `kickTime`, `kickMaxTime`) | Poussée doublée : 5 000 N en avant, 3 400 N en arrière ; 2 s, ou jusqu'à 5 s à contre-sens | Environ plein gaz d'un moteur de 30 ch. Bateau libre arrêté, barre à fond, coup avant : 10° de cap en 2 s, contre 5° en marche avant simple, avec 1,4 m/s d'erre au lieu de 0,7. Sur la garde avant, l'arrière s'écarte de 0,5 m en 2 s, contre 0,25 m. Lancé en avant à 2,2 m/s (4,3 nœuds), un coup arrière arrête le bateau en 3,5 s |
+| Giration barre à fond, marche avant | Diamètre de 19 m (1,9 longueur), pivot 2,3 m en avant du centre | Demi-tour depuis l'arrêt avec 19 m de décalage latéral, en 26 s ; dérive de 14° en giration |
+| Giration barre à fond, marche arrière | Diamètre de 22 m (2,2 longueurs), pivot 1,1 m en arrière du centre | Demi-tour depuis l'arrêt avec 23 m de décalage latéral, en 38 s |
+| Dérive sous moteur, vent soutenu par le travers | Cap tenu à la barre : environ 2° en marche avant, 5° en marche arrière | À l'arrêt, le bateau dérive à 0,5 nœud comme sans quille portante |
+| Pas d'hélice en marche arrière (`propWalkRev`) | 440 N à l'hélice, bateau arrêté ; moitié moins à 0,8 m/s d'erre (`propWalkSpeed`) | Option activée, depuis l'arrêt, barre au centre : environ 8° de cap en 5 s et 13° en 8 s, le temps de reculer de 4 m. Barre à fond dans l'autre sens dès le départ, l'arrière part d'abord de côté, puis la barre reprend le dessus vers 7 s |
+| Pas d'hélice en marche avant (`propWalkFwd`) | 66 N à l'hélice, de sens contraire | Environ 1° de cap en 5 s, barre au centre : à peine visible |
+| Coup de fouet (`kickFactor`, `kickTime`, `kickMaxTime`) | Poussée doublée : 2 750 N en avant, 1 870 N en arrière ; 2 s, ou jusqu'à 5 s à contre-sens | Moteur de 20 à 30 ch à régime appuyé. Bateau libre arrêté, barre à fond, coup avant : 6° de cap en 2 s, contre 3° en marche avant simple, avec 0,8 m/s d'erre au lieu de 0,4. Sur la garde avant, l'arrière s'écarte de 0,26 m en 2 s, contre 0,12 m. Lancé en avant à 1,6 m/s (3,1 nœuds), un coup arrière arrête le bateau en 4,5 s |
 
 Hypothèses : pour le vent, surface exposée par le travers de 15 à 18 m² (coque et gréement) et coefficient de traînée proche de 1 ; les vitesses limites et les dérives découlent des résistances du modèle (`dragXq`, `dragXl`, `dragYq`, `dragYl`). La giration découle du safran (`rudderFlow`, `rudderWash`, `rudderGrip`), de la quille (`keelLift`, `keelShift`) et de la répartition de la résistance latérale (`dragYCenter`), réglés sur les repères de la littérature pour un voilier de 10 m à quille aileron : diamètre d'environ deux longueurs barre à fond, presque aussi manœuvrant en arrière qu'en avant, pivot vers le tiers avant en marche avant et vers l'arrière en marche arrière.
 
+Vitesse de manœuvre (#44) : la poussée a été abaissée pour que le bateau libre plafonne vers 3 nœuds, l'allure d'une manœuvre de port, au lieu de 4,3. Le vent a été abaissé un peu moins que la poussée (×0,65 contre ×0,55) : à faible vitesse, la résistance latérale de la coque est surtout linéaire, si bien qu'un vent abaissé dans le même rapport ferait dériver le bateau proportionnellement moins, et le vent perdrait le poids qu'il prend sur l'eau quand on manœuvre lentement. Le pas d'hélice, qui dépend du régime, suit la poussée.
+
 Conséquences pour la pédagogie :
-- le vent « faible » est déjà une bonne brise ;
-- le vent soutenu vaut plus de la moitié de la poussée avant et presque toute la poussée arrière, ce qui rend le recul au vent difficile, comme sur l'eau ;
+- le vent « faible » est une petite brise, le vent soutenu un vent frais ;
+- le vent soutenu vaut environ les deux tiers de la poussée avant et presque toute la poussée arrière, ce qui rend le recul au vent difficile, comme sur l'eau ;
+- tout se passe plus lentement qu'avant : le départ sur garde demande quelques secondes de plus, et le coup de fouet, qui double la poussée, donne le coup de moteur franc qui redonne de la manœuvrabilité ;
 - le bateau fait demi-tour dans une allée de port réaliste ; sous moteur, il remonte légèrement au vent, faute de fardage de l'étrave (#12) pour faire abattre l'avant.
 
 ## Historique et relecture
@@ -333,6 +336,7 @@ Les tests ne dépendent pas du catalogue. Le catalogue est une aide aux élèves
 | Vent en libre | Vent de l'avant : le bateau recule droit ; de bâbord : il dérive vers tribord |
 | Éditeur en libre | Aucun taquet proposé ; aussière, bord et voisin refusés ; déplacement sans effet ; vent et pas d'hélice réglables |
 | Caméra en libre | Bateau au départ au centre de la vue ; vue fixe tant que le bateau reste dans la marge, recalée au-delà, le bateau restant à l'écran |
+| Vitesse de manœuvre | Bateau libre, sans vent : vitesse limite de 2,5 à 3,5 nœuds en marche avant, plus faible en marche arrière ; vent soutenu de face, le bateau avance encore ; vent soutenu par le travers, moins fort que la poussée avant, plus que la moitié |
 | Cadrage | Zoom borné entre ×0,5 et ×4 ; à ×1, aucun décalage ; zoomée, la vue reste dans le cadrage par défaut, dézoomée, elle le contient ; le point sous le pointeur ou entre les doigts reste en place quand on zoome ; un pincement sans écarter les doigts déplace seulement la vue |
 
 S'y ajoutent des tests de stabilité numérique (aucune valeur non finie, pas d'oscillation résiduelle) et des tests du format des situations. Le reste de l'interface se vérifie à la main sur PC, Android et iOS avant chaque version.
@@ -345,7 +349,8 @@ Chaque choix structurant est noté ici avec son statut ; une décision ne change
 | --- | --- | --- |
 | Application sans serveur | Fichiers statiques, tout dans le navigateur | Décidé |
 | Moteur physique | Moteur maison | Décidé |
-| Giration et pivot | Safran traité comme un aileron (barre et eau qui arrive de côté), quille portante dont le centre de poussée se porte vers l'extrémité qui ouvre la route, résistance latérale concentrée au milieu ; barre à fond, diamètre d'environ deux longueurs et pivot sur la coque ; correction du socle, sans option ; vitesse de manœuvre (#44) et pivot hors de la coque (#45) traités à part | Décidé |
+| Giration et pivot | Safran traité comme un aileron (barre et eau qui arrive de côté), quille portante dont le centre de poussée se porte vers l'extrémité qui ouvre la route, résistance latérale concentrée au milieu ; barre à fond, diamètre d'environ deux longueurs et pivot sur la coque ; correction du socle, sans option ; pivot hors de la coque (#45) traité à part ; vitesse de manœuvre : voir ci-dessous | Décidé |
+| Vitesse de manœuvre | Poussée unique abaissée (×0,55) : environ 3 nœuds en avant et 2,5 en arrière, sans second niveau de puissance ; vent abaissé un peu moins (×0,65), pour garder son poids à faible vitesse ; pas d'hélice abaissé comme la poussée ; coup de fouet toujours au double, environ l'ancienne poussée ; vent plus fort que le moteur traité à part (#65) | Décidé |
 | Relecture | Journal d'actions et images clés toutes les secondes | Décidé |
 | Stack | TypeScript, React, Vite ; tests avec le lanceur intégré à Node.js | Décidé |
 | Rendu | Canvas 2D | Décidé |
