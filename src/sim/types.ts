@@ -91,6 +91,13 @@ export type PropHand = 'droite' | 'gauche';
 export interface SimOptions {
   /** pas d'hélice et sens de rotation ; absent, pas de pas d'hélice */
   propWalk?: PropHand;
+  /**
+   * fardage : le vent s'applique en avant du centre quand il vient de l'avant, en arrière
+   * quand il vient de l'arrière ; absent, il s'applique au centre. La valeur, tirée au
+   * départ de la manœuvre, donne le côté où l'avant abat quand rien d'autre ne le décide :
+   * 1 vers bâbord, -1 vers tribord.
+   */
+  windage?: 1 | -1;
 }
 
 export interface SimState {
@@ -153,6 +160,9 @@ export interface Params {
   propWalkRev: number;
   propWalkFwd: number;
   propWalkSpeed: number;
+  windageX: number;
+  windageShift: number;
+  windageSkew: number;
   kickFactor: number;
   kickTime: number;
   kickMaxTime: number;

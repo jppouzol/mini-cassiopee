@@ -140,6 +140,8 @@ export interface Situation {
   options?: {
     /** pas d'hélice, selon le sens de rotation de l'hélice ; absent, pas de pas d'hélice */
     pasHelice?: SensHelice;
+    /** fardage : le vent s'applique vers le bout d'où il vient ; absent, au centre */
+    fardage?: true;
   };
 }
 
@@ -177,8 +179,15 @@ function parseOptions(input: Obj, id: string): Situation['options'] {
   if (input.options === undefined) return undefined;
   const o = input.options;
   if (!isObj(o)) throw new SituationError(`${id} : « options » doit être un objet ({ "pasHelice": "droite" }).`);
-  for (const k of Object.keys(o)) oneOf(k, ['pasHelice'] as const, `${id} : chaque option`);
-  return o.pasHelice !== undefined ? { pasHelice: oneOf(o.pasHelice, SENS_HELICE, `${id} : options.pasHelice`) } : undefined;
+  for (const k of Object.keys(o)) oneOf(k, ['pasHelice', 'fardage'] as const, `${id} : chaque option`);
+  const options: NonNullable<Situation['options']> = {};
+  if (o.pasHelice !== undefined) options.pasHelice = oneOf(o.pasHelice, SENS_HELICE, `${id} : options.pasHelice`);
+  if (o.fardage !== undefined && typeof o.fardage !== 'boolean') {
+    throw new SituationError(`${id} : options.fardage doit valoir true ou false.`);
+  }
+  // Comme « file », seul true est gardé : false équivaut à l'option absente.
+  if (o.fardage === true) options.fardage = true;
+  return Object.keys(options).length > 0 ? options : undefined;
 }
 
 /**

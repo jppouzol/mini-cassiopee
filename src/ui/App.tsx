@@ -4,7 +4,7 @@ import { buildState } from '../situations/build.ts';
 import { CATALOGUE, GROUPES } from '../situations/catalogue.ts';
 import {
   ECARTS_VOISIN, EditionError, PAS_DEPLACEMENT, ajouterAussiere, basculerFile, basculerMou, bornesDeplacement,
-  changerBord, deplacerBateau, ecartVoisin, etraveVoisinCatway, reglerPasHelice, reglerPlafond, reglerVoisin, renommerAussiere, supprimerAussiere, taquetsProposes,
+  changerBord, deplacerBateau, ecartVoisin, etraveVoisinCatway, reglerFardage, reglerPasHelice, reglerPlafond, reglerVoisin, renommerAussiere, supprimerAussiere, taquetsProposes,
 } from '../situations/edit.ts';
 import { bitteDepuisPoint, bittesAutresCatways, bittesDuPort, libre, perpendiculaire } from '../situations/quai.ts';
 import {
@@ -25,6 +25,13 @@ const PAS_HELICE: { value: SensHelice | ''; label: string }[] = [
   { value: 'droite', label: 'Hélice à droite' },
   { value: 'gauche', label: 'Hélice à gauche' },
 ];
+
+/**
+ * Côté où l'avant abat sous l'effet du fardage quand rien d'autre n'en décide : tiré à chaque
+ * préparation, il change d'un essai à l'autre ; noté dans l'état de départ, il est rejoué à
+ * l'identique (retour arrière, ⏮). Seul tirage au hasard de l'application, hors du moteur.
+ */
+const tirerAbattee = (): 1 | -1 => (Math.random() < 0.5 ? 1 : -1);
 
 const WIND_LABELS: Record<WindDirection, string> = {
   quai: 'Vent du quai',
@@ -131,12 +138,12 @@ export function App() {
   paramsRef.current = params;
 
   const newSession = useCallback((sit: Situation) => {
-    sessionRef.current = new Session(buildState(sit), paramsRef.current);
+    sessionRef.current = new Session(buildState(sit, undefined, tirerAbattee()), paramsRef.current);
     setPlaying(false);
     refresh();
   }, [refresh]);
 
-  if (sessionRef.current === null) sessionRef.current = new Session(buildState(preparee), params);
+  if (sessionRef.current === null) sessionRef.current = new Session(buildState(preparee, undefined, tirerAbattee()), params);
   const session = sessionRef.current;
   const s = session.state;
   const atStart = session.frame === 0;
@@ -409,6 +416,16 @@ export function App() {
           </select>
         </div>
         <p className="hint">Poussée de l’hélice qui fait partir l’arrière de côté quand le moteur tourne, surtout en marche arrière. Se règle au départ.</p>
+        <div className="voisin">
+          <span>Fardage</span>
+          <div className="seg" role="group" aria-label="Fardage">
+            {[false, true].map((actif) => (
+              <button key={String(actif)} aria-pressed={(preparee.options?.fardage === true) === actif}
+                onClick={() => edit((sit) => reglerFardage(sit, actif))}>{actif ? 'Avec' : 'Sans'}</button>
+            ))}
+          </div>
+        </div>
+        <p className="hint">Prise au vent de la coque et du gréement, plus forte au bout qui reçoit le vent : vent de face, l’avant abat d’un côté ou de l’autre ; arrêté, le bateau se met en travers. Se règle au départ.</p>
       </div>
     </details>
   );

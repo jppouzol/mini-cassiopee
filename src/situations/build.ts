@@ -44,8 +44,13 @@ export function windVector(direction: WindDirection, sit: Situation): Vec {
   return b ? mix(dirs[a], dirs[b]) : dirs[a];
 }
 
-/** Construit l'état initial de la simulation à partir d'une situation validée. */
-export function buildState(sit: Situation, windOverride?: Situation['vent']): SimState {
+/**
+ * Construit l'état initial de la simulation à partir d'une situation validée.
+ * `abattee` est le côté où l'avant abat sous l'effet du fardage quand rien d'autre
+ * n'en décide (1 vers bâbord, -1 vers tribord) : l'interface le tire à chaque
+ * préparation ; il est noté dans l'état et rejoué à l'identique.
+ */
+export function buildState(sit: Situation, windOverride?: Situation['vent'], abattee: 1 | -1 = 1): SimState {
   const pose = poseDepart(sit);
   const side = quaySide(sit);
   const body = { x: pose.x, y: pose.y, th: pose.th, vx: 0, vy: 0, w: 0 };
@@ -69,6 +74,7 @@ export function buildState(sit: Situation, windOverride?: Situation['vent']): Si
   // Effets avancés : seuls ceux que la situation active.
   const options: SimState['options'] = {};
   if (sit.options?.pasHelice) options.propWalk = sit.options.pasHelice;
+  if (sit.options?.fardage) options.windage = abattee;
   // Sans quai en situation libre : rien à toucher.
   return { frame: 0, body, lines, engine: 0, kick: null, rudder: 0, wind, quay: !libre(sit), contacts: [], catways, neighbors, pivot: null, options };
 }

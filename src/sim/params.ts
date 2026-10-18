@@ -42,6 +42,11 @@ export const DEFAULT_PARAMS: Readonly<Params> = Object.freeze({
   propWalkRev: 440, // pas d'hélice en marche arrière, bateau arrêté (N, à l'hélice)
   propWalkFwd: 66, // pas d'hélice en marche avant, dans l'autre sens (N) ; tous deux suivent la poussée
   propWalkSpeed: 0.8, // erre (m/s) à laquelle le pas d'hélice est divisé par deux
+  // Fardage (#12) : point d'application du vent le long de l'axe, windageX + windageShift × cos(angle
+  // d'où vient le vent, compté depuis l'étrave) : vers l'avant vent de face, vers l'arrière vent arrière.
+  windageX: 0.5, // décalage vers l'avant, vent par le travers (m)
+  windageShift: 4, // déplacement vers le bout d'où vient le vent (m)
+  windageSkew: 0.07, // écart du vent vu par le fardage, côté tiré au départ (rad, environ 4°)
   kickFactor: 2, // coup de fouet : poussée multipliée (flux d'hélice et pas d'hélice compris)
   kickTime: 2, // coup de fouet depuis le neutre ou dans le sens du moteur : durée (s)
   kickMaxTime: 5, // coup de fouet à contre-sens, qui casse l'erre : durée maximale (s)

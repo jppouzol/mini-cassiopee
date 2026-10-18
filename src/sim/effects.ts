@@ -107,16 +107,24 @@ export const hydrodynamics: Effect = (s, p, f) => {
   f.m += -p.yawL * b.w;
 };
 
-/** Vent appliqué au centre du bateau (le fardage de l'étrave viendra plus tard). */
-export const wind: Effect = (s, p, f) => {
-  const force = s.wind.force === 'faible' ? p.windFaible : s.wind.force === 'soutenu' ? p.windSoutenu : 0;
-  if (force === 0) return;
-  const b = s.body;
-  const c = Math.cos(b.th), sn = Math.sin(b.th);
+/** Force du vent par le travers (N), selon son réglage. */
+function windForce(s: SimState, p: Params): number {
+  return s.wind.force === 'faible' ? p.windFaible : s.wind.force === 'soutenu' ? p.windSoutenu : 0;
+}
+
+/** Direction vers laquelle souffle le vent, en repère bateau. */
+function windInBody(s: SimState): Vec {
+  const c = Math.cos(s.body.th), sn = Math.sin(s.body.th);
   const [dx, dy] = s.wind.to;
-  const wbx = c * dx + sn * dy;
-  const wby = -sn * dx + c * dy;
-  addBody(f, b, force * p.windLongRatio * wbx, force * wby, 0, 0);
+  return [c * dx + sn * dy, -sn * dx + c * dy];
+}
+
+/** Vent appliqué au centre du bateau ; le fardage (effet optionnel) y ajoute un moment. */
+export const wind: Effect = (s, p, f) => {
+  const force = windForce(s, p);
+  if (force === 0) return;
+  const [wbx, wby] = windInBody(s);
+  addBody(f, s.body, force * p.windLongRatio * wbx, force * wby, 0, 0);
 };
 
 /**
@@ -271,17 +279,58 @@ export const propWalk: Effect = (s, p, f) => {
   addBody(f, s.body, 0, (side * factor) / (1 + r * r), p.xProp, 0);
 };
 
+/**
+ * Fardage (effet optionnel) : la prise au vent de la coque et du gréement ne s'applique
+ * pas au centre. Son point d'application se porte vers le bout d'où vient le vent :
+ * en avant vent de face, un peu en avant par le travers, en arrière vent arrière
+ * (`windageX` + `windageShift` × cosinus de l'angle d'où vient le vent, compté depuis
+ * l'étrave). L'effet ajoute seulement le moment de la force latérale du vent, déjà
+ * appliquée au centre par le socle.
+ *
+ * Vent de face, l'équilibre devient instable : un petit écart de cap grandit et l'avant
+ * abat ; arrêté, le bateau finit à peu près en travers. Vent pile dans l'axe, rien ne
+ * brise la symétrie : l'effet ajoute le moment d'un vent qui arriverait légèrement de
+ * côté (`windageSkew`), du côté tiré au départ (`options.windage`), si bien que l'avant
+ * abat de ce côté quand ni la barre ni le pas d'hélice n'en décident. Ce déclencheur
+ * s'efface quand le vent vient de travers.
+ */
+export const windage: Effect = (s, p, f) => {
+  const force = windForce(s, p);
+  if (force === 0 || !s.options.windage) return;
+  const [wbx, wby] = windInBody(s);
+  const x = p.windageX - p.windageShift * wbx;
+  // Déclencheur : comme si le vent arrivait de windageSkew sur le côté tiré, mais seulement
+  // vent dans l'axe (wbx²), pour que le côté tiré ne change rien vent de travers. Côté 1 :
+  // l'avant part vers bâbord, que le vent vienne de l'avant ou de l'arrière.
+  const nudge = s.options.windage * p.windageSkew * Math.abs(x) * wbx * wbx;
+  f.m += force * (x * wby + nudge);
+};
+
 /** Effets du socle, dans un ordre fixe (gage de déterminisme). */
 export const BASE_EFFECTS: readonly Effect[] = [
   engine, rudder, hydrodynamics, wind, mooringLines, quayContact, catwayContact, neighborContact,
 ];
 
-const WITH_PROP_WALK: readonly Effect[] = [...BASE_EFFECTS, propWalk];
+/** Effets optionnels, dans l'ordre où ils s'ajoutent au socle. */
+const OPTIONAL_EFFECTS: readonly { effect: Effect; on: (s: SimState) => boolean }[] = [
+  { effect: propWalk, on: (s) => !!s.options.propWalk },
+  { effect: windage, on: (s) => !!s.options.windage },
+];
+
+const listCache = new Map<string, readonly Effect[]>();
 
 /**
  * Effets actifs d'après les options de l'état : le socle, puis les effets
  * optionnels activés, toujours dans le même ordre.
  */
 export function activeEffects(s: SimState): readonly Effect[] {
-  return s.options.propWalk ? WITH_PROP_WALK : BASE_EFFECTS;
+  const on = OPTIONAL_EFFECTS.map((o) => o.on(s));
+  if (!on.includes(true)) return BASE_EFFECTS;
+  const key = on.map(Number).join('');
+  let list = listCache.get(key);
+  if (!list) {
+    list = [...BASE_EFFECTS, ...OPTIONAL_EFFECTS.filter((_, i) => on[i]).map((o) => o.effect)];
+    listCache.set(key, list);
+  }
+  return list;
 }
