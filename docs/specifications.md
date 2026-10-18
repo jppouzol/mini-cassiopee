@@ -54,7 +54,7 @@ La scène se compose d'un seul bateau, d'un quai, d'aussières et du vent ; en s
 ### Quai et environnement
 
 - Amarrage le long du quai (long side) ou perpendiculaire au quai, le long d'un catway ; ou bateau libre, sans quai. Le type d'amarrage est fixé par la situation du catalogue ; l'éditeur ne le change pas.
-- Option : bateaux voisins de part et d'autre, pour tester les points de pivot et les risques de contact. Le long du quai, un voisin peut être amarré devant, un autre derrière, chacun réglé à part : aucun, serré ou large. Ils ont la même coque, le même cap et le même écart au quai que le bateau, et restent immobiles. En perpendiculaire, voir ci-dessous. Sans voisin, rien ne change.
+- Option : bateaux voisins de part et d'autre, pour tester les points de pivot et les risques de contact. Les départs et les sorties du catalogue en ont par défaut ; l'élève peut les retirer. Le long du quai, un voisin peut être amarré devant, un autre derrière, chacun réglé à part : aucun, serré ou large. Ils ont la même coque, le même cap et le même écart au quai que le bateau, et restent immobiles. En perpendiculaire, voir ci-dessous. Sans voisin, rien ne change.
 - Points d'amarrage côté quai : une rangée de bittes fixes, espacées de 2 m, sur toute la longueur du quai, comme sur un vrai quai. Les aussières du catalogue comme celles ajoutées dans l'éditeur sont tournées sur ces bittes, ou sur celles du catway ; on ne crée pas de point d'amarrage ailleurs.
 
 #### Amarrage perpendiculaire
@@ -182,14 +182,14 @@ L'élève part d'un catalogue de situations types, qu'il peut ajuster dans un pe
 
 ### Catalogue
 
-Chaque situation définit : la configuration du quai (le long, perpendiculaire, étrave ou arrière au quai, ou aucun quai), la position du bateau, les aussières en place et celles qui sont tendues au démarrage, le vent, et les options avancées actives. Contenu proposé, à valider : chaque famille commence par l'amarrage complet, suivi des manœuvres de départ. Le catalogue ne propose pas de voisins : l'élève les ajoute dans les options avancées.
+Chaque situation définit : la configuration du quai (le long, perpendiculaire, étrave ou arrière au quai, ou aucun quai), la position du bateau, les aussières en place et celles qui sont tendues au démarrage, le vent, les bateaux voisins et les options avancées actives. Contenu proposé, à valider : chaque famille commence par l'amarrage complet, suivi des manœuvres de départ. Les départs et les sorties ont des voisins de part et d'autre, comme dans un vrai port où l'on part rarement d'un quai vide : ils montrent l'intérêt de la manœuvre, déborder sans toucher le bateau d'à côté. Les amarrages et la situation libre n'en ont pas. Dans les options avancées, l'élève retire ou remet chaque voisin, ou change son écart.
 
 - le long du quai, amarrage complet : deux pointes et deux gardes, vent soutenu du quai, sans commande : vérification d'amarrage (à essayer aussi vent du large) ;
-- départ sur garde avant : seule la garde avant est tournée ;
-- départ sur garde arrière : seule la garde arrière est tournée ;
+- départ sur garde avant : seule la garde avant est tournée, voisins serrés devant et derrière ;
+- départ sur garde arrière : seule la garde arrière est tournée, voisins serrés devant et derrière ; l'étrave ne déborde le voisin de devant qu'après un appui assez long sur la garde ;
 - sur catway, amarrage complet : arrière au quai, deux pointes et deux gardes, vent soutenu du catway, sans commande : vérification d'amarrage, l'avant qui dépasse du catway est le plus exposé ;
-- sur catway, arrière au quai : sortie en marche avant, depuis les deux pointes et la garde arrière ;
-- sur catway, étrave au quai : sortie en marche arrière, depuis les deux pointes et la garde avant ;
+- sur catway, arrière au quai : sortie en marche avant, depuis les deux pointes et la garde arrière, voisins côté catway et côté large ;
+- sur catway, étrave au quai : sortie en marche arrière, depuis les deux pointes et la garde avant, voisins côté catway et côté large ;
 - libre, sans vent : bateau arrêté en milieu de port, sans amarre, pour la giration, le demi-tour et la marche arrière.
 
 Sur catway, le bout au quai porte deux pointes, une vers chaque bord, en plus des gardes tournées sur le catway. Les pointes empêchent le bateau de s'éloigner du quai. Dans les sorties, une seule garde reste : celle qui l'empêche d'aller taper dans le quai, partie du bout tourné vers le quai. Comme sur un vrai bateau, chaque aussière du catalogue part vers l'extérieur du bateau, du bord de son taquet : sa bitte est plus écartée de l'axe que le taquet, et les deux pointes s'ouvrent en V.
@@ -247,7 +247,7 @@ En situation libre, l'éditeur ne propose que le vent et le pas d'hélice : sans
 - **Réglage le long du quai** : dans les options avancées, « Voisin devant » et « Voisin derrière » valent chacun aucun, serré ou large. L'écart se compte depuis la place d'origine du bateau ; aucune valeur chiffrée n'est affichée.
 - **Réglage en perpendiculaire** : « Voisin côté catway » et « Voisin côté large » valent chacun aucun ou présent ; leur place découle des catways.
 - **Place** : le long du quai, un voisin est refusé, avec un message, si le bateau, déplacé, est trop près de la place qu'il occuperait. En perpendiculaire, glisser le bateau le long du catway ne le rapproche pas des voisins : leur réglage ne limite pas le déplacement.
-- Comme le reste de la situation, les voisins se règlent en préparation ; « Situation d'origine » les remet comme dans le catalogue.
+- Comme le reste de la situation, les voisins se règlent en préparation ; « Situation d'origine » les remet comme dans le catalogue : présents dans les départs et les sorties, absents ailleurs.
 
 #### Situation préparée et situation d'origine
 
@@ -283,7 +283,7 @@ En manœuvre, l'élève a besoin du moteur, de la barre et des amarres, pas des 
 
 ## Évolutions
 
-Le socle est livré : amarrage le long du quai, aussières fixes, moteur avant, neutre et arrière, largage individuel, barre, vent faible ou soutenu, tension des aussières et point de pivot, pause, pas à pas et retour arrière, catalogue et éditeur. Depuis, l'élève peut aussi choquer une aussière, placer des bateaux voisins devant et derrière, manœuvrer un bateau amarré perpendiculaire au quai, le long d'un catway, avec ses voisins de part et d'autre, et zoomer sur la scène. Il peut aussi activer le pas d'hélice, à droite ou à gauche, et choisir le bord du bateau au quai ou au catway. Il peut tourner une aussière sur un taquet au maître-bau, et donner un coup de fouet au moteur, en avant comme en arrière. En manœuvre, le panneau ne montre plus que les commandes : moteur, barre et amarres. Enfin, il peut manœuvrer un bateau libre, sans quai ni amarre, en milieu de port.
+Le socle est livré : amarrage le long du quai, aussières fixes, moteur avant, neutre et arrière, largage individuel, barre, vent faible ou soutenu, tension des aussières et point de pivot, pause, pas à pas et retour arrière, catalogue et éditeur. Depuis, l'élève peut aussi choquer une aussière, placer des bateaux voisins devant et derrière, manœuvrer un bateau amarré perpendiculaire au quai, le long d'un catway, avec ses voisins de part et d'autre, et zoomer sur la scène. Il peut aussi activer le pas d'hélice, à droite ou à gauche, et choisir le bord du bateau au quai ou au catway. Il peut tourner une aussière sur un taquet au maître-bau, et donner un coup de fouet au moteur, en avant comme en arrière. En manœuvre, le panneau ne montre plus que les commandes : moteur, barre et amarres. Enfin, il peut manœuvrer un bateau libre, sans quai ni amarre, en milieu de port. Les départs et les sorties du catalogue placent des voisins de part et d'autre, que l'élève peut retirer.
 
 Le projet s'enrichit ensuite progressivement, une fonctionnalité à la fois, sans paliers ni jalons : l'ordre suit les envies et les retours des élèves. Le backlog est tenu dans les issues GitHub du dépôt ; chaque issue devient une branche et une demande de fusion, qui met à jour ce document si elle change le périmètre.
 
