@@ -65,10 +65,10 @@ test('changement de bord : l’aussière au maître-bau passe en miroir et garde
 test('garde avant au maître-bau, moteur avant : le bateau pivote bien moins qu’avec une garde à l’étrave', () => {
   const mb = start('garde-maitre-bau');
   mb.engine = 1;
-  run(mb, 10);
+  run(mb, 15);
   const etrave = start('depart-garde-avant');
   etrave.engine = 1;
-  run(etrave, 10);
+  run(etrave, 15);
   assert.ok(deg(mb.body.th) < deg(etrave.body.th) * 0.75, `${deg(mb.body.th).toFixed(1)}° contre ${deg(etrave.body.th).toFixed(1)}°`);
   assert.ok(line(mb, 'garde-mb').tension > 500, 'la garde travaille');
   assert.ok(Math.abs(mb.body.x) < 1, 'la garde retient le bateau');

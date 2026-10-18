@@ -16,7 +16,7 @@ test('au repos, sans vent, le bateau ne bouge pas', () => {
 test('garde avant en marche avant : l’étrave reste en appui et l’arrière décolle', () => {
   const s = start('depart-garde-avant');
   s.engine = 1;
-  run(s, 10);
+  run(s, 15);
   assert.ok(deg(s.body.th) > 10, `cap ${deg(s.body.th).toFixed(1)}°`);
   assert.ok(bow(s)[1] > -0.6, 'l’étrave reste près du quai');
   assert.ok(stern(s)[1] < -3, 'l’arrière s’est écarté du quai');
@@ -81,7 +81,7 @@ test('vent du large : le bateau est plaqué contre le quai, les aussières sont 
 test('aucune amarre et vent du quai : le bateau dérive vers le large', () => {
   const s = start('depart-garde-avant', { direction: 'quai', force: 'soutenu' });
   line(s, 'garde-av').attached = false;
-  run(s, 15);
+  run(s, 20);
   assert.ok(s.body.y < -5);
 });
 

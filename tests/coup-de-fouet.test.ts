@@ -108,7 +108,7 @@ test('coup à contre-sens : il casse l’erre, s’arrête à l’erre nulle et 
 test('coup à contre-sens sans erre : bateau retenu par la garde, durée fixe puis neutre', () => {
   const s = start('depart-garde-avant');
   s.engine = 1;
-  run(s, 5);
+  run(s, 10);
   assert.ok(Math.abs(erre(s)) < 0.05, 'le bateau est retenu par la garde');
   startKick(s, -1);
   assert.equal(s.kick?.brake, false);

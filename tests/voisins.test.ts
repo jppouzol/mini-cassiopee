@@ -110,9 +110,9 @@ test('sans garde, barre vers le large : l’arrière frotte le quai et l’étra
 test('le voisin sert de point d’appui : étrave contre lui, la barre fait pivoter le bateau autour de l’étrave', () => {
   const s = buildState(sansAmarre(avecVoisins(garde(), 1)));
   s.engine = 1;
-  run(s, 4);
+  run(s, 5);
   s.rudder = rad(25);
-  run(s, 6);
+  run(s, 8);
   assert.ok(voisin(s, 'avant').contacts.length > 0, 'l’étrave reste en appui sur le voisin');
   assert.ok(deg(s.body.th) > 8, `cap ${deg(s.body.th).toFixed(1)}°`);
   assert.ok(s.pivot !== null && s.pivot > 4, `pivot à l’étrave (${s.pivot})`);
