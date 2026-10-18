@@ -1,0 +1,10 @@
+{
+  "format": 1,
+  "id": "libre-fardage",
+  "titre": "Bateau libre, vent de l'avant, fardage",
+  "description": "Sans quai ni amarre, vent soutenu pile de l'avant, avec le fardage : l'avant doit abattre d'un côté ou de l'autre.",
+  "quai": { "type": "libre" },
+  "aussieres": [],
+  "vent": { "direction": "avant", "force": "soutenu" },
+  "options": { "fardage": true }
+}

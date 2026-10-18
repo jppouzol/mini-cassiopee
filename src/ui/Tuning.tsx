@@ -16,6 +16,8 @@ const SETTINGS: [Key, string, number, number, number][] = [
   ['dragYCenter', 'Résistance latérale concentrée au milieu', 0, 1, 0.05],
   ['windSoutenu', 'Vent soutenu (N)', 300, 4000, 50],
   ['windFaible', 'Vent faible (N)', 100, 2000, 50],
+  ['windageShift', 'Fardage : avancée du vent de face (m)', 0, 5, 0.1],
+  ['windageX', 'Fardage : avancée du vent de travers (m)', -1, 2, 0.1],
   ['lineK', 'Raideur des aussières (N/m)', 10000, 150000, 1000],
 ];
 

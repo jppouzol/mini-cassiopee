@@ -162,12 +162,25 @@ export function reglerPlafond(sit: Situation, valeur: number): Situation {
 }
 
 /**
- * Règle le pas d'hélice : hélice à droite, à gauche, ou aucun (`null`). Sans option
- * active, le champ `options` disparaît : la situation redevient celle du socle.
+ * Remplace les options avancées d'une situation. Sans option active, le champ
+ * `options` disparaît : la situation redevient celle du socle.
  */
-export function reglerPasHelice(sit: Situation, sens: SensHelice | null): Situation {
+function avecOptions(sit: Situation, options: NonNullable<Situation['options']>): Situation {
   const { options: _anciennes, ...reste } = sit;
-  return sens === null ? reste : { ...reste, options: { pasHelice: sens } };
+  return Object.keys(options).length > 0 ? { ...reste, options } : reste;
+}
+
+/** Règle le pas d'hélice : hélice à droite, à gauche, ou aucun (`null`). Les autres options sont gardées. */
+export function reglerPasHelice(sit: Situation, sens: SensHelice | null): Situation {
+  const { pasHelice: _ancien, ...autres } = sit.options ?? {};
+  return avecOptions(sit, sens === null ? autres : { ...autres, pasHelice: sens });
+}
+
+/** Active ou retire le fardage. Les autres options sont gardées. */
+export function reglerFardage(sit: Situation, actif: boolean): Situation {
+  if ((sit.options?.fardage === true) === actif) return sit;
+  const { fardage: _ancien, ...autres } = sit.options ?? {};
+  return avecOptions(sit, actif ? { ...autres, fardage: true } : autres);
 }
 
 /** Pas du déplacement du bateau le long du quai ou du catway (m). */
