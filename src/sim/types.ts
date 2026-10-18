@@ -36,6 +36,16 @@ export interface MooringLine {
 }
 
 export type Engine = -1 | 0 | 1;
+
+/** Coup de fouet en cours : poussée brève et forte, suivie d'un retour automatique (`src/sim/kick.ts`). */
+export interface Kick {
+  /** sens du coup : 1 en avant, -1 en arrière */
+  dir: 1 | -1;
+  /** images écoulées depuis le début du coup */
+  frames: number;
+  /** coup à contre-sens qui casse l'erre : il s'arrête quand le bateau ne va plus dans l'ancien sens */
+  brake: boolean;
+}
 export type WindForce = 'aucun' | 'faible' | 'soutenu';
 
 export interface Wind {
@@ -88,7 +98,10 @@ export interface SimState {
   frame: number;
   body: Body;
   lines: MooringLine[];
+  /** position du moteur ; pendant un coup de fouet, celle où il reviendra */
   engine: Engine;
+  /** coup de fouet en cours, null sinon */
+  kick: Kick | null;
   /** angle de barre (rad), > 0 : le bateau tourne vers bâbord */
   rudder: number;
   wind: Wind;
@@ -140,6 +153,9 @@ export interface Params {
   propWalkRev: number;
   propWalkFwd: number;
   propWalkSpeed: number;
+  kickFactor: number;
+  kickTime: number;
+  kickMaxTime: number;
 }
 
 /** Accumulateur de forces exprimées dans le repère monde, moment autour du centre. */

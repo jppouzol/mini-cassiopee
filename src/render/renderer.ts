@@ -254,11 +254,13 @@ export function render(ctx: CanvasRenderingContext2D, s: Readonly<SimState>, v: 
   ctx.beginPath(); ctx.moveTo(X(r0[0]), Y(r0[1])); ctx.lineTo(X(r1[0]), Y(r1[1])); ctx.stroke();
   ctx.lineCap = 'butt';
 
-  // Poussée du moteur
-  if (s.engine !== 0) {
-    const p0 = toWorld(b, [s.engine > 0 ? -3.6 : -4.2, 0]);
-    const p1 = toWorld(b, [s.engine > 0 ? -1.2 : -7, 0]);
-    arrow(ctx, X(p0[0]), Y(p0[1]), X(p1[0]), Y(p1[1]), C.accent, 3);
+  // Poussée du moteur ; pendant un coup de fouet, dans le sens du coup, plus longue et plus épaisse.
+  const dir = s.kick ? s.kick.dir : s.engine;
+  if (dir !== 0) {
+    const fort = s.kick !== null;
+    const p0 = toWorld(b, [dir > 0 ? -3.6 : -4.2, 0]);
+    const p1 = toWorld(b, [dir > 0 ? (fort ? 0.6 : -1.2) : (fort ? -9 : -7), 0]);
+    arrow(ctx, X(p0[0]), Y(p0[1]), X(p1[0]), Y(p1[1]), C.accent, fort ? 6 : 3, fort ? 15 : 10);
   }
 
   // Taquets
@@ -412,9 +414,9 @@ function arrowHead(ctx: CanvasRenderingContext2D, x1: number, y1: number, x2: nu
   ctx.fill();
 }
 
-function arrow(ctx: CanvasRenderingContext2D, x1: number, y1: number, x2: number, y2: number, col: string, w: number): void {
+function arrow(ctx: CanvasRenderingContext2D, x1: number, y1: number, x2: number, y2: number, col: string, w: number, head = 10): void {
   ctx.strokeStyle = col;
   ctx.lineWidth = w;
   ctx.beginPath(); ctx.moveTo(x1, y1); ctx.lineTo(x2, y2); ctx.stroke();
-  arrowHead(ctx, x1, y1, x2, y2, col, 10);
+  arrowHead(ctx, x1, y1, x2, y2, col, head);
 }

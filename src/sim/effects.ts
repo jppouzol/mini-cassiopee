@@ -1,4 +1,5 @@
 import type { Body, Catway, Effect, Forces, Params, SimState, Vec } from './types.ts';
+import { thrustOf } from './kick.ts';
 import { CONTACT_POINTS, HALF_LENGTH, SLICES, hullPenetration, pointVelocity, rotate, toLocal, toWorld } from './geometry.ts';
 
 // Chaque effet est une fonction pure de l'état et des paramètres, qui ajoute
@@ -30,19 +31,21 @@ function bodyVelocity(b: Body): [number, number] {
   return [c * b.vx + s * b.vy, -s * b.vx + c * b.vy];
 }
 
-/** Poussée du moteur, le long de l'axe, à la position de l'hélice. */
+/** Poussée du moteur, le long de l'axe, à la position de l'hélice ; multipliée pendant un coup de fouet. */
 export const engine: Effect = (s, p, f) => {
-  const t = s.engine > 0 ? p.thrustFwd : s.engine < 0 ? -p.thrustRev : 0;
-  addBody(f, s.body, t, 0, p.xProp, 0);
+  const { dir, factor } = thrustOf(s, p);
+  const t = dir > 0 ? p.thrustFwd : dir < 0 ? -p.thrustRev : 0;
+  addBody(f, s.body, t * factor, 0, p.xProp, 0);
 };
 
 /**
  * Vitesse du flux d'hélice au safran (m/s) : en marche avant seulement, l'hélice
  * soufflant sur le safran. Déduite de son effet (`rudderWash`) et de l'efficacité
- * du safran (`rudderFlow`). Un bi-safran (#11), hors du flux, la mettra à zéro.
+ * du safran (`rudderFlow`) ; elle croît avec la poussée (`factor`, pendant un coup
+ * de fouet). Un bi-safran (#11), hors du flux, la mettra à zéro.
  */
-export function washSpeed(engine: number, p: Params): number {
-  return engine > 0 ? Math.sqrt((p.rudderWash * p.thrustFwd) / p.rudderFlow) : 0;
+export function washSpeed(dir: number, p: Params, factor = 1): number {
+  return dir > 0 ? Math.sqrt((p.rudderWash * p.thrustFwd * factor) / p.rudderFlow) : 0;
 }
 
 /**
@@ -56,7 +59,8 @@ export function washSpeed(engine: number, p: Params): number {
 export const rudder: Effect = (s, p, f) => {
   const b = s.body;
   const [u, v] = bodyVelocity(b);
-  const uw = washSpeed(s.engine, p);
+  const { dir, factor } = thrustOf(s, p);
+  const uw = washSpeed(dir, p, factor);
   const deflection = p.rudderFlow * (uw * uw + u * Math.abs(u)) * s.rudder;
   const vr = v + b.w * p.xRudder;
   const grip = p.rudderFlow * p.rudderGrip * Math.hypot(u, uw) * vr;
@@ -258,12 +262,13 @@ export const catwayContact: Effect = (s, p, f) => {
  * de l'hélice : avec de l'erre, la barre reprend le dessus.
  */
 export const propWalk: Effect = (s, p, f) => {
-  if (s.engine === 0 || !s.options.propWalk) return;
+  const { dir, factor } = thrustOf(s, p);
+  if (dir === 0 || !s.options.propWalk) return;
   const [u] = bodyVelocity(s.body);
   const hand = s.options.propWalk === 'droite' ? 1 : -1;
-  const side = s.engine < 0 ? hand * p.propWalkRev : -hand * p.propWalkFwd;
+  const side = dir < 0 ? hand * p.propWalkRev : -hand * p.propWalkFwd;
   const r = u / p.propWalkSpeed;
-  addBody(f, s.body, 0, side / (1 + r * r), p.xProp, 0);
+  addBody(f, s.body, 0, (side * factor) / (1 + r * r), p.xProp, 0);
 };
 
 /** Effets du socle, dans un ordre fixe (gage de déterminisme). */

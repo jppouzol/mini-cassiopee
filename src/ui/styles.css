@@ -74,6 +74,8 @@ h2 { margin: 0; font-family: var(--f-label); font-weight: 600; font-size: 13px; 
 .seg button:first-child { border-left: 0; }
 .seg button[aria-pressed="true"] { background: var(--accent); color: var(--panel); font-weight: 700; }
 .seg button:disabled { opacity: .45; cursor: default; }
+/* Coups de fouet, sous la commande moteur. */
+.seg.coups { margin-top: 6px; }
 /* Sélecteur court, sur la même ligne que son intitulé (bord au quai). */
 .seg-court { min-width: 170px; }
 .seg-court button { min-height: 36px; padding: 0 12px; }
