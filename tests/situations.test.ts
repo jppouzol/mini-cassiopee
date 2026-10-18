@@ -4,7 +4,9 @@ import { catalogue, rawSituation, scenarios } from './helpers.ts';
 import { parseSituation, SituationError } from '../src/situations/schema.ts';
 import { BOLLARD_SPACING, buildState } from '../src/situations/build.ts';
 import { bittesDuPort } from '../src/situations/quai.ts';
-import { nomDeduit } from '../src/situations/edit.ts';
+import { ECARTS_VOISIN, ecartVoisin, etraveVoisinCatway, nomDeduit } from '../src/situations/edit.ts';
+import { tick } from '../src/sim/engine.ts';
+import { DEFAULT_PARAMS } from '../src/sim/params.ts';
 
 
 test('toutes les situations du catalogue sont valides et ont un identifiant unique', () => {
@@ -82,5 +84,22 @@ test('catalogue, le long du quai : les gardes sont croisées, tournées au nivea
         assert.ok(a.bitte > 0 && a.bitte <= 5, `${sit.id} : garde arrière tournée en ${a.bitte} m, hors de la moitié avant`);
       }
     }
+  }
+});
+
+test('catalogue : chaque voisin correspond à un choix de l’éditeur et ne touche pas le bateau au départ', () => {
+  for (const { sit } of catalogue()) {
+    for (const cote of Object.keys(sit.voisins ?? {}) as (keyof NonNullable<typeof sit.voisins>)[]) {
+      // L'éditeur montre ainsi le réglage du catalogue comme un choix sélectionné.
+      const ecart = ecartVoisin(sit, sit, cote);
+      const choix = cote === 'catway' || cote === 'large'
+        ? [etraveVoisinCatway(sit)]
+        : [ECARTS_VOISIN.serre, ECARTS_VOISIN.large];
+      assert.ok(choix.includes(ecart as number), `${sit.id}, voisin ${cote} : écart ${ecart} hors des choix de l’éditeur`);
+    }
+    // Sans commande ni vent du catalogue, une seconde : aucun contact avec un voisin.
+    const s = buildState(sit);
+    for (let i = 0; i < 60; i++) tick(s, DEFAULT_PARAMS);
+    assert.ok(s.neighbors.every((n) => n.contacts.length === 0), `${sit.id} : contact avec un voisin dès le départ`);
   }
 });
