@@ -1,7 +1,7 @@
 import type { Effect, Forces, Params, SimState } from './types.ts';
 import { activeEffects } from './effects.ts';
 import { updateKick } from './kick.ts';
-import { DT, SUBSTEPS } from './params.ts';
+import { DT, FPS, SUBSTEPS } from './params.ts';
 
 /** Un sous-pas d'intégration (Euler semi-implicite). */
 function substep(s: SimState, p: Params, effects: readonly Effect[]): void {
@@ -41,7 +41,10 @@ function updatePivot(s: SimState, p: Params): void {
  * Par défaut, les effets sont ceux du socle et les effets optionnels activés par l'état.
  */
 export function tick(s: SimState, p: Params, effects: readonly Effect[] = activeEffects(s)): void {
+  const lens = s.lines.map((l) => l.len);
   for (let i = 0; i < SUBSTEPS; i++) substep(s, p, effects);
+  // Variation de longueur des aussières sur l'image : l'affichage y lit si le bout file ou rentre.
+  s.lines.forEach((l, i) => { l.rate = (l.len - lens[i]) * FPS; });
   updateKick(s, p);
   updatePivot(s, p);
   s.frame += 1;

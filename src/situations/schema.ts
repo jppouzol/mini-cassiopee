@@ -99,9 +99,17 @@ export interface SituationLine {
   bitte: number;
   /** mou au départ (m) ; 0 = aussière tendue */
   mou: number;
-  /** aussière choquée dès le départ : elle file dès la mise en mouvement (bloquée si absent) */
-  file?: boolean;
+  /**
+   * ce que fait l'équipier dès la mise en mouvement : « choque », elle file ; « reprend »,
+   * il l'embraque ; absent, elle est bloquée. L'ancien champ « file »: true est lu
+   * comme « choque ».
+   */
+  equipier?: Equipier;
 }
+
+/** Ce que fait l'équipier au départ, quand l'aussière n'est pas bloquée. */
+export type Equipier = 'choque' | 'reprend';
+export const EQUIPIERS: readonly Equipier[] = ['choque', 'reprend'];
 
 export interface Situation {
   format: 1;
@@ -261,6 +269,10 @@ export function parseSituation(input: unknown): Situation {
     if (a.nom !== undefined && !isStr(a.nom)) throw new SituationError(`${where} : le nom, s'il est donné, ne peut pas être vide.`);
     if (ids.has(a.id)) throw new SituationError(`${where} : identifiant « ${a.id} » en double.`);
     if (a.file !== undefined && typeof a.file !== 'boolean') throw new SituationError(`${where} : « file » vaut true ou false.`);
+    const equipier = a.equipier === undefined ? undefined : oneOf(a.equipier, EQUIPIERS, `${where} : equipier`);
+    if (a.file === true && equipier !== undefined && equipier !== 'choque') {
+      throw new SituationError(`${where} : « file » et « equipier » se contredisent.`);
+    }
     if (a.mou < 0) throw new SituationError(`${where} : le mou ne peut pas être négatif.`);
     if (a.sur !== undefined) {
       if (!perp) throw new SituationError(`${where} : « sur » ne sert qu'en perpendiculaire.`);
@@ -280,7 +292,8 @@ export function parseSituation(input: unknown): Situation {
     const line: SituationLine = { id: a.id, taquet, bitte: a.bitte, mou: a.mou };
     if (sur) line.sur = sur;
     if (a.nom !== undefined) line.nom = a.nom as string;
-    if (a.file === true) line.file = true;
+    // « file »: true, ancienne écriture, vaut « choque ».
+    if (equipier ?? (a.file === true ? 'choque' : undefined)) line.equipier = equipier ?? 'choque';
     return line;
   });
 

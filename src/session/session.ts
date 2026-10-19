@@ -1,4 +1,4 @@
-import type { Engine, Params, SimState } from '../sim/types.ts';
+import type { Engine, LineMode, Params, SimState } from '../sim/types.ts';
 import { cloneState, tick } from '../sim/engine.ts';
 import { startKick } from '../sim/kick.ts';
 import { FPS } from '../sim/params.ts';
@@ -10,8 +10,8 @@ export type Action =
   | { type: 'kick'; value: 1 | -1 }
   | { type: 'rudder'; value: number }
   | { type: 'cast-off'; lineId: string }
-  /** choquer (value = true : l'aussière file) ou bloquer (false) */
-  | { type: 'pay-out'; lineId: string; value: boolean };
+  /** ce que fait l'équipier qui tient le bout : choquer, bloquer ou reprendre */
+  | { type: 'line-mode'; lineId: string; value: LineMode };
 
 interface LoggedAction {
   frame: number;
@@ -34,9 +34,9 @@ export function applyAction(s: SimState, a: Action): void {
       if (line) line.attached = false;
       break;
     }
-    case 'pay-out': {
+    case 'line-mode': {
       const line = s.lines.find((l) => l.id === a.lineId);
-      if (line) line.payingOut = a.value;
+      if (line) line.mode = a.value;
       break;
     }
   }

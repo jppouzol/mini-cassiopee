@@ -1,5 +1,6 @@
 import type { Body, Catway, Effect, Forces, Params, SimState, Vec } from './types.ts';
 import { thrustOf } from './kick.ts';
+import { DT } from './params.ts';
 import { CONTACT_POINTS, HALF_LENGTH, SLICES, hullPenetration, pointVelocity, rotate, toLocal, toWorld } from './geometry.ts';
 
 // Chaque effet est une fonction pure de l'état et des paramètres, qui ajoute
@@ -131,25 +132,38 @@ export const wind: Effect = (s, p, f) => {
  * Aussières : ressort amorti qui ne travaille qu'en traction.
  * Une aussière choquée file sans retenue : sa longueur suit la distance du
  * taquet à la bitte dès que le bateau s'en éloigne, et ne raccourcit jamais.
+ * Une aussière reprise raccourcit à vitesse constante (`haulSpeed`) tant que la
+ * tension du sous-pas précédent reste sous l'effort de l'équipier (`crewEffort`),
+ * sans descendre sous `lineMinLen` : elle rattrape le mou, puis reste raide. Si la
+ * tension ressentie (`load`, lissée sur `crewHold`) dépasse cet effort de plus de la
+ * marge (`crewMargin`), l'équipier ne tient plus : il lâche, et l'aussière passe
+ * d'elle-même sur `choque`. Le lissage lui fait encaisser l'à-coup du mou qui se
+ * rattrape, mais pas un effort qui dure.
  */
 export const mooringLines: Effect = (s, p, f) => {
   const b = s.body;
   for (const line of s.lines) {
+    const prev = line.tension;
     line.tension = 0;
-    if (!line.attached) continue;
+    if (!line.attached) { line.load = 0; continue; }
     const pw = toWorld(b, line.cleat);
     const dx = line.bollard[0] - pw[0];
     const dy = line.bollard[1] - pw[1];
     const d = Math.hypot(dx, dy);
-    if (line.payingOut && d > line.len) line.len = d;
+    if (line.mode === 'choque' && d > line.len) line.len = d;
+    else if (line.mode === 'reprend' && prev < p.crewEffort && line.len > p.lineMinLen) {
+      line.len = Math.max(p.lineMinLen, line.len - p.haulSpeed * DT);
+    }
     const ext = d - line.len;
-    if (ext <= 0 || d === 0) continue;
-    const ux = dx / d, uy = dy / d;
-    const pv = pointVelocity(b, line.cleat);
-    const rate = -(pv[0] * ux + pv[1] * uy);
-    const t = Math.max(0, p.lineK * ext + p.lineC * rate);
-    line.tension = t;
-    addWorld(f, b, t * ux, t * uy, line.cleat);
+    if (ext > 0 && d > 0) {
+      const ux = dx / d, uy = dy / d;
+      const pv = pointVelocity(b, line.cleat);
+      const rate = -(pv[0] * ux + pv[1] * uy);
+      line.tension = Math.max(0, p.lineK * ext + p.lineC * rate);
+      addWorld(f, b, line.tension * ux, line.tension * uy, line.cleat);
+    }
+    line.load += (line.tension - line.load) * Math.min(1, DT / p.crewHold);
+    if (line.mode === 'reprend' && line.load > p.crewEffort * (1 + p.crewMargin)) line.mode = 'choque';
   }
 };
 

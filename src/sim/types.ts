@@ -26,14 +26,31 @@ export interface MooringLine {
   /** longueur maximale (m) */
   len: number;
   attached: boolean;
-  /**
-   * aussière choquée : elle file aussi vite que le bateau s'éloigne de la bitte,
-   * sans le retenir ; bloquée (false), sa longueur ne change pas
-   */
-  payingOut: boolean;
-  /** tension calculée à la dernière image (N) */
+  /** ce que fait l'équipier qui tient le bout (voir `LineMode`) */
+  mode: LineMode;
+  /** tension calculée au dernier sous-pas (N) */
   tension: number;
+  /**
+   * tension ressentie par l'équipier (N) : la tension lissée sur `crewHold` secondes, pour
+   * qu'il encaisse un à-coup bref (le mou qui se rattrape) sans lâcher
+   */
+  load: number;
+  /**
+   * variation de la longueur pendant la dernière image (m/s) : positive quand l'aussière
+   * file, négative quand l'équipier la reprend, nulle sinon
+   */
+  rate: number;
 }
+
+/**
+ * Ce que fait l'équipier qui tient le bout d'une aussière :
+ * - `choque` : il la laisse filer, aussi vite que le bateau s'éloigne de la bitte, sans le retenir ;
+ * - `bloque` : elle est tournée au taquet, sa longueur ne change pas (par défaut) ;
+ * - `reprend` : il l'embraque à vitesse constante tant que la tension reste sous son effort ;
+ *   si le bateau tire nettement plus fort, il ne tient plus et lâche : l'aussière passe
+ *   d'elle-même sur `choque`.
+ */
+export type LineMode = 'choque' | 'bloque' | 'reprend';
 
 /**
  * Position de la commande moteur : marche arrière (-1), ralenti arrière (-0,5), neutre (0),
@@ -172,6 +189,11 @@ export interface Params {
   kickFactor: number;
   kickTime: number;
   kickMaxTime: number;
+  crewEffort: number;
+  crewMargin: number;
+  crewHold: number;
+  haulSpeed: number;
+  lineMinLen: number;
 }
 
 /** Accumulateur de forces exprimées dans le repère monde, moment autour du centre. */

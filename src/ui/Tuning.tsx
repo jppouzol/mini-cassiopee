@@ -20,6 +20,9 @@ const SETTINGS: [Key, string, number, number, number][] = [
   ['windageShift', 'Fardage : avancée du vent de face (m)', 0, 5, 0.1],
   ['windageX', 'Fardage : avancée du vent de travers (m)', -1, 2, 0.1],
   ['lineK', 'Raideur des aussières (N/m)', 10000, 150000, 1000],
+  ['crewEffort', 'Effort de l’équipier (N)', 100, 2000, 50],
+  ['haulSpeed', 'Vitesse de reprise (m/s)', 0.05, 1, 0.05],
+  ['crewMargin', 'Marge avant que l’équipier lâche (× effort)', 0, 1, 0.05],
 ];
 
 /** Réglages physiques, visibles avec l'adresse terminée par #reglages. */
