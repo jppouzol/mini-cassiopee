@@ -254,13 +254,15 @@ export function render(ctx: CanvasRenderingContext2D, s: Readonly<SimState>, v: 
   ctx.beginPath(); ctx.moveTo(X(r0[0]), Y(r0[1])); ctx.lineTo(X(r1[0]), Y(r1[1])); ctx.stroke();
   ctx.lineCap = 'butt';
 
-  // Poussée du moteur ; pendant un coup de fouet, dans le sens du coup, plus longue et plus épaisse.
-  const dir = s.kick ? s.kick.dir : s.engine;
+  // Poussée du moteur : plus courte et plus fine au ralenti ; pendant un coup de fouet, dans le
+  // sens du coup, plus longue et plus épaisse.
+  const dir = s.kick ? s.kick.dir : Math.sign(s.engine);
   if (dir !== 0) {
     const fort = s.kick !== null;
+    const ralenti = !fort && Math.abs(s.engine) === 0.5;
     const p0 = toWorld(b, [dir > 0 ? -3.6 : -4.2, 0]);
-    const p1 = toWorld(b, [dir > 0 ? (fort ? 0.6 : -1.2) : (fort ? -9 : -7), 0]);
-    arrow(ctx, X(p0[0]), Y(p0[1]), X(p1[0]), Y(p1[1]), C.accent, fort ? 6 : 3, fort ? 15 : 10);
+    const p1 = toWorld(b, [dir > 0 ? (fort ? 0.6 : ralenti ? -2.2 : -1.2) : (fort ? -9 : ralenti ? -5.8 : -7), 0]);
+    arrow(ctx, X(p0[0]), Y(p0[1]), X(p1[0]), Y(p1[1]), C.accent, fort ? 6 : ralenti ? 2 : 3, fort ? 15 : ralenti ? 8 : 10);
   }
 
   // Taquets
