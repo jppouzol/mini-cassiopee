@@ -86,7 +86,8 @@ La scène se compose d'un seul bateau, d'un quai, d'aussières et du vent ; en s
 - Une situation compte au plus 6 aussières par défaut. Ce plafond est réglable entre 6 et 12 dans les options avancées de l'éditeur, sans pouvoir descendre sous le nombre d'aussières en place ; une situation du catalogue peut déclarer un plafond plus élevé.
 - Larguée, elle disparaît de la scène (considérée comme remontée à bord).
 - Choquée, elle file : tant que l'élève la laisse filer, elle s'allonge aussi vite que le bateau s'éloigne de sa bitte et ne le retient plus ; une fois bloquée, elle garde sa nouvelle longueur et retient de nouveau. Une aussière molle qu'on choque ne change pas tant que le bateau ne tire pas dessus. Elle peut filer sans limite de longueur.
-- Enrichissements envisagés : reprendre une aussière (la raccourcir) pendant la manœuvre ; freiner une aussière qu'on choque ; longueur finie des aussières.
+- Reprise, elle raccourcit : l'équipier l'embraque à la main, à vitesse constante, tant que l'effort reste dans ses forces. Il rattrape le mou, puis garde l'aussière raide et peut déhaler le bateau, contre un vent faible par exemple. Si le bateau tire nettement plus fort que lui (ralenti, vent soutenu, marche avant), il ne tient plus : il lâche, et l'aussière passe d'elle-même sur Choquer et file. Il encaisse un à-coup bref, comme le mou qui se rattrape. Elle ne raccourcit pas en deçà d'une longueur minimale, le taquet contre la bitte.
+- Enrichissements envisagés : freiner une aussière qu'on choque ; longueur finie des aussières.
 
 ### Vent
 
@@ -130,7 +131,7 @@ L'application a deux modes : la **préparation**, où l'on règle la situation, 
 | Barre | Angle de barre, côté bâbord ou tribord | Socle |
 | Ne rien faire | Laisser agir le vent seul | Socle |
 | Choquer une aussière | Cran Choquer ou Bloquer de la commande étendue des amarres, individuellement, à tout moment, en lecture comme en pause | Livré |
-| Reprendre une aussière | Raccourcir pendant la manœuvre | Envisagé |
+| Reprendre une aussière | Cran Reprendre de la commande étendue des amarres, individuellement, à tout moment, en lecture comme en pause | Livré |
 
 **Commande moteur simplifiée ou étendue** : par défaut, la commande moteur n'a que trois boutons, sur une rangée : Arrière, Neutre, Avant, comme le bout de tissu qu'on pousse en avant ou en arrière. Un petit interrupteur « Étendue », à côté du titre « Moteur », affiche les commandes étendues : les ralentis au-dessus de la marche et les coups de fouet en dessous (voir ci-dessous).
 
@@ -141,14 +142,21 @@ L'application a deux modes : la **préparation**, où l'on règle la situation, 
 
 **Commande des amarres simplifiée ou étendue** : par défaut, la liste des amarres revient au bout de tissu : chaque aussière tient sur une seule rangée, avec son nom, son état et « Larguer » ; en préparation, son nom, « Tendue / Molle » et « Supprimer ». Un interrupteur « Étendue », à côté du titre « Amarres », fait apparaître sous chaque aussière une rangée de crans qui dit ce que fait l'équipier qui tient le bout. Il est propre aux amarres et se règle à part de celui du moteur.
 
-- **Crans** : Choquer et Bloquer. Bloquer est le cran par défaut : l'aussière est tournée au taquet. Reprendre et freiner viendront s'y ajouter, sur la même échelle : Choquer, Freiner, Bloquer, Reprendre.
+- **Crans** : Choquer, Bloquer et Reprendre, de « je laisse partir » à « je tire ». Bloquer est le cran par défaut : l'aussière est tournée au taquet. Freiner viendra s'y ajouter, sur la même échelle : Choquer, Freiner, Bloquer, Reprendre.
 - **Affichage seulement** : l'interrupteur ne change rien à la simulation ni à la manœuvre enregistrée. Il se manie à tout moment, en préparation comme en manœuvre.
 - **Mémorisé** : le navigateur garde le choix d'une visite à l'autre, à part de celui du moteur ; s'il ne le peut pas, les amarres repartent simplifiées.
 - **Toujours cohérent** : tant qu'une aussière non larguée n'est pas sur Bloquer (après un retour arrière, ou réglée ainsi en préparation), les crans restent affichés et l'interrupteur, activé, ne peut pas les masquer. Ils redeviennent masqués, si c'est le choix de l'élève, dès que toutes les aussières sont bloquées ou larguées.
 - **Situation libre** : sans amarre, ni la section ni l'interrupteur ne sont affichés.
-- **Clavier** : le chiffre seul largue l'aussière, en simplifié comme en étendu. En étendu, Maj + chiffre la passe d'un cran vers Choquer, et Alt + chiffre d'un cran vers Bloquer ; en simplifié, ils ne font rien. Le rappel des raccourcis suit.
+- **Clavier** : le chiffre seul largue l'aussière, en simplifié comme en étendu. En étendu, Maj + chiffre la passe d'un cran vers Choquer, et Alt + chiffre d'un cran vers Reprendre ; en simplifié, ils ne font rien. Le rappel des raccourcis suit.
 
 **Choquer une aussière** : dans la commande étendue des amarres, le cran Choquer la laisse filer, le cran Bloquer la bloque. Le cran se change en lecture comme en pause : en pause, il prend effet à la reprise ou au pas à pas suivant. Il est enregistré avec la manœuvre, comme les autres commandes. En préparation, il indique qu'une aussière file dès la mise en mouvement. Larguer une aussière qui file la fait disparaître, comme toute aussière larguée. Dans la scène, une aussière qui file apparaît molle, puisqu'elle ne retient pas ; tant qu'elle s'allonge, un petit chevron sur le trait, côté taquet, tourné vers la bitte, montre que le bout file. La liste l'indique par « File ».
+
+**Reprendre une aussière** : dans la commande étendue des amarres, le cran Reprendre, à droite de Bloquer, fait embraquer l'aussière par l'équipier. Comme les autres crans, c'est un état qui dure jusqu'à ce que l'élève en choisisse un autre ; il se change en lecture comme en pause et il est enregistré avec la manœuvre. En préparation, il indique que l'équipier reprend l'aussière dès la mise en mouvement.
+
+- **Équipier** : un seul effort, environ 600 N, et une vitesse de reprise d'environ 0,3 m/s, à la main. L'effort servira aussi au freinage.
+- **Il lâche** : quand le bateau tire au-delà de son effort, marge comprise, l'aussière passe d'elle-même sur Choquer, sans action de l'élève ; la liste affiche « File », le cran revient sur Choquer et l'affichage étendu reste imposé. La relecture rejoue le lâcher à l'identique. Une pause automatique à ce moment est une option à part (#76).
+- **Ordres de grandeur** : contre un vent faible par le travers, on déhale le bateau ; contre le ralenti avant, un vent soutenu ou la marche avant, l'équipier lâche. Les efforts réels dépendent de la géométrie de l'aussière.
+- **Affichage** : la liste l'indique par « Reprise ». Dans la scène, tant que l'aussière raccourcit, le chevron sur le trait, côté taquet, est tourné vers le taquet : le bout rentre à bord.
 
 **Ralenti** : dans les commandes étendues, la commande moteur a cinq positions, sur trois colonnes : l'arrière à gauche, l'avant à droite, chacun avec le ralenti au-dessus de la marche, et le neutre au milieu, sur toute la hauteur, plus étroit. De haut en bas, on lit ralenti, marche, puis le coup de fouet en dessous : l'effort croît vers le bas. Chaque ralenti est dans la colonne de sa marche, ce qui suffit à les distinguer ; leur nom complet (« Ralenti arrière », « Ralenti avant ») est donné aux lecteurs d'écran et en info-bulle sur PC. Le ralenti réduit à la fois la poussée, le flux de l'hélice sur le safran et le pas d'hélice, de moitié environ : le bateau prend moins d'erre, la barre agit un peu moins sans erre, et le pas d'hélice est plus discret, comme au ralenti sur un vrai bateau. Il permet de graduer l'effort : ralenti, marche, coup de fouet.
 
@@ -184,7 +192,7 @@ L'écran de simulation est une vue de dessus 2D, la plus épurée possible, dans
 Éléments affichés :
 
 - le bateau, le quai et, selon la situation, le catway et les bateaux voisins ;
-- les aussières, avec un code couleur tendue / molle, et un chevron tourné vers la bitte sur celle qui file, tant qu'elle s'allonge ;
+- les aussières, avec un code couleur tendue / molle, et un chevron sur le trait tant que leur longueur change : tourné vers la bitte sur celle qui file, vers le taquet sur celle qu'on reprend ;
 - la position de la commande moteur (avant, neutre, arrière, et en étendu ralenti avant et ralenti arrière) et l'angle de barre ;
 - la poussée du moteur, par une flèche à l'arrière du bateau, plus courte et plus fine au ralenti, plus longue et plus épaisse pendant un coup de fouet ;
 - la direction et la force du vent ;
@@ -238,7 +246,7 @@ L'éditeur agit pendant la préparation, c'est-à-dire tant que la simulation es
 - Déplacer le bateau le long du quai ou du catway.
 - Choisir le bord du bateau au quai ou au catway : bâbord ou tribord.
 - Ajouter, retirer ou déplacer une aussière entre un taquet du bateau et une bitte du quai ou du catway.
-- Indiquer pour chaque aussière si elle est tendue au moment de la mise en mouvement, et si elle file dès ce moment.
+- Indiquer pour chaque aussière si elle est tendue au moment de la mise en mouvement, et si elle file ou si l'équipier la reprend dès ce moment.
 - Régler la direction et la force du vent.
 - Activer les options avancées : plafond d'aussières, bateaux voisins, pas d'hélice, fardage.
 
@@ -260,7 +268,7 @@ En situation libre, l'éditeur ne propose que le vent, le pas d'hélice et le fa
 
 - **Commande** : sous l'intitulé « Bord au quai » (« Bord au catway » en perpendiculaire), deux boutons « Bâbord » et « Tribord ». La situation du catalogue fixe le bord de départ.
 - **Le bateau se retourne** : le long du quai, il pivote sur place autour de son centre, l'étrave passant de l'autre côté ; sur catway, il passe de l'autre côté de son catway, à la place symétrique, avec le même bout au quai.
-- **Aussières en miroir** : chacune garde son rôle, son mou, son état (« file ») et le nom choisi par l'élève, et passe sur la bitte symétrique : la garde avant reste la garde avant, son taquet change de bord avec le flanc au quai.
+- **Aussières en miroir** : chacune garde son rôle, son mou, son cran (choquée ou reprise) et le nom choisi par l'élève, et passe sur la bitte symétrique : la garde avant reste la garde avant, son taquet change de bord avec le flanc au quai.
 - **Le long du quai, entre deux bittes** : si le bateau a été glissé d'un demi-mètre (ou de 1,5 m, 2,5 m…), le miroir de ses aussières tomberait entre deux bittes ; le bateau se décale alors de 1 m vers sa place d'origine en se retournant. Sans aussière, il ne bouge pas.
 - **Vent fixe dans le port** : il garde sa direction à l'écran, si bien que son repère change. Le long du quai, « de l'avant » devient « de l'arrière », et inversement ; sur catway, « du catway » devient « du large », et inversement. « Du quai » et « du chenal » ne changent pas.
 - **Voisins** : le long du quai, ils restent à leur place dans le port et se retournent sur eux-mêmes, pour garder le cap du bateau : le voisin devant passe derrière, avec le même réglage. Sur catway, leurs places sont définies par rapport au bateau : ils le suivent, côté catway comme côté large, et le second catway passe de l'autre côté avec lui.
@@ -269,7 +277,7 @@ En situation libre, l'éditeur ne propose que le vent, le pas d'hélice et le fa
 #### Ajouter et supprimer une aussière
 
 - **Ajouter** : l'élève touche un taquet sur la coque, puis une bitte sur le quai ou le catway. L'aussière est créée tendue, avec un nom déduit de sa géométrie. Tant qu'un taquet est sélectionné, les bittes sont mises en évidence ; toucher ailleurs annule la sélection. La création est refusée, avec un message, si elle crée un doublon ou dépasse le plafond.
-- **Régler** : dans la liste des aussières, l'élève bascule chaque aussière entre tendue et molle, et, dans la commande étendue des amarres, entre Bloquer et Choquer (elle file dès la mise en mouvement) ; il peut aussi la renommer.
+- **Régler** : dans la liste des aussières, l'élève bascule chaque aussière entre tendue et molle, et, dans la commande étendue des amarres, entre Choquer (elle file dès la mise en mouvement), Bloquer et Reprendre (l'équipier l'embraque dès la mise en mouvement) ; il peut aussi la renommer.
 - **Supprimer** : en préparation, le bouton « Larguer » de la liste devient « Supprimer ». Une aussière supprimée disparaît de la situation préparée.
 - Pendant la simulation, on ne peut ni ajouter ni supprimer d'aussière : seuls les crans (commande étendue) et le largage restent possibles.
 
@@ -325,7 +333,7 @@ Au port, le réseau est souvent faible ou absent : après une première visite, 
 
 ## Évolutions
 
-Le socle est livré : amarrage le long du quai, aussières fixes, moteur avant, neutre et arrière, largage individuel, barre, vent faible ou soutenu, tension des aussières et point de pivot, pause, pas à pas et retour arrière, catalogue et éditeur. Depuis, l'élève peut aussi choquer une aussière, placer des bateaux voisins devant et derrière, manœuvrer un bateau amarré perpendiculaire au quai, le long d'un catway, avec ses voisins de part et d'autre, et zoomer sur la scène. Il peut aussi activer le pas d'hélice, à droite ou à gauche, et le fardage, qui fait abattre l'avant vent de face, et choisir le bord du bateau au quai ou au catway. Il peut tourner une aussière sur un taquet au maître-bau, et donner un coup de fouet au moteur, en avant comme en arrière, ou passer le moteur au ralenti, pour une poussée plus douce et un pas d'hélice plus discret. Par défaut, la commande moteur se réduit à avant, neutre et arrière ; un interrupteur affiche le ralenti et le coup de fouet. De même, la liste des amarres se réduit au largage ; un interrupteur propre aux amarres affiche les crans Choquer et Bloquer. En manœuvre, le panneau ne montre plus que les commandes : moteur, barre et amarres. Enfin, il peut manœuvrer un bateau libre, sans quai ni amarre, en milieu de port. Le moteur pousse à une allure de manœuvre de port, autour de 3 nœuds, et le vent pèse d'autant plus. Les départs et les sorties du catalogue placent des voisins de part et d'autre, que l'élève peut retirer. L'application s'installe sur l'écran d'accueil et fonctionne sans réseau après une première visite.
+Le socle est livré : amarrage le long du quai, aussières fixes, moteur avant, neutre et arrière, largage individuel, barre, vent faible ou soutenu, tension des aussières et point de pivot, pause, pas à pas et retour arrière, catalogue et éditeur. Depuis, l'élève peut aussi choquer une aussière, placer des bateaux voisins devant et derrière, manœuvrer un bateau amarré perpendiculaire au quai, le long d'un catway, avec ses voisins de part et d'autre, et zoomer sur la scène. Il peut aussi activer le pas d'hélice, à droite ou à gauche, et le fardage, qui fait abattre l'avant vent de face, et choisir le bord du bateau au quai ou au catway. Il peut tourner une aussière sur un taquet au maître-bau, et donner un coup de fouet au moteur, en avant comme en arrière, ou passer le moteur au ralenti, pour une poussée plus douce et un pas d'hélice plus discret. Par défaut, la commande moteur se réduit à avant, neutre et arrière ; un interrupteur affiche le ralenti et le coup de fouet. De même, la liste des amarres se réduit au largage ; un interrupteur propre aux amarres affiche les crans Choquer, Bloquer et Reprendre : l'équipier peut embraquer une aussière, et la lâche si le bateau tire plus fort que lui. En manœuvre, le panneau ne montre plus que les commandes : moteur, barre et amarres. Enfin, il peut manœuvrer un bateau libre, sans quai ni amarre, en milieu de port. Le moteur pousse à une allure de manœuvre de port, autour de 3 nœuds, et le vent pèse d'autant plus. Les départs et les sorties du catalogue placent des voisins de part et d'autre, que l'élève peut retirer. L'application s'installe sur l'écran d'accueil et fonctionne sans réseau après une première visite.
 
 Le projet s'enrichit ensuite progressivement, une fonctionnalité à la fois, sans paliers ni jalons : l'ordre suit les envies et les retours des élèves. Le backlog est tenu dans les issues GitHub du dépôt ; chaque issue devient une branche et une demande de fusion, qui met à jour ce document si elle change le périmètre.
 
@@ -333,7 +341,6 @@ Enrichissements envisagés, chacun optionnel et sans effet sur le comportement d
 
 - mono ou bi-safran ;
 - longueur de catway réglable ;
-- reprendre une aussière pendant la manœuvre ;
 - freiner une aussière qu'on choque ;
 - longueur finie des aussières ;
 - coup de fouet dosé par l'élève, tant qu'il maintient le bouton ;

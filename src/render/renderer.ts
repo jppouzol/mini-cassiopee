@@ -1,5 +1,5 @@
 import type { Body, MooringLine, SimState, Vec } from '../sim/types.ts';
-import { HULL, pointVelocity, toWorld } from '../sim/geometry.ts';
+import { HULL, toWorld } from '../sim/geometry.ts';
 import { CADRAGE_DEFAUT, bornerCadrage, echelleDefaut, longueurEchelle, type Cadrage } from './cadrage.ts';
 
 export interface Palette {
@@ -55,22 +55,20 @@ export const TAUT_THRESHOLD = 30;
 
 const fmt = (n: number): string => n.toFixed(1).replace('.', ',');
 
-/** Vitesse d'éloignement du taquet au-delà de laquelle une aussière choquée est montrée qui file (m/s). */
-export const VITESSE_FILE = 0.02;
+/** Variation de longueur au-delà de laquelle on montre que le bout file ou rentre (m/s). */
+export const VITESSE_BOUT = 0.02;
 
 /**
- * Vrai quand une aussière choquée s'allonge à cette image : attachée et choquée, tendue
- * jusqu'à sa longueur (à 5 cm près) et taquet qui s'éloigne de la bitte. Le rendu y dessine
- * un chevron tourné vers la bitte. Fonction de l'état seul, sans mémoire.
+ * Sens dans lequel le bout d'une aussière attachée bouge à cette image, d'après la variation
+ * de sa longueur (`rate`) : « file » quand elle s'allonge (choquée), « rentre » quand
+ * l'équipier la reprend, null sinon. Le rendu y dessine un chevron sur le trait, tourné vers
+ * la bitte ou vers le taquet. Fonction de l'état seul, sans mémoire.
  */
-export function fileEnCeMoment(b: Body, l: Readonly<MooringLine>): boolean {
-  if (!l.attached || !l.payingOut) return false;
-  const p = toWorld(b, l.cleat);
-  const dx = p[0] - l.bollard[0], dy = p[1] - l.bollard[1];
-  const d = Math.hypot(dx, dy);
-  if (d === 0 || d < l.len - 0.05) return false;
-  const v = pointVelocity(b, l.cleat);
-  return (v[0] * dx + v[1] * dy) / d > VITESSE_FILE;
+export function sensDuBout(l: Readonly<MooringLine>): 'file' | 'rentre' | null {
+  if (!l.attached) return null;
+  if (l.rate > VITESSE_BOUT) return 'file';
+  if (l.rate < -VITESSE_BOUT) return 'rentre';
+  return null;
 }
 
 /** Lit la palette dans les variables CSS du thème courant. */
@@ -327,13 +325,16 @@ export function render(ctx: CanvasRenderingContext2D, s: Readonly<SimState>, v: 
       ctx.lineTo(X(q[0]), Y(q[1]));
     }
     ctx.stroke();
-    // Aussière qui file : petit chevron de sa couleur, au quart du trait côté taquet, tourné vers la bitte.
-    if (d > 0 && fileEnCeMoment(b, l)) {
+    // Bout qui bouge : petit chevron de sa couleur, au quart du trait côté taquet, tourné
+    // vers la bitte quand l'aussière file, vers le taquet quand l'équipier la reprend.
+    const sens = sensDuBout(l);
+    if (d > 0 && sens) {
       const ux = (X(q[0]) - X(p[0])), uy = (Y(q[1]) - Y(p[1]));
       const n = Math.hypot(ux, uy);
       if (n > 24) {
         const cx = X(p[0]) + ux * 0.25, cy = Y(p[1]) + uy * 0.25;
-        const ex = ux / n, ey = uy / n;
+        const k = sens === 'file' ? 1 : -1;
+        const ex = (k * ux) / n, ey = (k * uy) / n;
         ctx.lineWidth = 2;
         ctx.lineCap = 'round';
         ctx.lineJoin = 'round';

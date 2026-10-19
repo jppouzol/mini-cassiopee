@@ -10,7 +10,7 @@ import {
 } from './quai.ts';
 import {
   ECART_VOISIN_MIN, PLAFOND_DEFAUT, PLAFOND_MAX, cotesVoisin, plafond,
-  type Cleat, type CoteVoisin, type SensHelice, type Situation, type SituationLine, type WindDirection,
+  type Cleat, type CoteVoisin, type Equipier, type SensHelice, type Situation, type SituationLine, type WindDirection,
 } from './schema.ts';
 
 /**
@@ -133,11 +133,14 @@ export function basculerMou(sit: Situation, id: string): Situation {
   return modifier(sit, id, (a) => ({ ...a, mou: a.mou > 0 ? 0 : MOU_MOLLE }));
 }
 
-/** Bascule une aussière entre bloquée et choquée au départ (elle file dès la mise en mouvement). */
-export function basculerFile(sit: Situation, id: string): Situation {
+/**
+ * Règle ce que fait l'équipier dès la mise en mouvement : « choque » (l'aussière file),
+ * « reprend » (il l'embraque) ou null (bloquée, le champ disparaît).
+ */
+export function reglerEquipier(sit: Situation, id: string, equipier: Equipier | null): Situation {
   return modifier(sit, id, (a) => {
-    const { file: _ancien, ...reste } = a;
-    return a.file ? reste : { ...reste, file: true };
+    const { equipier: _ancien, ...reste } = a;
+    return equipier ? { ...reste, equipier } : reste;
   });
 }
 

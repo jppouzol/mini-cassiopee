@@ -51,6 +51,13 @@ export const DEFAULT_PARAMS: Readonly<Params> = Object.freeze({
   kickFactor: 2, // coup de fouet : poussée multipliée (flux d'hélice et pas d'hélice compris)
   kickTime: 2, // coup de fouet depuis le neutre ou dans le sens du moteur : durée (s)
   kickMaxTime: 5, // coup de fouet à contre-sens, qui casse l'erre : durée maximale (s)
+  // Équipier qui tient le bout d'une aussière (#22) : il la reprend tant que la tension reste
+  // sous son effort, et lâche quand le bateau tire au-delà, marge comprise.
+  crewEffort: 600, // effort de l'équipier (N)
+  crewMargin: 0.25, // marge au-dessus de l'effort avant qu'il lâche (fraction de l'effort)
+  crewHold: 0.5, // temps de lissage de la tension ressentie : l'équipier encaisse un à-coup bref (s)
+  haulSpeed: 0.3, // vitesse de reprise, à la main (m/s)
+  lineMinLen: 1, // longueur minimale d'une aussière reprise : taquet contre la bitte (m)
 });
 
 /** Pas d'intégration (s) et nombre de sous-pas par image de 1/60 s. */

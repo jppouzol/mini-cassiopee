@@ -1,4 +1,4 @@
-import type { Neighbor, SimState, Vec, Wind } from '../sim/types.ts';
+import type { MooringLine, Neighbor, SimState, Vec, Wind } from '../sim/types.ts';
 import { cleatPosition, toWorld } from '../sim/geometry.ts';
 import { cotesVoisin, type Situation, type WindDirection } from './schema.ts';
 import {
@@ -55,12 +55,12 @@ export function buildState(sit: Situation, windOverride?: Situation['vent'], aba
   const side = quaySide(sit);
   const body = { x: pose.x, y: pose.y, th: pose.th, vx: 0, vy: 0, w: 0 };
   const names = nomsAffiches(sit);
-  const lines = sit.aussieres.map((a, i) => {
+  const lines = sit.aussieres.map((a, i): MooringLine => {
     const cleat = cleatPosition(a.taquet, side);
     const bollard = pointBitte(sit, a);
     const cw = toWorld(body, cleat);
     const dist = Math.hypot(cw[0] - bollard[0], cw[1] - bollard[1]);
-    return { id: a.id, name: names[i], cleat, bollard, len: dist + a.mou, attached: true, payingOut: a.file === true, tension: 0 };
+    return { id: a.id, name: names[i], cleat, bollard, len: dist + a.mou, attached: true, mode: a.equipier ?? 'bloque', tension: 0, load: 0, rate: 0 };
   });
   const v = windOverride ?? sit.vent;
   const wind: Wind = { to: windVector(v.direction, sit), force: v.force };

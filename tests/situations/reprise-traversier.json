@@ -1,0 +1,12 @@
+{
+  "format": 1,
+  "id": "reprise-traversier",
+  "titre": "Reprise d'un traversier",
+  "description": "Bateau à 2 m du quai, retenu par un traversier au maître-bau, avec du mou. L'équipier le reprend : il rattrape le mou, puis rapproche le bateau du quai.",
+  "quai": { "type": "long-side" },
+  "bateau": { "x": 0, "distanceQuai": 2, "bordAuQuai": "babord" },
+  "aussieres": [
+    { "id": "trav", "taquet": "maitre-bau", "bitte": 0, "mou": 0.5 }
+  ],
+  "vent": { "direction": "quai", "force": "aucun" }
+}

@@ -3,13 +3,13 @@ import { Session, type Action } from '../session/session.ts';
 import { buildState } from '../situations/build.ts';
 import { CATALOGUE, GROUPES } from '../situations/catalogue.ts';
 import {
-  ECARTS_VOISIN, EditionError, PAS_DEPLACEMENT, ajouterAussiere, basculerFile, basculerMou, bornesDeplacement,
-  changerBord, deplacerBateau, ecartVoisin, etraveVoisinCatway, reglerFardage, reglerPasHelice, reglerPlafond, reglerVoisin, renommerAussiere, supprimerAussiere, taquetsProposes,
+  ECARTS_VOISIN, EditionError, PAS_DEPLACEMENT, ajouterAussiere, basculerMou, bornesDeplacement,
+  changerBord, deplacerBateau, ecartVoisin, etraveVoisinCatway, reglerEquipier, reglerFardage, reglerPasHelice, reglerPlafond, reglerVoisin, renommerAussiere, supprimerAussiere, taquetsProposes,
 } from '../situations/edit.ts';
 import { bitteDepuisPoint, bittesAutresCatways, bittesDuPort, libre, perpendiculaire } from '../situations/quai.ts';
 import {
   PLAFOND_DEFAUT, PLAFOND_MAX, cotesVoisin, directionsVent, plafond,
-  type Cleat, type CoteVoisin, type SensHelice, type Situation, type WindDirection,
+  type Cleat, type CoteVoisin, type SensHelice, type Situation, type SituationLine, type WindDirection,
 } from '../situations/schema.ts';
 import { DEFAULT_PARAMS, FPS } from '../sim/params.ts';
 import type { Engine, Params } from '../sim/types.ts';
@@ -17,7 +17,9 @@ import { TAUT_THRESHOLD, type EditionView } from '../render/renderer.ts';
 import { Scene, type Pick } from './Scene.tsx';
 import { Tuning } from './Tuning.tsx';
 import { cranSuivant, ecrireMoteurEtendu, etenduForce, lireMoteurEtendu } from './moteur.ts';
-import { CRANS, amarresForcees, cranDe, cranVoisin, ecrireAmarresEtendues, lireAmarresEtendues, type Cran } from './amarres.ts';
+import {
+  CRANS, LIBELLE_CRAN, MODE_DU_CRAN, amarresForcees, cranDe, cranVoisin, ecrireAmarresEtendues, lireAmarresEtendues, type Cran,
+} from './amarres.ts';
 
 type WindSetting = Situation['vent'];
 
@@ -95,7 +97,10 @@ const ENGINE: { value: Engine; label: string; title: string; place: string }[] =
 ];
 /** Coups de fouet, sous la commande moteur : arrière à gauche, avant à droite, comme au-dessus. */
 /** Crans de la commande étendue des amarres (#75), dans l'ordre de l'échelle. */
-const CRAN_LABELS: Record<Cran, string> = { choquer: 'Choquer', bloquer: 'Bloquer' };
+/** Raccourci qui mène à un cran, depuis les autres : Maj vers Choquer, Alt vers Reprendre. */
+const CRAN_TOUCHE: Record<Cran, string> = { choquer: 'Maj', bloquer: 'Maj ou Alt', reprendre: 'Alt' };
+/** Cran d'une aussière de la situation préparée, d'après ce que fait l'équipier au départ. */
+const cranDuDepart = (a: SituationLine): Cran => cranDe({ mode: a.equipier ?? 'bloque' });
 const KICKS: { value: 1 | -1; label: string }[] = [
   { value: -1, label: 'Coup arrière' },
   { value: 1, label: 'Coup avant' },
@@ -144,7 +149,7 @@ export function App() {
     setMoteurEtenduState(v);
     ecrireMoteurEtendu(v);
   };
-  // Commande étendue des amarres (crans Choquer et Bloquer) : choix propre aux amarres, gardé dans le navigateur.
+  // Commande étendue des amarres (crans Choquer, Bloquer et Reprendre) : choix propre aux amarres, gardé dans le navigateur.
   const [amarresEtendues, setAmarresEtenduesState] = useState(lireAmarresEtendues);
   const setAmarresEtendues = (v: boolean) => {
     setAmarresEtenduesState(v);
@@ -185,7 +190,7 @@ export function App() {
   const etendu = moteurEtendu || moteurForce;
   const etenduRef = useRef(etendu);
   etenduRef.current = etendu;
-  // Une aussière qui file (ou réglée pour filer au départ) : seuls les crans montrent cet état.
+  // Une aussière choquée ou reprise (ou réglée ainsi au départ) : seuls les crans montrent cet état.
   const amarresForce = amarresForcees(s.lines);
   const etendues = amarresEtendues || amarresForce;
   const etenduesRef = useRef(etendues);
@@ -297,19 +302,25 @@ export function App() {
     setSelected(null);
     edit((sit) => changerBord(sit, origine, bord));
   };
-  // Cran d'une aussière : en préparation, elle file ou non dès la mise en mouvement ;
-  // ensuite, le changement est noté dans le journal. Rien n'est fait si le cran ne change pas.
+  // Cran d'une aussière : en préparation, il règle ce que fait l'équipier dès la mise en
+  // mouvement ; ensuite, le changement est noté dans le journal. Rien n'est fait si le cran ne change pas.
   const setCran = (index: number, cran: Cran) => {
     if (preparing) {
       const a = preparee.aussieres[index];
-      if (a && (a.file === true) !== (cran === 'choquer')) edit((sit) => basculerFile(sit, a.id));
+      const mode = MODE_DU_CRAN[cran];
+      if (a && cranDuDepart(a) !== cran) edit((sit) => reglerEquipier(sit, a.id, mode === 'bloque' ? null : mode));
       return;
     }
     const l = session.state.lines[index];
-    if (l && l.attached && cranDe(l) !== cran) act({ type: 'pay-out', lineId: l.id, value: cran === 'choquer' });
+    if (l && l.attached && cranDe(l) !== cran) act({ type: 'line-mode', lineId: l.id, value: MODE_DU_CRAN[cran] });
   };
-  // Clavier : un cran vers Choquer (-1) ou vers Bloquer (1), depuis le cran actuel.
+  // Clavier : un cran vers Choquer (-1) ou vers Reprendre (1), depuis le cran actuel.
   const stepCran = (index: number, sens: 1 | -1) => {
+    if (preparing) {
+      const a = preparee.aussieres[index];
+      if (a) setCran(index, cranVoisin(cranDuDepart(a), sens));
+      return;
+    }
     const l = session.state.lines[index];
     if (l && l.attached) setCran(index, cranVoisin(cranDe(l), sens));
   };
@@ -389,7 +400,7 @@ export function App() {
           // Chiffres de la rangée du haut, repérés par la touche (indépendamment de la disposition du clavier) :
           // le chiffre seul largue une aussière, une fois la manœuvre commencée. Dans la commande
           // étendue des amarres seulement, Maj + chiffre la passe d'un cran vers Choquer, Alt + chiffre
-          // d'un cran vers Bloquer (Maj + Alt est écarté : sous Windows, il change la disposition du clavier).
+          // d'un cran vers Reprendre (Maj + Alt est écarté : sous Windows, il change la disposition du clavier).
           const m = /^Digit([1-9])$/.exec(e.code);
           if (!m || e.ctrlKey || e.metaKey || (e.shiftKey && e.altKey)) return;
           const n = Number(m[1]);
@@ -417,8 +428,8 @@ export function App() {
     <div className="seg crans" role="group" aria-label={`Équipier, ${name}`}>
       {CRANS.map((c) => (
         <button key={c} aria-pressed={actif && actuel === c} disabled={!actif}
-          title={i < 9 ? `${CRAN_LABELS[c]} (${c === 'choquer' ? 'Maj' : 'Alt'} + ${i + 1})` : CRAN_LABELS[c]}
-          onClick={() => setCran(i, c)}>{CRAN_LABELS[c]}</button>
+          title={i < 9 ? `${LIBELLE_CRAN[c]} (${CRAN_TOUCHE[c]} + ${i + 1})` : LIBELLE_CRAN[c]}
+          onClick={() => setCran(i, c)}>{LIBELLE_CRAN[c]}</button>
       ))}
     </div>
   );
@@ -643,7 +654,7 @@ export function App() {
             {preparing && <span className="count push-right">{preparee.aussieres.length} / {max}</span>}
             {/* Interrupteur propre aux amarres : imposé tant qu'une aussière non larguée n'est pas sur Bloquer. */}
             <button className="interrupteur" role="switch" aria-checked={etendues} disabled={amarresForce}
-              title={amarresForce ? 'Une aussière n’est pas sur Bloquer' : 'Choquer ou bloquer chaque aussière'}
+              title={amarresForce ? 'Une aussière n’est pas sur Bloquer' : 'Choquer, bloquer ou reprendre chaque aussière'}
               onClick={() => setAmarresEtendues(!amarresEtendues)}>
               <span className="piste" aria-hidden="true"><span className="curseur" /></span>Étendue
             </button>
@@ -671,14 +682,15 @@ export function App() {
                     <button className="btn" aria-pressed={molle} title="Basculer entre tendue et molle"
                       onClick={() => edit((sit) => basculerMou(sit, a.id))}>{molle ? 'Molle' : 'Tendue'}</button>
                     <button className="btn" onClick={() => edit((sit) => supprimerAussiere(sit, a.id))}>Supprimer</button>
-                    {etendues && crans(i, name, a.file === true ? 'choquer' : 'bloquer', true)}
+                    {etendues && crans(i, name, cranDuDepart(a), true)}
                   </div>
                 );
               })
               : s.lines.map((l, i) => {
                 const state = !l.attached ? 'gone' : l.tension > TAUT_THRESHOLD ? 'taut' : 'slack';
                 const label = state === 'gone' ? 'Larguée'
-                  : l.payingOut ? 'File'
+                  : l.mode === 'choque' ? 'File'
+                  : l.mode === 'reprend' ? 'Reprise'
                   : state === 'taut' ? (debug ? `${Math.round(l.tension)} N` : 'Tendue') : 'Molle';
                 return (
                   <div className="line" key={l.id}>
@@ -718,7 +730,7 @@ export function App() {
           {!enLibre && <>
           {' '}<kbd>Maj</kbd>+{catway ? <><kbd>↑</kbd><kbd>↓</kbd></> : <><kbd>←</kbd><kbd>→</kbd></>} bateau ·
           {' '}<kbd>1</kbd>–<kbd>9</kbd> larguer ·
-          {etendues && <>{' '}<kbd>Maj</kbd>+<kbd>1</kbd>–<kbd>9</kbd> choquer · <kbd>Alt</kbd>+<kbd>1</kbd>–<kbd>9</kbd> bloquer ·</>}
+          {etendues && <>{' '}<kbd>Maj</kbd>+<kbd>1</kbd>–<kbd>9</kbd> vers choquer · <kbd>Alt</kbd>+<kbd>1</kbd>–<kbd>9</kbd> vers reprendre ·</>}
           </>}
           {' '}<kbd>,</kbd><kbd>.</kbd> pas à pas · <kbd>R</kbd> départ{!enLibre && <> · <kbd>Échap</kbd> annuler</>}
         </p>
