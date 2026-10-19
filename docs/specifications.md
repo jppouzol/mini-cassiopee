@@ -132,17 +132,24 @@ L'application a deux modes : la **préparation**, où l'on règle la situation, 
 | Choquer une aussière | Laisser filer ou bloquer, individuellement, à tout moment, en lecture comme en pause | Livré |
 | Reprendre une aussière | Raccourcir pendant la manœuvre | Envisagé |
 
+**Commande moteur simplifiée ou étendue** : par défaut, la commande moteur n'a que trois boutons, sur une rangée : Arrière, Neutre, Avant, comme le bout de tissu qu'on pousse en avant ou en arrière. Un petit interrupteur « Étendue », à côté du titre « Moteur », affiche les commandes étendues : les ralentis au-dessus de la marche et les coups de fouet en dessous (voir ci-dessous).
+
+- **Affichage seulement** : l'interrupteur ne change rien à la simulation ni à la manœuvre enregistrée. Il se manie à tout moment, en préparation comme en manœuvre.
+- **Mémorisé** : le navigateur garde le choix d'une visite à l'autre ; s'il ne le peut pas, la commande repart simplifiée.
+- **Toujours cohérent** : tant que le moteur est au ralenti ou qu'un coup de fouet est en cours (après un retour arrière, par exemple), les commandes étendues restent affichées et l'interrupteur, activé, ne peut pas les masquer. Elles redeviennent simplifiées, si c'est le choix de l'élève, dès que le moteur revient à la marche ou au neutre.
+- **Clavier** : en simplifié, ↑ et ↓ passent par les trois positions, et Page ↑ et Page ↓ ne font rien ; en étendu, ils passent par les cinq positions et donnent les coups de fouet. Le rappel des raccourcis suit.
+
 **Choquer une aussière** : chaque aussière de la liste porte un bouton « Choquer » à bascule, à côté de « Larguer ». Un premier appui la laisse filer et le bouton reste enfoncé ; un second appui la bloque. Le bouton s'utilise en lecture comme en pause : en pause, la bascule prend effet à la reprise ou au pas à pas suivant. Elle est enregistrée avec la manœuvre, comme les autres commandes. En préparation, le même bouton indique qu'une aussière file dès la mise en mouvement. Larguer une aussière qui file la fait disparaître, comme toute aussière larguée. Dans la scène, une aussière qui file apparaît molle, puisqu'elle ne retient pas ; la liste l'indique par « File ».
 
-**Ralenti** : la commande moteur a cinq positions, sur trois colonnes : l'arrière à gauche, l'avant à droite, chacun avec le ralenti au-dessus de la marche, et le neutre au milieu, sur toute la hauteur, plus étroit. De haut en bas, on lit ralenti, marche, puis le coup de fouet en dessous : l'effort croît vers le bas. Chaque ralenti est dans la colonne de sa marche, ce qui suffit à les distinguer ; leur nom complet (« Ralenti arrière », « Ralenti avant ») est donné aux lecteurs d'écran et en info-bulle sur PC. Le ralenti réduit à la fois la poussée, le flux de l'hélice sur le safran et le pas d'hélice, de moitié environ : le bateau prend moins d'erre, la barre agit un peu moins sans erre, et le pas d'hélice est plus discret, comme au ralenti sur un vrai bateau. Il permet de graduer l'effort : ralenti, marche, coup de fouet.
+**Ralenti** : dans les commandes étendues, la commande moteur a cinq positions, sur trois colonnes : l'arrière à gauche, l'avant à droite, chacun avec le ralenti au-dessus de la marche, et le neutre au milieu, sur toute la hauteur, plus étroit. De haut en bas, on lit ralenti, marche, puis le coup de fouet en dessous : l'effort croît vers le bas. Chaque ralenti est dans la colonne de sa marche, ce qui suffit à les distinguer ; leur nom complet (« Ralenti arrière », « Ralenti avant ») est donné aux lecteurs d'écran et en info-bulle sur PC. Le ralenti réduit à la fois la poussée, le flux de l'hélice sur le safran et le pas d'hélice, de moitié environ : le bateau prend moins d'erre, la barre agit un peu moins sans erre, et le pas d'hélice est plus discret, comme au ralenti sur un vrai bateau. Il permet de graduer l'effort : ralenti, marche, coup de fouet.
 
 - **Tenir sur une garde** : au ralenti, un départ sur garde se fait plus doucement, et une garde avant au maître-bau, barre au large, tient le bateau le long du quai comme en marche, la garde travaillant moitié moins.
 - **Vent** : au ralenti, le vent soutenu pèse plus que le moteur par le travers ; face au vent, le bateau avance encore.
-- **Toujours disponible** : tant qu'on ne s'en sert pas, le ralenti ne change rien, et la marche garde sa poussée. Aucun réglage, aucune situation du catalogue n'en dépend.
+- **Toujours disponible** : il suffit d'afficher les commandes étendues ; tant qu'on ne s'en sert pas, le ralenti ne change rien, et la marche garde sa poussée. Aucun réglage, aucune situation du catalogue n'en dépend.
 - **Affichage** : la flèche de poussée est plus courte et plus fine au ralenti.
-- **Clavier** : ↑ et ↓ passent d'une position à la suivante, ralentis compris.
+- **Clavier** : en étendu, ↑ et ↓ passent d'une position à la suivante, ralentis compris.
 
-**Coup de fouet** : sous la commande moteur, deux boutons « Coup avant » et « Coup arrière » donnent une poussée brève et forte, le double de la poussée normale, avec un flux d'hélice plus fort sur le safran. En avant, le flux d'hélice renforcé sur le safran fait pivoter l'arrière plus vite qu'en marche avant simple, avant que le bateau ait pris beaucoup d'erre ; en arrière, il casse l'erre ou amorce un recul, et rend le pas d'hélice plus net. Le moteur revient ensuite de lui-même :
+**Coup de fouet** : dans les commandes étendues, sous la commande moteur, deux boutons « Coup avant » et « Coup arrière » donnent une poussée brève et forte, le double de la poussée normale, avec un flux d'hélice plus fort sur le safran. En avant, le flux d'hélice renforcé sur le safran fait pivoter l'arrière plus vite qu'en marche avant simple, avant que le bateau ait pris beaucoup d'erre ; en arrière, il casse l'erre ou amorce un recul, et rend le pas d'hélice plus net. Le moteur revient ensuite de lui-même :
 
 - **Depuis le neutre, ou dans le sens du moteur** : le coup dure 2 s, puis le moteur reprend sa position : neutre, ou ralenti ou marche dans le même sens. Depuis le ralenti, le coup garde sa poussée, le double de la marche.
 - **À contre-sens** (coup arrière moteur en avant ou au ralenti avant, ou l'inverse) : le coup casse l'erre. Il s'arrête dès que le bateau ne va plus dans le sens de l'ancienne marche, au plus tard après 5 s, et le moteur revient au neutre. Si le bateau n'avait pas d'erre dans ce sens (retenu par une garde, par exemple), le coup dure 2 s.
@@ -150,7 +157,7 @@ L'application a deux modes : la **préparation**, où l'on règle la situation, 
 - **Réglage** : durée et intensité sont fixes ; l'élève ne les règle pas.
 - **Affichage** : le bouton reste enfoncé pendant le coup, et la commande moteur montre la position où il reviendra.
 - **Relecture** : le coup est enregistré avec la manœuvre ; demandé en pause, il part à la reprise ou au pas à pas suivant.
-- **Clavier** : Page ↑ pour le coup avant, Page ↓ pour le coup arrière.
+- **Clavier** : en étendu, Page ↑ pour le coup avant, Page ↓ pour le coup arrière.
 
 ### Contrôle du déroulement
 
@@ -169,7 +176,7 @@ L'écran de simulation est une vue de dessus 2D, la plus épurée possible, dans
 
 - le bateau, le quai et, selon la situation, le catway et les bateaux voisins ;
 - les aussières, avec un code couleur tendue / molle ;
-- la position de la commande moteur (avant, ralenti avant, neutre, ralenti arrière, arrière) et l'angle de barre ;
+- la position de la commande moteur (avant, neutre, arrière, et en étendu ralenti avant et ralenti arrière) et l'angle de barre ;
 - la poussée du moteur, par une flèche à l'arrière du bateau, plus courte et plus fine au ralenti, plus longue et plus épaisse pendant un coup de fouet ;
 - la direction et la force du vent ;
 - quand le bateau pivote : le point de pivot marqué sur la coque et une flèche de rotation à une extrémité du bateau ;
@@ -270,14 +277,14 @@ En situation libre, l'éditeur ne propose que le vent, le pas d'hélice et le fa
 - Un bouton distinct restaure la **situation d'origine** du catalogue.
 - Choisir une autre situation dans le catalogue abandonne la préparation en cours.
 
-Aucune sauvegarde ni partage de situation n'est prévu à ce stade : la situation préparée n'est pas conservée d'une visite à l'autre. Le stockage local dans le navigateur est envisageable (par exemple pour retrouver la dernière situation).
+Aucune sauvegarde ni partage de situation n'est prévu à ce stade : la situation préparée n'est pas conservée d'une visite à l'autre. Le stockage local dans le navigateur est envisageable (par exemple pour retrouver la dernière situation) ; il ne garde aujourd'hui que le choix de la commande moteur, simplifiée ou étendue.
 
 #### Pendant la manœuvre
 
 En manœuvre, l'élève a besoin du moteur, de la barre et des amarres, pas des réglages de départ, qu'il ne peut de toute façon plus changer : le panneau ne montre plus qu'eux, pour qu'ils soient le plus accessibles possible.
 
 - **Masqué** : dès qu'on quitte la préparation (lecture, pause en cours de manœuvre, ou pas à pas depuis le départ), le titre de l'application, la section « Situation » (famille, situation, position, bord, vent) et les options avancées disparaissent, ainsi que les textes d'aide (« Barre à roue… », « revenez au départ… »).
-- **Restent** : moteur, barre avec l'angle affiché, amarres avec leur état (sauf en situation libre, qui n'en a pas), puis l'affichage. Sur PC, le rappel des raccourcis clavier reste en bas du panneau.
+- **Restent** : moteur (simplifié ou étendu, avec son interrupteur), barre avec l'angle affiché, amarres avec leur état (sauf en situation libre, qui n'en a pas), puis l'affichage. Sur PC, le rappel des raccourcis clavier reste en bas du panneau.
 - **Retour au départ** : « ⏮ » fait tout réapparaître, comme en préparation. Changer de situation passe donc par le retour au départ.
 - Même comportement sur téléphone, tablette et PC.
 
@@ -309,7 +316,7 @@ Au port, le réseau est souvent faible ou absent : après une première visite, 
 
 ## Évolutions
 
-Le socle est livré : amarrage le long du quai, aussières fixes, moteur avant, neutre et arrière, largage individuel, barre, vent faible ou soutenu, tension des aussières et point de pivot, pause, pas à pas et retour arrière, catalogue et éditeur. Depuis, l'élève peut aussi choquer une aussière, placer des bateaux voisins devant et derrière, manœuvrer un bateau amarré perpendiculaire au quai, le long d'un catway, avec ses voisins de part et d'autre, et zoomer sur la scène. Il peut aussi activer le pas d'hélice, à droite ou à gauche, et le fardage, qui fait abattre l'avant vent de face, et choisir le bord du bateau au quai ou au catway. Il peut tourner une aussière sur un taquet au maître-bau, et donner un coup de fouet au moteur, en avant comme en arrière, ou passer le moteur au ralenti, pour une poussée plus douce et un pas d'hélice plus discret. En manœuvre, le panneau ne montre plus que les commandes : moteur, barre et amarres. Enfin, il peut manœuvrer un bateau libre, sans quai ni amarre, en milieu de port. Le moteur pousse à une allure de manœuvre de port, autour de 3 nœuds, et le vent pèse d'autant plus. Les départs et les sorties du catalogue placent des voisins de part et d'autre, que l'élève peut retirer. L'application s'installe sur l'écran d'accueil et fonctionne sans réseau après une première visite.
+Le socle est livré : amarrage le long du quai, aussières fixes, moteur avant, neutre et arrière, largage individuel, barre, vent faible ou soutenu, tension des aussières et point de pivot, pause, pas à pas et retour arrière, catalogue et éditeur. Depuis, l'élève peut aussi choquer une aussière, placer des bateaux voisins devant et derrière, manœuvrer un bateau amarré perpendiculaire au quai, le long d'un catway, avec ses voisins de part et d'autre, et zoomer sur la scène. Il peut aussi activer le pas d'hélice, à droite ou à gauche, et le fardage, qui fait abattre l'avant vent de face, et choisir le bord du bateau au quai ou au catway. Il peut tourner une aussière sur un taquet au maître-bau, et donner un coup de fouet au moteur, en avant comme en arrière, ou passer le moteur au ralenti, pour une poussée plus douce et un pas d'hélice plus discret. Par défaut, la commande moteur se réduit à avant, neutre et arrière ; un interrupteur affiche le ralenti et le coup de fouet. En manœuvre, le panneau ne montre plus que les commandes : moteur, barre et amarres. Enfin, il peut manœuvrer un bateau libre, sans quai ni amarre, en milieu de port. Le moteur pousse à une allure de manœuvre de port, autour de 3 nœuds, et le vent pèse d'autant plus. Les départs et les sorties du catalogue placent des voisins de part et d'autre, que l'élève peut retirer. L'application s'installe sur l'écran d'accueil et fonctionne sans réseau après une première visite.
 
 Le projet s'enrichit ensuite progressivement, une fonctionnalité à la fois, sans paliers ni jalons : l'ordre suit les envies et les retours des élèves. Le backlog est tenu dans les issues GitHub du dépôt ; chaque issue devient une branche et une demande de fusion, qui met à jour ce document si elle change le périmètre.
 
