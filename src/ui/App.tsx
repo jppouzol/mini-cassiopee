@@ -12,11 +12,11 @@ import {
   type Cleat, type CoteVoisin, type SensHelice, type Situation, type WindDirection,
 } from '../situations/schema.ts';
 import { DEFAULT_PARAMS, FPS } from '../sim/params.ts';
-import { ENGINE_POSITIONS } from '../sim/kick.ts';
 import type { Engine, Params } from '../sim/types.ts';
 import { TAUT_THRESHOLD, type EditionView } from '../render/renderer.ts';
 import { Scene, type Pick } from './Scene.tsx';
 import { Tuning } from './Tuning.tsx';
+import { cranSuivant, ecrireMoteurEtendu, etenduForce, lireMoteurEtendu } from './moteur.ts';
 
 type WindSetting = Situation['vent'];
 
@@ -72,8 +72,14 @@ const BORDS: { value: Situation['bateau']['bordAuQuai']; label: string }[] = [
   { value: 'babord', label: 'Bâbord' },
   { value: 'tribord', label: 'Tribord' },
 ];
+/** Commande moteur simplifiée (#73), par défaut : arrière, neutre, avant, sur une rangée. */
+const ENGINE_SIMPLE: { value: Engine; label: string }[] = [
+  { value: -1, label: 'Arrière' },
+  { value: 0, label: 'Neutre' },
+  { value: 1, label: 'Avant' },
+];
 /**
- * Commande moteur, dans l'ordre de `ENGINE_POSITIONS` (ordre du clavier et des lecteurs
+ * Commande moteur étendue, dans l'ordre de `ENGINE_POSITIONS` (ordre du clavier et des lecteurs
  * d'écran). À l'écran, trois colonnes : l'arrière à gauche, l'avant à droite, le ralenti
  * au-dessus de la marche, et le neutre au milieu sur les deux rangées (`.seg.moteur`). On lit
  * ainsi de haut en bas ralenti, marche puis coup de fouet. Chaque position garde son nom
@@ -129,6 +135,12 @@ export function App() {
   const [speed, setSpeed] = useState(1);
   const [ghost, setGhost] = useState(false);
   const [debug, setDebug] = useState(false);
+  // Commande moteur étendue (ralentis et coups de fouet) : choix de l'élève, gardé dans le navigateur.
+  const [moteurEtendu, setMoteurEtenduState] = useState(lireMoteurEtendu);
+  const setMoteurEtendu = (v: boolean) => {
+    setMoteurEtenduState(v);
+    ecrireMoteurEtendu(v);
+  };
   const [selected, setSelected] = useState<Cleat | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const [voisinNotice, setVoisinNotice] = useState<string | null>(null);
@@ -159,6 +171,11 @@ export function App() {
   const atStart = session.frame === 0;
   // Préparation : instant de départ, lecture arrêtée. Seul moment où l'on édite la situation.
   const preparing = atStart && !playing;
+  // Moteur au ralenti ou coup de fouet en cours : seule la commande étendue montre cet état.
+  const moteurForce = etenduForce(s);
+  const etendu = moteurEtendu || moteurForce;
+  const etenduRef = useRef(etendu);
+  etenduRef.current = etendu;
   const wind = preparee.vent;
   // Amarrage perpendiculaire : le bateau est le long d'un catway, qu'on dessine vertical sous le quai.
   const catway = perpendiculaire(preparee);
@@ -335,15 +352,13 @@ export function App() {
       switch (e.code) {
         case 'Space': setPlaying((p) => !p); break;
         case 'Escape': setSelected(null); setNotice(null); break;
-        // Flèches haut et bas : un cran de la commande moteur, ralentis compris.
-        case 'ArrowUp': case 'ArrowDown': {
-          const i = ENGINE_POSITIONS.indexOf(cur.engine) + (e.code === 'ArrowUp' ? 1 : -1);
-          act({ type: 'engine', value: ENGINE_POSITIONS[Math.max(0, Math.min(ENGINE_POSITIONS.length - 1, i))] });
+        // Flèches haut et bas : un cran de la commande moteur affichée, ralentis compris en étendu.
+        case 'ArrowUp': case 'ArrowDown':
+          act({ type: 'engine', value: cranSuivant(cur.engine, e.code === 'ArrowUp' ? 1 : -1, etenduRef.current) });
           break;
-        }
-        // Coup de fouet : la répétition automatique d'une touche maintenue ne relance pas le coup.
-        case 'PageUp': if (!e.repeat) act({ type: 'kick', value: 1 }); break;
-        case 'PageDown': if (!e.repeat) act({ type: 'kick', value: -1 }); break;
+        // Coup de fouet, en étendu seulement : la répétition automatique d'une touche maintenue ne relance pas le coup.
+        case 'PageUp': if (!e.repeat && etenduRef.current) act({ type: 'kick', value: 1 }); break;
+        case 'PageDown': if (!e.repeat && etenduRef.current) act({ type: 'kick', value: -1 }); break;
         case 'ArrowLeft': act({ type: 'rudder', value: degToRudder(Math.max(-MAX_RUDDER_DEG, deg - 5)) }); break;
         case 'ArrowRight': act({ type: 'rudder', value: degToRudder(Math.min(MAX_RUDDER_DEG, deg + 5)) }); break;
         case 'KeyC': act({ type: 'rudder', value: 0 }); break;
@@ -540,20 +555,37 @@ export function App() {
         )}
 
         <section>
-          <h2>Moteur</h2>
-          <div className="seg moteur" role="group" aria-label="Moteur">
-            {ENGINE.map((m) => (
-              <button key={m.value} className={m.place} aria-pressed={s.engine === m.value} aria-label={m.title} title={m.title}
-                onClick={() => act({ type: 'engine', value: m.value })}>{m.label}</button>
-            ))}
+          <div className="titre-section">
+            <h2>Moteur</h2>
+            {/* Interrupteur : imposé tant que le moteur est au ralenti ou qu'un coup de fouet est en cours. */}
+            <button className="interrupteur" role="switch" aria-checked={etendu} disabled={moteurForce}
+              title={moteurForce ? 'Le moteur est au ralenti ou en coup de fouet' : 'Ralenti et coup de fouet'}
+              onClick={() => setMoteurEtendu(!moteurEtendu)}>
+              <span className="piste" aria-hidden="true"><span className="curseur" /></span>Étendue
+            </button>
           </div>
-          <div className="seg coups" role="group" aria-label="Coup de fouet">
-            {KICKS.map((k) => (
-              <button key={k.value} aria-pressed={s.kick?.dir === k.value}
-                onClick={() => act({ type: 'kick', value: k.value })}>{k.label}</button>
-            ))}
-          </div>
-          {preparing && <p className="hint">Ralenti : moitié de la poussée. Coup de fouet : poussée brève et forte, puis le moteur revient de lui-même.</p>}
+          {etendu ? <>
+            <div className="seg moteur" role="group" aria-label="Moteur">
+              {ENGINE.map((m) => (
+                <button key={m.value} className={m.place} aria-pressed={s.engine === m.value} aria-label={m.title} title={m.title}
+                  onClick={() => act({ type: 'engine', value: m.value })}>{m.label}</button>
+              ))}
+            </div>
+            <div className="seg coups" role="group" aria-label="Coup de fouet">
+              {KICKS.map((k) => (
+                <button key={k.value} aria-pressed={s.kick?.dir === k.value}
+                  onClick={() => act({ type: 'kick', value: k.value })}>{k.label}</button>
+              ))}
+            </div>
+            {preparing && <p className="hint">Ralenti : moitié de la poussée. Coup de fouet : poussée brève et forte, puis le moteur revient de lui-même.</p>}
+          </> : (
+            <div className="seg moteur-simple" role="group" aria-label="Moteur">
+              {ENGINE_SIMPLE.map((m) => (
+                <button key={m.value} aria-pressed={s.engine === m.value}
+                  onClick={() => act({ type: 'engine', value: m.value })}>{m.label}</button>
+              ))}
+            </div>
+          )}
         </section>
 
         <section>
@@ -649,7 +681,7 @@ export function App() {
         {showTuning && <Tuning params={params} onChange={changeParams} />}
 
         <p className="keys">
-          <kbd>Espace</kbd> lecture · <kbd>↑</kbd><kbd>↓</kbd> moteur · <kbd>Page ↑</kbd><kbd>Page ↓</kbd> coup de fouet · <kbd>←</kbd><kbd>→</kbd> barre · <kbd>C</kbd> centrer ·
+          <kbd>Espace</kbd> lecture · <kbd>↑</kbd><kbd>↓</kbd> moteur · {etendu && <><kbd>Page ↑</kbd><kbd>Page ↓</kbd> coup de fouet · </>}<kbd>←</kbd><kbd>→</kbd> barre · <kbd>C</kbd> centrer ·
           {!enLibre && <>
           {' '}<kbd>Maj</kbd>+{catway ? <><kbd>↑</kbd><kbd>↓</kbd></> : <><kbd>←</kbd><kbd>→</kbd></>} bateau ·
           {' '}<kbd>1</kbd>–<kbd>9</kbd> larguer · <kbd>Maj</kbd>+<kbd>1</kbd>–<kbd>9</kbd> choquer ·
