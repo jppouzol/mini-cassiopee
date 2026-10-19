@@ -73,16 +73,18 @@ const BORDS: { value: Situation['bateau']['bordAuQuai']; label: string }[] = [
   { value: 'tribord', label: 'Tribord' },
 ];
 /**
- * Commande moteur, de la marche arrière à gauche à la marche avant à droite (ordre de
- * `ENGINE_POSITIONS`) : les deux « Ralenti » se distinguent par leur place, de part et d'autre
- * du neutre, et par leur nom complet pour les lecteurs d'écran.
+ * Commande moteur, dans l'ordre de `ENGINE_POSITIONS` (ordre du clavier et des lecteurs
+ * d'écran). À l'écran, trois colonnes : l'arrière à gauche, l'avant à droite, le ralenti
+ * au-dessus de la marche, et le neutre au milieu sur les deux rangées (`.seg.moteur`). On lit
+ * ainsi de haut en bas ralenti, marche puis coup de fouet. Chaque position garde son nom
+ * complet pour les lecteurs d'écran.
  */
-const ENGINE: { value: Engine; label: string; title: string }[] = [
-  { value: -1, label: 'Arrière', title: 'Marche arrière' },
-  { value: -0.5, label: 'Ralenti', title: 'Ralenti arrière' },
-  { value: 0, label: 'Neutre', title: 'Neutre' },
-  { value: 0.5, label: 'Ralenti', title: 'Ralenti avant' },
-  { value: 1, label: 'Avant', title: 'Marche avant' },
+const ENGINE: { value: Engine; label: string; title: string; place: string }[] = [
+  { value: -1, label: 'Arrière', title: 'Marche arrière', place: 'marche-ar' },
+  { value: -0.5, label: 'Ralenti', title: 'Ralenti arrière', place: 'ralenti-ar' },
+  { value: 0, label: 'Neutre', title: 'Neutre', place: 'neutre' },
+  { value: 0.5, label: 'Ralenti', title: 'Ralenti avant', place: 'ralenti-av' },
+  { value: 1, label: 'Avant', title: 'Marche avant', place: 'marche-av' },
 ];
 /** Coups de fouet, sous la commande moteur : arrière à gauche, avant à droite, comme au-dessus. */
 const KICKS: { value: 1 | -1; label: string }[] = [
@@ -539,9 +541,9 @@ export function App() {
 
         <section>
           <h2>Moteur</h2>
-          <div className="seg" role="group" aria-label="Moteur">
+          <div className="seg moteur" role="group" aria-label="Moteur">
             {ENGINE.map((m) => (
-              <button key={m.value} aria-pressed={s.engine === m.value} aria-label={m.title} title={m.title}
+              <button key={m.value} className={m.place} aria-pressed={s.engine === m.value} aria-label={m.title} title={m.title}
                 onClick={() => act({ type: 'engine', value: m.value })}>{m.label}</button>
             ))}
           </div>
