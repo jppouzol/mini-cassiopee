@@ -17,6 +17,7 @@ import { TAUT_THRESHOLD, type EditionView } from '../render/renderer.ts';
 import { Scene, type Pick } from './Scene.tsx';
 import { Tuning } from './Tuning.tsx';
 import { cranSuivant, ecrireMoteurEtendu, etenduForce, lireMoteurEtendu } from './moteur.ts';
+import { CRANS, amarresForcees, cranDe, cranVoisin, ecrireAmarresEtendues, lireAmarresEtendues, type Cran } from './amarres.ts';
 
 type WindSetting = Situation['vent'];
 
@@ -93,6 +94,8 @@ const ENGINE: { value: Engine; label: string; title: string; place: string }[] =
   { value: 1, label: 'Avant', title: 'Marche avant', place: 'marche-av' },
 ];
 /** Coups de fouet, sous la commande moteur : arrière à gauche, avant à droite, comme au-dessus. */
+/** Crans de la commande étendue des amarres (#75), dans l'ordre de l'échelle. */
+const CRAN_LABELS: Record<Cran, string> = { choquer: 'Choquer', bloquer: 'Bloquer' };
 const KICKS: { value: 1 | -1; label: string }[] = [
   { value: -1, label: 'Coup arrière' },
   { value: 1, label: 'Coup avant' },
@@ -141,6 +144,12 @@ export function App() {
     setMoteurEtenduState(v);
     ecrireMoteurEtendu(v);
   };
+  // Commande étendue des amarres (crans Choquer et Bloquer) : choix propre aux amarres, gardé dans le navigateur.
+  const [amarresEtendues, setAmarresEtenduesState] = useState(lireAmarresEtendues);
+  const setAmarresEtendues = (v: boolean) => {
+    setAmarresEtenduesState(v);
+    ecrireAmarresEtendues(v);
+  };
   const [selected, setSelected] = useState<Cleat | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const [voisinNotice, setVoisinNotice] = useState<string | null>(null);
@@ -176,6 +185,11 @@ export function App() {
   const etendu = moteurEtendu || moteurForce;
   const etenduRef = useRef(etendu);
   etenduRef.current = etendu;
+  // Une aussière qui file (ou réglée pour filer au départ) : seuls les crans montrent cet état.
+  const amarresForce = amarresForcees(s.lines);
+  const etendues = amarresEtendues || amarresForce;
+  const etenduesRef = useRef(etendues);
+  etenduesRef.current = etendues;
   const wind = preparee.vent;
   // Amarrage perpendiculaire : le bateau est le long d'un catway, qu'on dessine vertical sous le quai.
   const catway = perpendiculaire(preparee);
@@ -283,23 +297,29 @@ export function App() {
     setSelected(null);
     edit((sit) => changerBord(sit, origine, bord));
   };
-  // Choquer : en préparation, l'aussière file dès la mise en mouvement ; ensuite, bascule notée dans le journal.
-  const togglePayOut = (index: number) => {
+  // Cran d'une aussière : en préparation, elle file ou non dès la mise en mouvement ;
+  // ensuite, le changement est noté dans le journal. Rien n'est fait si le cran ne change pas.
+  const setCran = (index: number, cran: Cran) => {
     if (preparing) {
       const a = preparee.aussieres[index];
-      if (a) edit((sit) => basculerFile(sit, a.id));
+      if (a && (a.file === true) !== (cran === 'choquer')) edit((sit) => basculerFile(sit, a.id));
       return;
     }
     const l = session.state.lines[index];
-    if (l && l.attached) act({ type: 'pay-out', lineId: l.id, value: !l.payingOut });
+    if (l && l.attached && cranDe(l) !== cran) act({ type: 'pay-out', lineId: l.id, value: cran === 'choquer' });
+  };
+  // Clavier : un cran vers Choquer (-1) ou vers Bloquer (1), depuis le cran actuel.
+  const stepCran = (index: number, sens: 1 | -1) => {
+    const l = session.state.lines[index];
+    if (l && l.attached) setCran(index, cranVoisin(cranDe(l), sens));
   };
   // Copies pour les raccourcis clavier, dont l'écouteur n'est pas recréé à chaque rendu.
   const moveBoatRef = useRef(moveBoat);
   moveBoatRef.current = moveBoat;
   const catwayRef = useRef(catway);
   catwayRef.current = catway;
-  const togglePayOutRef = useRef(togglePayOut);
-  togglePayOutRef.current = togglePayOut;
+  const stepCranRef = useRef(stepCran);
+  stepCranRef.current = stepCran;
 
   // Toucher sur la scène : un taquet, puis une bitte.
   const onPick = (p: Pick) => {
@@ -367,13 +387,17 @@ export function App() {
         case 'Period': step(STEP_FRAMES); break;
         default: {
           // Chiffres de la rangée du haut, repérés par la touche (indépendamment de la disposition du clavier) :
-          // Maj + chiffre choque ou bloque une aussière ; le chiffre seul la largue, une fois la manœuvre commencée.
+          // le chiffre seul largue une aussière, une fois la manœuvre commencée. Dans la commande
+          // étendue des amarres seulement, Maj + chiffre la passe d'un cran vers Choquer, Alt + chiffre
+          // d'un cran vers Bloquer (Maj + Alt est écarté : sous Windows, il change la disposition du clavier).
           const m = /^Digit([1-9])$/.exec(e.code);
-          if (!m || e.altKey || e.ctrlKey || e.metaKey) return;
+          if (!m || e.ctrlKey || e.metaKey || (e.shiftKey && e.altKey)) return;
           const n = Number(m[1]);
           const l = cur.lines[n - 1];
-          if (e.shiftKey) togglePayOutRef.current(n - 1);
-          else if (l && l.attached && ses.frame > 0) act({ type: 'cast-off', lineId: l.id });
+          if (e.shiftKey || e.altKey) {
+            if (!etenduesRef.current) return;
+            stepCranRef.current(n - 1, e.shiftKey ? -1 : 1);
+          } else if (l && l.attached && ses.frame > 0) act({ type: 'cast-off', lineId: l.id });
           else return;
         }
       }
@@ -387,6 +411,16 @@ export function App() {
     // En libre, rien à éditer sur la scène : un glisser à la souris y déplace la vue.
     () => (preparing && !enLibre ? { cleats: taquetsProposes(preparee), selected } : null),
     [preparing, enLibre, preparee, selected],
+  );
+  // Rangée des crans d'une aussière, sous sa rangée principale, dans la commande étendue des amarres.
+  const crans = (i: number, name: string, actuel: Cran, actif: boolean) => (
+    <div className="seg crans" role="group" aria-label={`Équipier, ${name}`}>
+      {CRANS.map((c) => (
+        <button key={c} aria-pressed={actif && actuel === c} disabled={!actif}
+          title={i < 9 ? `${CRAN_LABELS[c]} (${c === 'choquer' ? 'Maj' : 'Alt'} + ${i + 1})` : CRAN_LABELS[c]}
+          onClick={() => setCran(i, c)}>{CRAN_LABELS[c]}</button>
+      ))}
+    </div>
   );
   const rudderDeg = rudderToDeg(s.rudder);
   const showTuning = typeof location !== 'undefined' && location.hash === '#reglages';
@@ -604,9 +638,15 @@ export function App() {
         </section>
 
         {!enLibre && <section>
-          <div className="row">
+          <div className="titre-section">
             <h2>Amarres</h2>
             {preparing && <span className="count push-right">{preparee.aussieres.length} / {max}</span>}
+            {/* Interrupteur propre aux amarres : imposé tant qu'une aussière non larguée n'est pas sur Bloquer. */}
+            <button className="interrupteur" role="switch" aria-checked={etendues} disabled={amarresForce}
+              title={amarresForce ? 'Une aussière n’est pas sur Bloquer' : 'Choquer ou bloquer chaque aussière'}
+              onClick={() => setAmarresEtendues(!amarresEtendues)}>
+              <span className="piste" aria-hidden="true"><span className="curseur" /></span>Étendue
+            </button>
           </div>
           <div className="lines">
             {s.lines.length === 0 && <p className="hint">Aucune amarre dans cette situation.</p>}
@@ -630,12 +670,8 @@ export function App() {
                           onClick={() => setRenaming({ id: a.id, text: a.nom ?? '' })}>{name} <span aria-hidden="true">✎</span></button>}
                     <button className="btn" aria-pressed={molle} title="Basculer entre tendue et molle"
                       onClick={() => edit((sit) => basculerMou(sit, a.id))}>{molle ? 'Molle' : 'Tendue'}</button>
-                    <div className="acts">
-                      <button className="btn toggle" aria-pressed={a.file === true}
-                        title={`Laisser filer dès le départ, ou bloquer${i < 9 ? ` (Maj + ${i + 1})` : ''}`}
-                        onClick={() => togglePayOut(i)}>Choquer</button>
-                      <button className="btn" onClick={() => edit((sit) => supprimerAussiere(sit, a.id))}>Supprimer</button>
-                    </div>
+                    <button className="btn" onClick={() => edit((sit) => supprimerAussiere(sit, a.id))}>Supprimer</button>
+                    {etendues && crans(i, name, a.file === true ? 'choquer' : 'bloquer', true)}
                   </div>
                 );
               })
@@ -647,19 +683,16 @@ export function App() {
                 return (
                   <div className="line" key={l.id}>
                     <span className={`chip ${state}`} />
-                    <span>{l.name}</span>
+                    <span className="name-text">{l.name}</span>
                     <span className="state">{label}</span>
-                    <div className="acts">
-                      <button className="btn toggle" disabled={!l.attached} aria-pressed={l.attached && l.payingOut}
-                        title={`Laisser filer ou bloquer${i < 9 ? ` (Maj + ${i + 1})` : ''}`}
-                        onClick={() => togglePayOut(i)}>Choquer</button>
-                      <button className="btn" disabled={!l.attached} title={i < 9 ? `Touche ${i + 1}` : undefined}
-                        onClick={() => act({ type: 'cast-off', lineId: l.id })}>Larguer</button>
-                    </div>
+                    <button className="btn" disabled={!l.attached} title={i < 9 ? `Touche ${i + 1}` : undefined}
+                      onClick={() => act({ type: 'cast-off', lineId: l.id })}>Larguer</button>
+                    {etendues && crans(i, l.name, cranDe(l), l.attached)}
                   </div>
                 );
               })}
           </div>
+          {preparing && etendues && <p className="hint">Les crans règlent ce que fait l’équipier dès la mise en mouvement.</p>}
           {preparing && (
             <p className="hint" aria-live="polite">
               {notice
@@ -684,7 +717,8 @@ export function App() {
           <kbd>Espace</kbd> lecture · <kbd>↑</kbd><kbd>↓</kbd> moteur · {etendu && <><kbd>Page ↑</kbd><kbd>Page ↓</kbd> coup de fouet · </>}<kbd>←</kbd><kbd>→</kbd> barre · <kbd>C</kbd> centrer ·
           {!enLibre && <>
           {' '}<kbd>Maj</kbd>+{catway ? <><kbd>↑</kbd><kbd>↓</kbd></> : <><kbd>←</kbd><kbd>→</kbd></>} bateau ·
-          {' '}<kbd>1</kbd>–<kbd>9</kbd> larguer · <kbd>Maj</kbd>+<kbd>1</kbd>–<kbd>9</kbd> choquer ·
+          {' '}<kbd>1</kbd>–<kbd>9</kbd> larguer ·
+          {etendues && <>{' '}<kbd>Maj</kbd>+<kbd>1</kbd>–<kbd>9</kbd> choquer · <kbd>Alt</kbd>+<kbd>1</kbd>–<kbd>9</kbd> bloquer ·</>}
           </>}
           {' '}<kbd>,</kbd><kbd>.</kbd> pas à pas · <kbd>R</kbd> départ{!enLibre && <> · <kbd>Échap</kbd> annuler</>}
         </p>
