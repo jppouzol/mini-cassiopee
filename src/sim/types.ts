@@ -35,7 +35,12 @@ export interface MooringLine {
   tension: number;
 }
 
-export type Engine = -1 | 0 | 1;
+/**
+ * Position de la commande moteur : marche arrière (-1), ralenti arrière (-0,5), neutre (0),
+ * ralenti avant (0,5) ou marche avant (1). Le signe donne le sens de la poussée ; le ralenti
+ * la réduit du facteur `idleFactor` (`thrustOf`, dans `src/sim/kick.ts`).
+ */
+export type Engine = -1 | -0.5 | 0 | 0.5 | 1;
 
 /** Coup de fouet en cours : poussée brève et forte, suivie d'un retour automatique (`src/sim/kick.ts`). */
 export interface Kick {
@@ -163,6 +168,7 @@ export interface Params {
   windageX: number;
   windageShift: number;
   windageSkew: number;
+  idleFactor: number;
   kickFactor: number;
   kickTime: number;
   kickMaxTime: number;

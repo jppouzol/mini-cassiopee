@@ -12,6 +12,7 @@ import {
   type Cleat, type CoteVoisin, type SensHelice, type Situation, type WindDirection,
 } from '../situations/schema.ts';
 import { DEFAULT_PARAMS, FPS } from '../sim/params.ts';
+import { ENGINE_POSITIONS } from '../sim/kick.ts';
 import type { Engine, Params } from '../sim/types.ts';
 import { TAUT_THRESHOLD, type EditionView } from '../render/renderer.ts';
 import { Scene, type Pick } from './Scene.tsx';
@@ -71,10 +72,19 @@ const BORDS: { value: Situation['bateau']['bordAuQuai']; label: string }[] = [
   { value: 'babord', label: 'Bâbord' },
   { value: 'tribord', label: 'Tribord' },
 ];
-const ENGINE: { value: Engine; label: string }[] = [
-  { value: -1, label: 'Arrière' },
-  { value: 0, label: 'Neutre' },
-  { value: 1, label: 'Avant' },
+/**
+ * Commande moteur, dans l'ordre de `ENGINE_POSITIONS` (ordre du clavier et des lecteurs
+ * d'écran). À l'écran, trois colonnes : l'arrière à gauche, l'avant à droite, le ralenti
+ * au-dessus de la marche, et le neutre au milieu sur les deux rangées (`.seg.moteur`). On lit
+ * ainsi de haut en bas ralenti, marche puis coup de fouet. Chaque position garde son nom
+ * complet pour les lecteurs d'écran.
+ */
+const ENGINE: { value: Engine; label: string; title: string; place: string }[] = [
+  { value: -1, label: 'Arrière', title: 'Marche arrière', place: 'marche-ar' },
+  { value: -0.5, label: 'Ralenti', title: 'Ralenti arrière', place: 'ralenti-ar' },
+  { value: 0, label: 'Neutre', title: 'Neutre', place: 'neutre' },
+  { value: 0.5, label: 'Ralenti', title: 'Ralenti avant', place: 'ralenti-av' },
+  { value: 1, label: 'Avant', title: 'Marche avant', place: 'marche-av' },
 ];
 /** Coups de fouet, sous la commande moteur : arrière à gauche, avant à droite, comme au-dessus. */
 const KICKS: { value: 1 | -1; label: string }[] = [
@@ -325,8 +335,12 @@ export function App() {
       switch (e.code) {
         case 'Space': setPlaying((p) => !p); break;
         case 'Escape': setSelected(null); setNotice(null); break;
-        case 'ArrowUp': act({ type: 'engine', value: Math.min(1, cur.engine + 1) as Engine }); break;
-        case 'ArrowDown': act({ type: 'engine', value: Math.max(-1, cur.engine - 1) as Engine }); break;
+        // Flèches haut et bas : un cran de la commande moteur, ralentis compris.
+        case 'ArrowUp': case 'ArrowDown': {
+          const i = ENGINE_POSITIONS.indexOf(cur.engine) + (e.code === 'ArrowUp' ? 1 : -1);
+          act({ type: 'engine', value: ENGINE_POSITIONS[Math.max(0, Math.min(ENGINE_POSITIONS.length - 1, i))] });
+          break;
+        }
         // Coup de fouet : la répétition automatique d'une touche maintenue ne relance pas le coup.
         case 'PageUp': if (!e.repeat) act({ type: 'kick', value: 1 }); break;
         case 'PageDown': if (!e.repeat) act({ type: 'kick', value: -1 }); break;
@@ -527,9 +541,9 @@ export function App() {
 
         <section>
           <h2>Moteur</h2>
-          <div className="seg" role="group" aria-label="Moteur">
+          <div className="seg moteur" role="group" aria-label="Moteur">
             {ENGINE.map((m) => (
-              <button key={m.value} aria-pressed={s.engine === m.value}
+              <button key={m.value} className={m.place} aria-pressed={s.engine === m.value} aria-label={m.title} title={m.title}
                 onClick={() => act({ type: 'engine', value: m.value })}>{m.label}</button>
             ))}
           </div>
@@ -539,7 +553,7 @@ export function App() {
                 onClick={() => act({ type: 'kick', value: k.value })}>{k.label}</button>
             ))}
           </div>
-          {preparing && <p className="hint">Coup de fouet : poussée brève et forte, puis le moteur revient de lui-même.</p>}
+          {preparing && <p className="hint">Ralenti : moitié de la poussée. Coup de fouet : poussée brève et forte, puis le moteur revient de lui-même.</p>}
         </section>
 
         <section>

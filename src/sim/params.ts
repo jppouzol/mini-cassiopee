@@ -47,6 +47,7 @@ export const DEFAULT_PARAMS: Readonly<Params> = Object.freeze({
   windageX: 0.5, // décalage vers l'avant, vent par le travers (m)
   windageShift: 4, // déplacement vers le bout d'où vient le vent (m)
   windageSkew: 0.07, // écart du vent vu par le fardage, côté tiré au départ (rad, environ 4°)
+  idleFactor: 0.5, // ralenti (#67) : poussée multipliée (flux d'hélice et pas d'hélice compris)
   kickFactor: 2, // coup de fouet : poussée multipliée (flux d'hélice et pas d'hélice compris)
   kickTime: 2, // coup de fouet depuis le neutre ou dans le sens du moteur : durée (s)
   kickMaxTime: 5, // coup de fouet à contre-sens, qui casse l'erre : durée maximale (s)
