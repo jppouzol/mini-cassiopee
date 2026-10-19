@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <!-- Icône de Mini Cassiopée : le bout de tissu vu de dessus, étrave vers le haut, tenu au quai par deux aussières.
+       Le fond occupe tout le carré et le dessin tient dans le cercle central (icône masquable). -->
+  <rect width="512" height="512" fill="#1b5f86"/>
+  <rect width="168" height="512" fill="#bdb5a8"/>
+  <rect x="160" width="8" height="512" fill="#847b6e"/>
+  <g stroke="#ef6a4c" stroke-width="11" stroke-linecap="round">
+    <line x1="146" y1="104" x2="283.5" y2="121.0"/>
+    <line x1="146" y1="408" x2="256.5" y2="394.0"/>
+  </g>
+  <circle cx="146" cy="104" r="13" fill="#3a3530"/>
+  <circle cx="146" cy="408" r="13" fill="#3a3530"/>
+  <path d="M300.0 106.0 L283.5 121.0 L270.0 142.0 L258.6 172.0 L251.4 211.0 L249.0 256.0 L249.6 301.0 L252.0 346.0 L255.0 382.0 L258.0 406.0 L342.0 406.0 L345.0 382.0 L348.0 346.0 L350.4 301.0 L351.0 256.0 L348.6 211.0 L341.4 172.0 L330.0 142.0 L316.5 121.0 L300.0 106.0 Z" fill="#ffffff" stroke="#12232b" stroke-width="7" stroke-linejoin="round"/>
+</svg>
