@@ -48,7 +48,7 @@ La scène se compose d'un seul bateau, d'un quai, d'aussières et du vent ; en s
 - Un modèle unique et générique, aux proportions d'un voilier de croisière de 10 m.
 - Taquets : six, quelle que soit la situation, deux à l'étrave, deux au maître-bau et deux à l'arrière, un sur chaque bord. Ceux du maître-bau sont au milieu de la coque, au plus large ; tant qu'on n'y tourne aucune aussière, ils ne changent rien. Les taquets d'étrave et d'arrière permettent par exemple deux pointes arrière cul à quai, ou deux pointes avant étrave au quai, indispensables à la sortie en marche arrière. Une garde avant au maître-bau, moteur avant et barre au large, tient le bateau le long du quai le temps de passer les autres amarres ; barre au centre, l'arrière s'écarte, moins qu'avec une garde à l'étrave.
 - Paramètres avancés : pas d'hélice, avec choix du sens de rotation ; choix entre mono-safran et bi-safran (envisagé).
-- **Pas d'hélice** : un seul réglage, « Pas d'hélice » : aucun (par défaut), hélice à droite ou hélice à gauche. Quand le moteur tourne, l'hélice pousse l'arrière de côté. L'effet est net en marche arrière : hélice à droite, l'arrière part vers bâbord ; hélice à gauche, vers tribord. En marche avant, il est léger et de sens contraire. Il est le plus fort au démarrage, bateau arrêté, et faiblit quand le bateau prend de l'erre : lancé en marche arrière, barre à fond, on arrive à reculer droit. Rien n'est ajouté à la scène : on le voit à l'arrière qui part de côté. Aucune situation du catalogue ne l'active : l'élève l'ajoute sur n'importe laquelle. Pendant un coup de fouet, il est doublé, comme la poussée. Comme les voisins, il se règle en préparation ; « Situation d'origine » ou le choix d'une autre situation le retire.
+- **Pas d'hélice** : un seul réglage, « Pas d'hélice » : aucun (par défaut), hélice à droite ou hélice à gauche. Quand le moteur tourne, l'hélice pousse l'arrière de côté. L'effet est net en marche arrière : hélice à droite, l'arrière part vers bâbord ; hélice à gauche, vers tribord. En marche avant, il est léger et de sens contraire. Il est le plus fort au démarrage, bateau arrêté, et faiblit quand le bateau prend de l'erre : lancé en marche arrière, barre à fond, on arrive à reculer droit. Rien n'est ajouté à la scène : on le voit à l'arrière qui part de côté. Aucune situation du catalogue ne l'active : l'élève l'ajoute sur n'importe laquelle. Au ralenti, il est plus discret, réduit comme la poussée ; pendant un coup de fouet, il est doublé. Comme les voisins, il se règle en préparation ; « Situation d'origine » ou le choix d'une autre situation le retire.
 - Le type de quille n'est pas paramétrable.
 
 ### Quai et environnement
@@ -104,9 +104,9 @@ La scène se compose d'un seul bateau, d'un quai, d'aussières et du vent ; en s
 
 La simulation est en deux dimensions, vue de dessus, et vise un comportement qualitativement juste plutôt qu'une précision physique.
 
-- **Forces prises en compte dans le socle** : poussée du moteur (avant ou arrière, intensité unique, doublée pendant un coup de fouet), effort de la barre sur le safran quand le bateau a de l'erre ou que le flux de l'hélice passe sur le safran, résistance de la quille et du safran au dérapage, force du vent, retenue des aussières tendues, contact avec le quai, avec le catway et, s'il y en a, avec les bateaux voisins.
+- **Forces prises en compte dans le socle** : poussée du moteur (avant ou arrière, en marche ou au ralenti, à moitié de la marche, et doublée pendant un coup de fouet), effort de la barre sur le safran quand le bateau a de l'erre ou que le flux de l'hélice passe sur le safran, résistance de la quille et du safran au dérapage, force du vent, retenue des aussières tendues, contact avec le quai, avec le catway et, s'il y en a, avec les bateaux voisins.
 - **Mouvements** : translation dans le plan et rotation autour d'un axe vertical. Le point de pivot résulte des aussières tendues et des points de contact ; en eau libre, de la quille et du safran, qui le placent sur la coque : dans la moitié avant en marche avant, dans la moitié arrière en marche arrière.
-- **Vitesse** : moteur en avant, le bateau libre plafonne à environ 3 nœuds, et 2,5 en marche arrière, une allure de manœuvre de port. Le coup de fouet donne le coup de moteur plus franc qui redonne de la manœuvrabilité.
+- **Vitesse** : moteur en avant, le bateau libre plafonne à environ 3 nœuds, et 2,5 en marche arrière, une allure de manœuvre de port ; au ralenti, environ 2 nœuds en avant et 1,7 en arrière. Le coup de fouet donne le coup de moteur plus franc qui redonne de la manœuvrabilité.
 - **Giration** : barre à fond, le bateau libre tourne dans un cercle d'environ deux longueurs, comme un voilier de croisière à quille aileron, et fait demi-tour dans une allée de port réaliste, en moins de 20 m. La quille limite la dérive au vent dès que le bateau a de l'erre ; à l'arrêt, le vent le pousse comme avant.
 - **Aussières** : longueur maximale fixe ; une aussière ne retient que lorsqu'elle est tendue, jamais en compression.
 - **Contact avec le quai** : traitement simple qui empêche le bateau de traverser le quai et peut servir de point d'appui ; les défenses ne sont pas modélisées dans le socle. Le catway reçoit le même traitement, sur ses deux flancs et son bout. En situation libre, il n'y a pas de quai : aucun contact.
@@ -123,7 +123,8 @@ L'application a deux modes : la **préparation**, où l'on règle la situation, 
 
 | Commande | Valeurs | Disponibilité |
 | --- | --- | --- |
-| Moteur | Avant, neutre, arrière (sans réglage de puissance) | Socle |
+| Moteur | Avant, neutre, arrière | Socle |
+| Ralenti | Ralenti avant ou ralenti arrière : moitié de la poussée, entre le neutre et la marche | Livré |
 | Coup de fouet | Coup avant ou coup arrière : poussée brève et forte, puis retour automatique du moteur | Livré |
 | Larguer une aussière | Individuellement, à tout moment | Socle |
 | Barre | Angle de barre, côté bâbord ou tribord | Socle |
@@ -133,11 +134,19 @@ L'application a deux modes : la **préparation**, où l'on règle la situation, 
 
 **Choquer une aussière** : chaque aussière de la liste porte un bouton « Choquer » à bascule, à côté de « Larguer ». Un premier appui la laisse filer et le bouton reste enfoncé ; un second appui la bloque. Le bouton s'utilise en lecture comme en pause : en pause, la bascule prend effet à la reprise ou au pas à pas suivant. Elle est enregistrée avec la manœuvre, comme les autres commandes. En préparation, le même bouton indique qu'une aussière file dès la mise en mouvement. Larguer une aussière qui file la fait disparaître, comme toute aussière larguée. Dans la scène, une aussière qui file apparaît molle, puisqu'elle ne retient pas ; la liste l'indique par « File ».
 
+**Ralenti** : la commande moteur a cinq positions, de gauche à droite : arrière, ralenti, neutre, ralenti, avant. Chaque ralenti est du côté de sa marche, ce qui suffit à les distinguer ; leur nom complet (« Ralenti arrière », « Ralenti avant ») est donné aux lecteurs d'écran et en info-bulle sur PC. Le ralenti réduit à la fois la poussée, le flux de l'hélice sur le safran et le pas d'hélice, de moitié environ : le bateau prend moins d'erre, la barre agit un peu moins sans erre, et le pas d'hélice est plus discret, comme au ralenti sur un vrai bateau. Il permet de graduer l'effort : ralenti, marche, coup de fouet.
+
+- **Tenir sur une garde** : au ralenti, un départ sur garde se fait plus doucement, et une garde avant au maître-bau, barre au large, tient le bateau le long du quai comme en marche, la garde travaillant moitié moins.
+- **Vent** : au ralenti, le vent soutenu pèse plus que le moteur par le travers ; face au vent, le bateau avance encore.
+- **Toujours disponible** : tant qu'on ne s'en sert pas, le ralenti ne change rien, et la marche garde sa poussée. Aucun réglage, aucune situation du catalogue n'en dépend.
+- **Affichage** : la flèche de poussée est plus courte et plus fine au ralenti.
+- **Clavier** : ↑ et ↓ passent d'une position à la suivante, ralentis compris.
+
 **Coup de fouet** : sous la commande moteur, deux boutons « Coup avant » et « Coup arrière » donnent une poussée brève et forte, le double de la poussée normale, avec un flux d'hélice plus fort sur le safran. En avant, le flux d'hélice renforcé sur le safran fait pivoter l'arrière plus vite qu'en marche avant simple, avant que le bateau ait pris beaucoup d'erre ; en arrière, il casse l'erre ou amorce un recul, et rend le pas d'hélice plus net. Le moteur revient ensuite de lui-même :
 
-- **Depuis le neutre, ou dans le sens du moteur** : le coup dure 2 s, puis le moteur reprend sa position, neutre ou marche dans le même sens.
-- **À contre-sens** (coup arrière moteur en avant, ou l'inverse) : le coup casse l'erre. Il s'arrête dès que le bateau ne va plus dans le sens de l'ancienne marche, au plus tard après 5 s, et le moteur revient au neutre. Si le bateau n'avait pas d'erre dans ce sens (retenu par une garde, par exemple), le coup dure 2 s.
-- **Pendant un coup** : toucher Avant, Neutre ou Arrière l'arrête, et la nouvelle position s'applique tout de suite. Un nouveau coup remplace celui en cours et suit les mêmes règles, depuis la position où le moteur doit revenir : dans le même sens, les 2 s repartent ; à contre-sens de cette position, il casse l'erre et le moteur reviendra au neutre.
+- **Depuis le neutre, ou dans le sens du moteur** : le coup dure 2 s, puis le moteur reprend sa position : neutre, ou ralenti ou marche dans le même sens. Depuis le ralenti, le coup garde sa poussée, le double de la marche.
+- **À contre-sens** (coup arrière moteur en avant ou au ralenti avant, ou l'inverse) : le coup casse l'erre. Il s'arrête dès que le bateau ne va plus dans le sens de l'ancienne marche, au plus tard après 5 s, et le moteur revient au neutre. Si le bateau n'avait pas d'erre dans ce sens (retenu par une garde, par exemple), le coup dure 2 s.
+- **Pendant un coup** : toucher une position du moteur (avant, ralenti, neutre ou arrière) l'arrête, et la nouvelle position s'applique tout de suite. Un nouveau coup remplace celui en cours et suit les mêmes règles, depuis la position où le moteur doit revenir : dans le même sens, les 2 s repartent ; à contre-sens de cette position, il casse l'erre et le moteur reviendra au neutre.
 - **Réglage** : durée et intensité sont fixes ; l'élève ne les règle pas.
 - **Affichage** : le bouton reste enfoncé pendant le coup, et la commande moteur montre la position où il reviendra.
 - **Relecture** : le coup est enregistré avec la manœuvre ; demandé en pause, il part à la reprise ou au pas à pas suivant.
@@ -160,8 +169,8 @@ L'écran de simulation est une vue de dessus 2D, la plus épurée possible, dans
 
 - le bateau, le quai et, selon la situation, le catway et les bateaux voisins ;
 - les aussières, avec un code couleur tendue / molle ;
-- la position de la commande moteur (avant, neutre, arrière) et l'angle de barre ;
-- la poussée du moteur, par une flèche à l'arrière du bateau, plus longue et plus épaisse pendant un coup de fouet ;
+- la position de la commande moteur (avant, ralenti avant, neutre, ralenti arrière, arrière) et l'angle de barre ;
+- la poussée du moteur, par une flèche à l'arrière du bateau, plus courte et plus fine au ralenti, plus longue et plus épaisse pendant un coup de fouet ;
 - la direction et la force du vent ;
 - quand le bateau pivote : le point de pivot marqué sur la coque et une flèche de rotation à une extrémité du bateau ;
 - quand le bateau touche un voisin : le contour du voisin en rouge et un anneau rouge sur chaque point de contact, tant que le contact dure.
@@ -300,7 +309,7 @@ Au port, le réseau est souvent faible ou absent : après une première visite, 
 
 ## Évolutions
 
-Le socle est livré : amarrage le long du quai, aussières fixes, moteur avant, neutre et arrière, largage individuel, barre, vent faible ou soutenu, tension des aussières et point de pivot, pause, pas à pas et retour arrière, catalogue et éditeur. Depuis, l'élève peut aussi choquer une aussière, placer des bateaux voisins devant et derrière, manœuvrer un bateau amarré perpendiculaire au quai, le long d'un catway, avec ses voisins de part et d'autre, et zoomer sur la scène. Il peut aussi activer le pas d'hélice, à droite ou à gauche, et le fardage, qui fait abattre l'avant vent de face, et choisir le bord du bateau au quai ou au catway. Il peut tourner une aussière sur un taquet au maître-bau, et donner un coup de fouet au moteur, en avant comme en arrière. En manœuvre, le panneau ne montre plus que les commandes : moteur, barre et amarres. Enfin, il peut manœuvrer un bateau libre, sans quai ni amarre, en milieu de port. Le moteur pousse à une allure de manœuvre de port, autour de 3 nœuds, et le vent pèse d'autant plus. Les départs et les sorties du catalogue placent des voisins de part et d'autre, que l'élève peut retirer. L'application s'installe sur l'écran d'accueil et fonctionne sans réseau après une première visite.
+Le socle est livré : amarrage le long du quai, aussières fixes, moteur avant, neutre et arrière, largage individuel, barre, vent faible ou soutenu, tension des aussières et point de pivot, pause, pas à pas et retour arrière, catalogue et éditeur. Depuis, l'élève peut aussi choquer une aussière, placer des bateaux voisins devant et derrière, manœuvrer un bateau amarré perpendiculaire au quai, le long d'un catway, avec ses voisins de part et d'autre, et zoomer sur la scène. Il peut aussi activer le pas d'hélice, à droite ou à gauche, et le fardage, qui fait abattre l'avant vent de face, et choisir le bord du bateau au quai ou au catway. Il peut tourner une aussière sur un taquet au maître-bau, et donner un coup de fouet au moteur, en avant comme en arrière, ou passer le moteur au ralenti, pour une poussée plus douce et un pas d'hélice plus discret. En manœuvre, le panneau ne montre plus que les commandes : moteur, barre et amarres. Enfin, il peut manœuvrer un bateau libre, sans quai ni amarre, en milieu de port. Le moteur pousse à une allure de manœuvre de port, autour de 3 nœuds, et le vent pèse d'autant plus. Les départs et les sorties du catalogue placent des voisins de part et d'autre, que l'élève peut retirer. L'application s'installe sur l'écran d'accueil et fonctionne sans réseau après une première visite.
 
 Le projet s'enrichit ensuite progressivement, une fonctionnalité à la fois, sans paliers ni jalons : l'ordre suit les envies et les retours des élèves. Le backlog est tenu dans les issues GitHub du dépôt ; chaque issue devient une branche et une demande de fusion, qui met à jour ce document si elle change le périmètre.
 
@@ -359,6 +368,7 @@ Les points suivants n'ont pas été tranchés et figurent dans les points ouvert
 | Larguer | Détacher une aussière ; dans l'appli, elle disparaît de la scène |
 | Choquer / reprendre | Donner du mou à une aussière / la raccourcir |
 | Coup de fouet | Poussée brève et forte du moteur, en avant ou en arrière ; dans l'appli, le double de la poussée normale, puis retour automatique du moteur |
+| Ralenti | Régime le plus bas du moteur embrayé, en avant ou en arrière ; dans l'appli, la moitié de la poussée de la marche, pas d'hélice compris |
 | Point de pivot | Point autour duquel le bateau tourne à un instant donné |
 | Pas d'hélice | Poussée latérale de l'hélice, surtout en marche arrière, qui fait dériver l'arrière d'un côté |
 | Hélice à droite / à gauche | Sens de rotation de l'hélice, vue de l'arrière en marche avant : à droite, dans le sens des aiguilles d'une montre. Hélice à droite, l'arrière part vers bâbord en marche arrière ; hélice à gauche, vers tribord |
