@@ -7,14 +7,13 @@ import type { LineMode, MooringLine } from '../sim/types.ts';
 
 /**
  * Cran de la commande d'une aussière. Bloquer est le cran par défaut : l'aussière est
- * tournée au taquet. Freiner (#23) viendra s'y ajouter.
+ * tournée au taquet.
  */
 export type Cran = 'choquer' | 'bloquer' | 'reprendre';
 
 /**
  * Crans dans l'ordre de l'échelle, de « je laisse partir » à « je tire » : celui de
- * l'affichage, du clavier et des lecteurs d'écran. Freiner s'insérera entre Choquer et
- * Bloquer.
+ * l'affichage, du clavier et des lecteurs d'écran.
  */
 export const CRANS: readonly Cran[] = ['choquer', 'bloquer', 'reprendre'];
 
