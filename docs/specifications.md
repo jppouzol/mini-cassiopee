@@ -87,7 +87,7 @@ La scène se compose d'un seul bateau, d'un quai, d'aussières et du vent ; en s
 - Larguée, elle disparaît de la scène (considérée comme remontée à bord).
 - Choquée, elle file : tant que l'élève la laisse filer, elle s'allonge aussi vite que le bateau s'éloigne de sa bitte et ne le retient plus ; une fois bloquée, elle garde sa nouvelle longueur et retient de nouveau. Une aussière molle qu'on choque ne change pas tant que le bateau ne tire pas dessus. Elle peut filer sans limite de longueur.
 - Reprise, elle raccourcit : l'équipier l'embraque à la main, à vitesse constante, tant que l'effort reste dans ses forces. Il rattrape le mou, puis garde l'aussière raide et peut déhaler le bateau, contre un vent faible par exemple. Si le bateau tire nettement plus fort que lui (ralenti, vent soutenu, marche avant), il ne tient plus : il lâche, et l'aussière passe d'elle-même sur Choquer et file. Il encaisse un à-coup bref, comme le mou qui se rattrape. Elle ne raccourcit pas en deçà d'une longueur minimale, le taquet contre la bitte.
-- Enrichissements envisagés : freiner une aussière qu'on choque ; longueur finie des aussières.
+- Enrichissement envisagé : longueur finie des aussières.
 
 ### Vent
 
@@ -142,7 +142,7 @@ L'application a deux modes : la **préparation**, où l'on règle la situation, 
 
 **Commande des amarres simplifiée ou étendue** : par défaut, la liste des amarres revient au bout de tissu : chaque aussière tient sur une seule rangée, avec son nom, son état et « Larguer » ; en préparation, son nom, « Tendue / Molle » et « Supprimer ». Un interrupteur « Étendue », à côté du titre « Amarres », fait apparaître sous chaque aussière une rangée de crans qui dit ce que fait l'équipier qui tient le bout. Il est propre aux amarres et se règle à part de celui du moteur.
 
-- **Crans** : Choquer, Bloquer et Reprendre, de « je laisse partir » à « je tire ». Bloquer est le cran par défaut : l'aussière est tournée au taquet. Freiner viendra s'y ajouter, sur la même échelle : Choquer, Freiner, Bloquer, Reprendre.
+- **Crans** : Choquer, Bloquer et Reprendre, de « je laisse partir » à « je tire ». Bloquer est le cran par défaut : l'aussière est tournée au taquet.
 - **Affichage seulement** : l'interrupteur ne change rien à la simulation ni à la manœuvre enregistrée. Il se manie à tout moment, en préparation comme en manœuvre.
 - **Mémorisé** : le navigateur garde le choix d'une visite à l'autre, à part de celui du moteur ; s'il ne le peut pas, les amarres repartent simplifiées.
 - **Toujours cohérent** : tant qu'une aussière non larguée n'est pas sur Bloquer (après un retour arrière, ou réglée ainsi en préparation), les crans restent affichés et l'interrupteur, activé, ne peut pas les masquer. Ils redeviennent masqués, si c'est le choix de l'élève, dès que toutes les aussières sont bloquées ou larguées.
@@ -153,7 +153,7 @@ L'application a deux modes : la **préparation**, où l'on règle la situation, 
 
 **Reprendre une aussière** : dans la commande étendue des amarres, le cran Reprendre, à droite de Bloquer, fait embraquer l'aussière par l'équipier. Comme les autres crans, c'est un état qui dure jusqu'à ce que l'élève en choisisse un autre ; il se change en lecture comme en pause et il est enregistré avec la manœuvre. En préparation, il indique que l'équipier reprend l'aussière dès la mise en mouvement.
 
-- **Équipier** : un seul effort, environ 600 N, et une vitesse de reprise d'environ 0,3 m/s, à la main. L'effort servira aussi au freinage.
+- **Équipier** : un seul effort, environ 600 N, et une vitesse de reprise d'environ 0,3 m/s, à la main.
 - **Il lâche** : quand le bateau tire au-delà de son effort, marge comprise, l'aussière passe d'elle-même sur Choquer, sans action de l'élève ; la liste affiche « File », le cran revient sur Choquer et l'affichage étendu reste imposé. La relecture rejoue le lâcher à l'identique. Une pause automatique à ce moment est une option à part (#76).
 - **Ordres de grandeur** : contre un vent faible par le travers, on déhale le bateau ; contre le ralenti avant, un vent soutenu ou la marche avant, l'équipier lâche. Les efforts réels dépendent de la géométrie de l'aussière.
 - **Affichage** : la liste l'indique par « Reprise ». Dans la scène, tant que l'aussière raccourcit, le chevron sur le trait, côté taquet, est tourné vers le taquet : le bout rentre à bord.
@@ -341,7 +341,6 @@ Enrichissements envisagés, chacun optionnel et sans effet sur le comportement d
 
 - mono ou bi-safran ;
 - longueur de catway réglable ;
-- freiner une aussière qu'on choque ;
 - longueur finie des aussières ;
 - coup de fouet dosé par l'élève, tant qu'il maintient le bouton ;
 - vent fort, plus fort que le moteur en marche avant ;
