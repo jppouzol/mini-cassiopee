@@ -1,5 +1,5 @@
-import type { Body, SimState, Vec } from '../sim/types.ts';
-import { HULL, toWorld } from '../sim/geometry.ts';
+import type { Body, MooringLine, SimState, Vec } from '../sim/types.ts';
+import { HULL, pointVelocity, toWorld } from '../sim/geometry.ts';
 import { CADRAGE_DEFAUT, bornerCadrage, echelleDefaut, longueurEchelle, type Cadrage } from './cadrage.ts';
 
 export interface Palette {
@@ -54,6 +54,24 @@ export const TOUCH_RADIUS = 22;
 export const TAUT_THRESHOLD = 30;
 
 const fmt = (n: number): string => n.toFixed(1).replace('.', ',');
+
+/** Vitesse d'éloignement du taquet au-delà de laquelle une aussière choquée est montrée qui file (m/s). */
+export const VITESSE_FILE = 0.02;
+
+/**
+ * Vrai quand une aussière choquée s'allonge à cette image : attachée et choquée, tendue
+ * jusqu'à sa longueur (à 5 cm près) et taquet qui s'éloigne de la bitte. Le rendu y dessine
+ * un chevron tourné vers la bitte. Fonction de l'état seul, sans mémoire.
+ */
+export function fileEnCeMoment(b: Body, l: Readonly<MooringLine>): boolean {
+  if (!l.attached || !l.payingOut) return false;
+  const p = toWorld(b, l.cleat);
+  const dx = p[0] - l.bollard[0], dy = p[1] - l.bollard[1];
+  const d = Math.hypot(dx, dy);
+  if (d === 0 || d < l.len - 0.05) return false;
+  const v = pointVelocity(b, l.cleat);
+  return (v[0] * dx + v[1] * dy) / d > VITESSE_FILE;
+}
 
 /** Lit la palette dans les variables CSS du thème courant. */
 export function readPalette(el: Element): Palette {
@@ -309,6 +327,25 @@ export function render(ctx: CanvasRenderingContext2D, s: Readonly<SimState>, v: 
       ctx.lineTo(X(q[0]), Y(q[1]));
     }
     ctx.stroke();
+    // Aussière qui file : petit chevron de sa couleur, au quart du trait côté taquet, tourné vers la bitte.
+    if (d > 0 && fileEnCeMoment(b, l)) {
+      const ux = (X(q[0]) - X(p[0])), uy = (Y(q[1]) - Y(p[1]));
+      const n = Math.hypot(ux, uy);
+      if (n > 24) {
+        const cx = X(p[0]) + ux * 0.25, cy = Y(p[1]) + uy * 0.25;
+        const ex = ux / n, ey = uy / n;
+        ctx.lineWidth = 2;
+        ctx.lineCap = 'round';
+        ctx.lineJoin = 'round';
+        ctx.beginPath();
+        ctx.moveTo(cx - ex * 4 - ey * 5, cy - ey * 4 + ex * 5);
+        ctx.lineTo(cx + ex * 2, cy + ey * 2);
+        ctx.lineTo(cx - ex * 4 + ey * 5, cy - ey * 4 - ex * 5);
+        ctx.stroke();
+        ctx.lineCap = 'butt';
+        ctx.lineJoin = 'miter';
+      }
+    }
     if (v.debug && taut) {
       ctx.fillStyle = C.ink;
       ctx.font = '12px ui-monospace, monospace';

@@ -19,7 +19,7 @@ Ces principes arbitrent toutes les décisions de conception, en particulier lors
 1. **Le bout de tissu d'abord.** Toute situation doit pouvoir se décrire aussi simplement que sur la table : un bateau, un quai, quelques aussières, un sens de moteur.
 2. **Des principes, pas un bateau réel.** La physique est qualitativement correcte : le bateau part dans le bon sens, pivote autour du bon point, avec des ordres de grandeur plausibles. Aucune valeur réelle (kN, nœuds) n'est affichée ni garantie.
 3. **Le point de pivot est l'information centrale.** C'est ce que l'outil doit rendre visible avant tout.
-4. **La complexité est optionnelle.** Chaque enrichissement du modèle ou de la scène (pas d'hélice, fardage, bi-safran, bateaux voisins…) s'active dans des paramètres avancés ; désactivé, le comportement de base reste inchangé. Une nouvelle commande (choquer une aussière…) peut rester disponible en permanence si, tant qu'on ne s'en sert pas, elle ne change rien.
+4. **La complexité est optionnelle.** Chaque enrichissement du modèle ou de la scène (pas d'hélice, fardage, bi-safran, bateaux voisins…) s'active dans des paramètres avancés ; désactivé, le comportement de base reste inchangé. Une nouvelle commande (ralenti, coup de fouet, choquer une aussière…) peut rester disponible si, tant qu'on ne s'en sert pas, elle ne change rien ; elle se range alors derrière un interrupteur « Étendue », pour que l'affichage par défaut reste aussi simple que le bout de tissu.
 5. **Enrichissement progressif.** On livre un socle utilisable, puis on ajoute des fonctionnalités une à une, sans ordre imposé ni palier, et sans basculer dans une simulation fine.
 6. **Mobile d'abord.** L'outil doit être utilisable au port ou à bord, sur un téléphone, sans autre matériel.
 
@@ -129,7 +129,7 @@ L'application a deux modes : la **préparation**, où l'on règle la situation, 
 | Larguer une aussière | Individuellement, à tout moment | Socle |
 | Barre | Angle de barre, côté bâbord ou tribord | Socle |
 | Ne rien faire | Laisser agir le vent seul | Socle |
-| Choquer une aussière | Laisser filer ou bloquer, individuellement, à tout moment, en lecture comme en pause | Livré |
+| Choquer une aussière | Cran Choquer ou Bloquer de la commande étendue des amarres, individuellement, à tout moment, en lecture comme en pause | Livré |
 | Reprendre une aussière | Raccourcir pendant la manœuvre | Envisagé |
 
 **Commande moteur simplifiée ou étendue** : par défaut, la commande moteur n'a que trois boutons, sur une rangée : Arrière, Neutre, Avant, comme le bout de tissu qu'on pousse en avant ou en arrière. Un petit interrupteur « Étendue », à côté du titre « Moteur », affiche les commandes étendues : les ralentis au-dessus de la marche et les coups de fouet en dessous (voir ci-dessous).
@@ -139,7 +139,16 @@ L'application a deux modes : la **préparation**, où l'on règle la situation, 
 - **Toujours cohérent** : tant que le moteur est au ralenti ou qu'un coup de fouet est en cours (après un retour arrière, par exemple), les commandes étendues restent affichées et l'interrupteur, activé, ne peut pas les masquer. Elles redeviennent simplifiées, si c'est le choix de l'élève, dès que le moteur revient à la marche ou au neutre.
 - **Clavier** : en simplifié, ↑ et ↓ passent par les trois positions, et Page ↑ et Page ↓ ne font rien ; en étendu, ils passent par les cinq positions et donnent les coups de fouet. Le rappel des raccourcis suit.
 
-**Choquer une aussière** : chaque aussière de la liste porte un bouton « Choquer » à bascule, à côté de « Larguer ». Un premier appui la laisse filer et le bouton reste enfoncé ; un second appui la bloque. Le bouton s'utilise en lecture comme en pause : en pause, la bascule prend effet à la reprise ou au pas à pas suivant. Elle est enregistrée avec la manœuvre, comme les autres commandes. En préparation, le même bouton indique qu'une aussière file dès la mise en mouvement. Larguer une aussière qui file la fait disparaître, comme toute aussière larguée. Dans la scène, une aussière qui file apparaît molle, puisqu'elle ne retient pas ; la liste l'indique par « File ».
+**Commande des amarres simplifiée ou étendue** : par défaut, la liste des amarres revient au bout de tissu : chaque aussière tient sur une seule rangée, avec son nom, son état et « Larguer » ; en préparation, son nom, « Tendue / Molle » et « Supprimer ». Un interrupteur « Étendue », à côté du titre « Amarres », fait apparaître sous chaque aussière une rangée de crans qui dit ce que fait l'équipier qui tient le bout. Il est propre aux amarres et se règle à part de celui du moteur.
+
+- **Crans** : Choquer et Bloquer. Bloquer est le cran par défaut : l'aussière est tournée au taquet. Reprendre et freiner viendront s'y ajouter, sur la même échelle : Choquer, Freiner, Bloquer, Reprendre.
+- **Affichage seulement** : l'interrupteur ne change rien à la simulation ni à la manœuvre enregistrée. Il se manie à tout moment, en préparation comme en manœuvre.
+- **Mémorisé** : le navigateur garde le choix d'une visite à l'autre, à part de celui du moteur ; s'il ne le peut pas, les amarres repartent simplifiées.
+- **Toujours cohérent** : tant qu'une aussière non larguée n'est pas sur Bloquer (après un retour arrière, ou réglée ainsi en préparation), les crans restent affichés et l'interrupteur, activé, ne peut pas les masquer. Ils redeviennent masqués, si c'est le choix de l'élève, dès que toutes les aussières sont bloquées ou larguées.
+- **Situation libre** : sans amarre, ni la section ni l'interrupteur ne sont affichés.
+- **Clavier** : le chiffre seul largue l'aussière, en simplifié comme en étendu. En étendu, Maj + chiffre la passe d'un cran vers Choquer, et Alt + chiffre d'un cran vers Bloquer ; en simplifié, ils ne font rien. Le rappel des raccourcis suit.
+
+**Choquer une aussière** : dans la commande étendue des amarres, le cran Choquer la laisse filer, le cran Bloquer la bloque. Le cran se change en lecture comme en pause : en pause, il prend effet à la reprise ou au pas à pas suivant. Il est enregistré avec la manœuvre, comme les autres commandes. En préparation, il indique qu'une aussière file dès la mise en mouvement. Larguer une aussière qui file la fait disparaître, comme toute aussière larguée. Dans la scène, une aussière qui file apparaît molle, puisqu'elle ne retient pas ; tant qu'elle s'allonge, un petit chevron sur le trait, côté taquet, tourné vers la bitte, montre que le bout file. La liste l'indique par « File ».
 
 **Ralenti** : dans les commandes étendues, la commande moteur a cinq positions, sur trois colonnes : l'arrière à gauche, l'avant à droite, chacun avec le ralenti au-dessus de la marche, et le neutre au milieu, sur toute la hauteur, plus étroit. De haut en bas, on lit ralenti, marche, puis le coup de fouet en dessous : l'effort croît vers le bas. Chaque ralenti est dans la colonne de sa marche, ce qui suffit à les distinguer ; leur nom complet (« Ralenti arrière », « Ralenti avant ») est donné aux lecteurs d'écran et en info-bulle sur PC. Le ralenti réduit à la fois la poussée, le flux de l'hélice sur le safran et le pas d'hélice, de moitié environ : le bateau prend moins d'erre, la barre agit un peu moins sans erre, et le pas d'hélice est plus discret, comme au ralenti sur un vrai bateau. Il permet de graduer l'effort : ralenti, marche, coup de fouet.
 
@@ -175,7 +184,7 @@ L'écran de simulation est une vue de dessus 2D, la plus épurée possible, dans
 Éléments affichés :
 
 - le bateau, le quai et, selon la situation, le catway et les bateaux voisins ;
-- les aussières, avec un code couleur tendue / molle ;
+- les aussières, avec un code couleur tendue / molle, et un chevron tourné vers la bitte sur celle qui file, tant qu'elle s'allonge ;
 - la position de la commande moteur (avant, neutre, arrière, et en étendu ralenti avant et ralenti arrière) et l'angle de barre ;
 - la poussée du moteur, par une flèche à l'arrière du bateau, plus courte et plus fine au ralenti, plus longue et plus épaisse pendant un coup de fouet ;
 - la direction et la force du vent ;
@@ -260,9 +269,9 @@ En situation libre, l'éditeur ne propose que le vent, le pas d'hélice et le fa
 #### Ajouter et supprimer une aussière
 
 - **Ajouter** : l'élève touche un taquet sur la coque, puis une bitte sur le quai ou le catway. L'aussière est créée tendue, avec un nom déduit de sa géométrie. Tant qu'un taquet est sélectionné, les bittes sont mises en évidence ; toucher ailleurs annule la sélection. La création est refusée, avec un message, si elle crée un doublon ou dépasse le plafond.
-- **Régler** : dans la liste des aussières, l'élève bascule chaque aussière entre tendue et molle, et entre bloquée et choquée (elle file dès la mise en mouvement) ; il peut aussi la renommer.
+- **Régler** : dans la liste des aussières, l'élève bascule chaque aussière entre tendue et molle, et, dans la commande étendue des amarres, entre Bloquer et Choquer (elle file dès la mise en mouvement) ; il peut aussi la renommer.
 - **Supprimer** : en préparation, le bouton « Larguer » de la liste devient « Supprimer ». Une aussière supprimée disparaît de la situation préparée.
-- Pendant la simulation, on ne peut ni ajouter ni supprimer d'aussière : seuls le choquer et le largage restent possibles.
+- Pendant la simulation, on ne peut ni ajouter ni supprimer d'aussière : seuls les crans (commande étendue) et le largage restent possibles.
 
 #### Bateaux voisins
 
@@ -277,14 +286,14 @@ En situation libre, l'éditeur ne propose que le vent, le pas d'hélice et le fa
 - Un bouton distinct restaure la **situation d'origine** du catalogue.
 - Choisir une autre situation dans le catalogue abandonne la préparation en cours.
 
-Aucune sauvegarde ni partage de situation n'est prévu à ce stade : la situation préparée n'est pas conservée d'une visite à l'autre. Le stockage local dans le navigateur est envisageable (par exemple pour retrouver la dernière situation) ; il ne garde aujourd'hui que le choix de la commande moteur, simplifiée ou étendue.
+Aucune sauvegarde ni partage de situation n'est prévu à ce stade : la situation préparée n'est pas conservée d'une visite à l'autre. Le stockage local dans le navigateur est envisageable (par exemple pour retrouver la dernière situation) ; il ne garde aujourd'hui que le choix des commandes du moteur et des amarres, simplifiées ou étendues.
 
 #### Pendant la manœuvre
 
 En manœuvre, l'élève a besoin du moteur, de la barre et des amarres, pas des réglages de départ, qu'il ne peut de toute façon plus changer : le panneau ne montre plus qu'eux, pour qu'ils soient le plus accessibles possible.
 
 - **Masqué** : dès qu'on quitte la préparation (lecture, pause en cours de manœuvre, ou pas à pas depuis le départ), le titre de l'application, la section « Situation » (famille, situation, position, bord, vent) et les options avancées disparaissent, ainsi que les textes d'aide (« Barre à roue… », « revenez au départ… »).
-- **Restent** : moteur (simplifié ou étendu, avec son interrupteur), barre avec l'angle affiché, amarres avec leur état (sauf en situation libre, qui n'en a pas), puis l'affichage. Sur PC, le rappel des raccourcis clavier reste en bas du panneau.
+- **Restent** : moteur (simplifié ou étendu, avec son interrupteur), barre avec l'angle affiché, amarres avec leur état (simplifiées ou étendues, avec leur interrupteur ; sauf en situation libre, qui n'en a pas), puis l'affichage. Sur PC, le rappel des raccourcis clavier reste en bas du panneau.
 - **Retour au départ** : « ⏮ » fait tout réapparaître, comme en préparation. Changer de situation passe donc par le retour au départ.
 - Même comportement sur téléphone, tablette et PC.
 
@@ -316,7 +325,7 @@ Au port, le réseau est souvent faible ou absent : après une première visite, 
 
 ## Évolutions
 
-Le socle est livré : amarrage le long du quai, aussières fixes, moteur avant, neutre et arrière, largage individuel, barre, vent faible ou soutenu, tension des aussières et point de pivot, pause, pas à pas et retour arrière, catalogue et éditeur. Depuis, l'élève peut aussi choquer une aussière, placer des bateaux voisins devant et derrière, manœuvrer un bateau amarré perpendiculaire au quai, le long d'un catway, avec ses voisins de part et d'autre, et zoomer sur la scène. Il peut aussi activer le pas d'hélice, à droite ou à gauche, et le fardage, qui fait abattre l'avant vent de face, et choisir le bord du bateau au quai ou au catway. Il peut tourner une aussière sur un taquet au maître-bau, et donner un coup de fouet au moteur, en avant comme en arrière, ou passer le moteur au ralenti, pour une poussée plus douce et un pas d'hélice plus discret. Par défaut, la commande moteur se réduit à avant, neutre et arrière ; un interrupteur affiche le ralenti et le coup de fouet. En manœuvre, le panneau ne montre plus que les commandes : moteur, barre et amarres. Enfin, il peut manœuvrer un bateau libre, sans quai ni amarre, en milieu de port. Le moteur pousse à une allure de manœuvre de port, autour de 3 nœuds, et le vent pèse d'autant plus. Les départs et les sorties du catalogue placent des voisins de part et d'autre, que l'élève peut retirer. L'application s'installe sur l'écran d'accueil et fonctionne sans réseau après une première visite.
+Le socle est livré : amarrage le long du quai, aussières fixes, moteur avant, neutre et arrière, largage individuel, barre, vent faible ou soutenu, tension des aussières et point de pivot, pause, pas à pas et retour arrière, catalogue et éditeur. Depuis, l'élève peut aussi choquer une aussière, placer des bateaux voisins devant et derrière, manœuvrer un bateau amarré perpendiculaire au quai, le long d'un catway, avec ses voisins de part et d'autre, et zoomer sur la scène. Il peut aussi activer le pas d'hélice, à droite ou à gauche, et le fardage, qui fait abattre l'avant vent de face, et choisir le bord du bateau au quai ou au catway. Il peut tourner une aussière sur un taquet au maître-bau, et donner un coup de fouet au moteur, en avant comme en arrière, ou passer le moteur au ralenti, pour une poussée plus douce et un pas d'hélice plus discret. Par défaut, la commande moteur se réduit à avant, neutre et arrière ; un interrupteur affiche le ralenti et le coup de fouet. De même, la liste des amarres se réduit au largage ; un interrupteur propre aux amarres affiche les crans Choquer et Bloquer. En manœuvre, le panneau ne montre plus que les commandes : moteur, barre et amarres. Enfin, il peut manœuvrer un bateau libre, sans quai ni amarre, en milieu de port. Le moteur pousse à une allure de manœuvre de port, autour de 3 nœuds, et le vent pèse d'autant plus. Les départs et les sorties du catalogue placent des voisins de part et d'autre, que l'élève peut retirer. L'application s'installe sur l'écran d'accueil et fonctionne sans réseau après une première visite.
 
 Le projet s'enrichit ensuite progressivement, une fonctionnalité à la fois, sans paliers ni jalons : l'ordre suit les envies et les retours des élèves. Le backlog est tenu dans les issues GitHub du dépôt ; chaque issue devient une branche et une demande de fusion, qui met à jour ce document si elle change le périmètre.
 
