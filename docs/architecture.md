@@ -11,7 +11,7 @@ Mini Cassiopée est une application web statique, sans serveur, écrite en TypeS
 - **Relecture par journal d'actions et images clés**, qui rend le retour arrière fiable et peu gourmand en mémoire.
 - **Situations décrites en JSON**, chargées par le catalogue et, à terme, produites par l'éditeur.
 - **Rendu Canvas 2D**, interface en React, construction avec Vite.
-- **Application web hébergée sur GitHub Pages** et déployée automatiquement par GitHub Actions ; installation sur téléphone et usage hors-ligne prévus.
+- **Application web hébergée sur GitHub Pages** et déployée automatiquement par GitHub Actions ; installable sur l'écran d'accueil et utilisable hors ligne grâce à un service worker écrit à la main.
 
 Le code est publié sous licence MIT. Seule la licence des contenus pédagogiques reste ouverte, dans le registre des décisions en fin de document.
 
@@ -217,10 +217,10 @@ La stack reste courte et courante, pour que le projet soit facile à reprendre p
 | --- | --- | --- |
 | Langage | TypeScript | Typage du modèle et du format des situations |
 | Interface | React | Stack déjà maîtrisée ; le panneau de commandes reste petit |
-| Construction | Vite | Démarrage rapide, sortie statique, extension PWA disponible |
+| Construction | Vite | Démarrage rapide, sortie statique, plugins simples à écrire |
 | Tests | Lanceur de tests de Node.js | Aucune dépendance, tests du moteur sans navigateur ni installation |
 | Validation des situations | Validation écrite à la main | Format petit : messages d'erreur lisibles sans dépendance |
-| Hors-ligne | vite-plugin-pwa (à venir) | Manifeste et service worker générés |
+| Hors-ligne | Service worker écrit à la main, liste des fichiers injectée par un plugin Vite de quelques lignes | Aucune dépendance ; comportement maîtrisé (ouverture depuis le cache, mise à jour au lancement suivant, polices en cache) |
 
 Aucune autre dépendance d'exécution n'est prévue. Le poste de développement n'a besoin que de Node.js 22.18 ou plus récent et de Git, installables sans droits d'administrateur sous Windows (archive Node.js décompressée dans le dossier utilisateur, Git en version portable).
 
@@ -232,6 +232,9 @@ mini-cassiopee/
     situations/   format JSON, validation, catalogue
     render/       dessin Canvas et caméra
     ui/           composants React : commandes, lecteur, éditeur
+    pwa/          service worker (gabarit) et son enregistrement
+  public/         manifeste et icônes, copiés tels quels à la construction
+  outils/         scripts de développement (génération des icônes)
   tests/          tests et scénarios de référence (tests/situations/)
   docs/           spécifications et architecture
 ```
@@ -242,11 +245,19 @@ La règle de dépendance est stricte : `sim` ne dépend de rien, `session` dépe
 
 L'application est un ensemble de fichiers statiques, destiné à être installable sur l'écran d'accueil et utilisable sans réseau après une première visite.
 
-### Hors-ligne (à venir)
+### Hors-ligne
 
-- Manifeste d'application web : nom, icônes, affichage plein écran, orientation libre.
-- Service worker qui met en cache tous les fichiers à la première visite, puis les sert sans réseau. Une nouvelle version est récupérée en arrière-plan et proposée au lancement suivant.
-- Stockage local du navigateur pour les préférences (affichage, dernière situation ouverte). Rien d'indispensable n'y est stocké.
+Un service worker écrit à la main, sans bibliothèque : une centaine de lignes suffisent, et le comportement reste lisible (ouverture toujours depuis le cache, mise à jour au lancement suivant, polices en cache).
+
+- **Manifeste** (`public/manifest.webmanifest`) : nom « Mini Cassiopée », y compris sous l'icône (`short_name`), affichage `standalone`, orientation libre, couleurs du fond clair. `index.html` le déclare, avec la couleur de la barre d'état (claire ou sombre selon le thème) et les icônes pour iOS.
+- **Icônes** : source unique `public/icon.svg`, la coque du simulateur vue de dessus, étrave vers le haut, sur le bleu d'accent, avec deux aussières vers un quai. Le fond occupe tout le carré et le dessin reste dans le cercle central, si bien que la même image sert d'icône masquable sur Android. `outils/icones.py` en tire les PNG de 192 et 512 px et l'icône iOS de 180 px (`apple-touch-icon.png`), avec Playwright et Chromium.
+- **Gabarit** (`src/pwa/sw.js`, JavaScript non compilé) : à la construction, le petit plugin `horsLigne` de `vite.config.ts` le publie en `sw.js` à la racine du site, en y injectant la liste des fichiers construits (page, JS, CSS, manifeste, icônes), les feuilles de polices Google déclarées dans `index.html` et une version, empreinte du contenu de ces fichiers. Le remplacement est fait par une fonction pure (`sourceServiceWorker`, `src/pwa/precache.ts`), testée seule.
+- **Installation du service worker** : il télécharge tous les fichiers dans le cache `mini-cassiopee-<version>`, en contournant le cache HTTP pour ne jamais mélanger deux versions. Un seul fichier manquant fait échouer l'installation : l'ancienne version reste en place. Les feuilles de polices et leurs fichiers vont dans un cache à part (`mini-cassiopee-polices`), gardé d'une version à l'autre ; leur échec n'empêche pas l'installation.
+- **Requêtes** : tout vient du cache d'abord. Une navigation dans le périmètre du site reçoit la page du cache (le `#reglages` de l'adresse n'y change rien) ; un fichier du site, sa copie en cache, sinon le réseau ; une police Google, sa copie en cache, sinon le réseau, puis elle est mise en cache.
+- **Mise à jour** : le navigateur revérifie `sw.js` à chaque ouverture, sans cache HTTP. Une nouvelle construction change la version, donc `sw.js` ; le nouveau service worker télécharge tout en arrière-plan, prend la main aussitôt (`skipWaiting`, `clients.claim`) et supprime les caches des versions précédentes. La page ouverte n'est pas rechargée : elle a déjà chargé son unique fichier JS et continue telle quelle. L'ouverture suivante sert la nouvelle version.
+- **Enregistrement** (`src/pwa/enregistrer.ts`, appelé par `main.tsx`) : seulement dans la construction de production de Vite (`import.meta.env.PROD`), quand le navigateur le permet, après le chargement de la page. Jamais en développement, ni dans la version de test publiée comme artefact, construite avec esbuild, où `import.meta.env` n'existe pas. Un échec d'enregistrement est ignoré : l'application marche en ligne.
+- **Dépendances** : `src/pwa` ne dépend de rien et rien n'en dépend, sauf `main.tsx` et `vite.config.ts`.
+- **Limites** : sur iOS, une application installée qu'on rouvre sans l'avoir fermée reprend la page en mémoire ; la mise à jour attend alors une vraie réouverture. Le stockage local des préférences (affichage, dernière situation ouverte) reste envisagé ; rien d'indispensable n'y serait stocké.
 
 ### Hébergement et déploiement
 
@@ -345,8 +356,9 @@ Les tests ne dépendent pas du catalogue. Le catalogue est une aide aux élèves
 | Caméra en libre | Bateau au départ au centre de la vue ; vue fixe tant que le bateau reste dans la marge, recalée au-delà, le bateau restant à l'écran |
 | Vitesse de manœuvre | Bateau libre, sans vent : vitesse limite de 2,5 à 3,5 nœuds en marche avant, plus faible en marche arrière ; vent soutenu de face, le bateau avance encore ; vent soutenu par le travers, moins fort que la poussée avant, plus que la moitié |
 | Cadrage | Zoom borné entre ×0,5 et ×4 ; à ×1, aucun décalage ; zoomée, la vue reste dans le cadrage par défaut, dézoomée, elle le contient ; le point sous le pointeur ou entre les doigts reste en place quand on zoome ; un pincement sans écarter les doigts déplace seulement la vue |
+| Service worker | Le gabarit reçoit la liste des fichiers construits (la page sous `./`, jamais `sw.js`), les feuilles de polices et la version ; la version change avec le contenu d'un seul fichier |
 
-S'y ajoutent des tests de stabilité numérique (aucune valeur non finie, pas d'oscillation résiduelle) et des tests du format des situations. Le reste de l'interface se vérifie à la main sur PC, Android et iOS avant chaque version.
+S'y ajoutent des tests de stabilité numérique (aucune valeur non finie, pas d'oscillation résiduelle) et des tests du format des situations. Le reste de l'interface se vérifie à la main sur PC, Android et iOS avant chaque version, comme le hors-ligne : première visite, ouverture sans réseau, mise à jour à l'ouverture suivante.
 
 ## Registre des décisions
 
@@ -377,6 +389,7 @@ Chaque choix structurant est noté ici avec son statut ; une décision ne change
 | Bord au quai | Choisi dans l'éditeur, bâbord ou tribord, le long du quai comme sur catway ; aussières en miroir, gardant leur rôle ; vent fixe dans le port, son repère change ; voisins le long du quai en place et retournés, voisins sur catway qui suivent le bateau ; le long du quai, décalage de 1 m vers l'origine quand le miroir tomberait entre deux bittes ; « Situation d'origine » remet le bord du catalogue | Décidé |
 | Taquets proposés | Six taquets partout : étrave, maître-bau et arrière, sur chaque bord ; maître-bau au milieu de la coque, toujours proposé ; garde au maître-bau nommée avant ou arrière selon ce qu'elle retient ; deux aussières de même nom départagées par le bord, sinon par un numéro ; physique inchangée : il faut de la barre au large pour tenir le bateau parallèle sur une garde au maître-bau | Décidé |
 | Panneau en manœuvre | Hors de la préparation, titre, situation, options avancées et textes d'aide masqués : moteur, barre et amarres en tête ; « ⏮ » rétablit tout ; raccourcis clavier gardés sur PC ; même comportement sur tous les écrans ; affichage seulement | Décidé |
+| Hors-ligne | Service worker écrit à la main plutôt que vite-plugin-pwa, sans dépendance ; liste des fichiers et version injectées à la construction par un plugin Vite ; ouverture toujours depuis le cache ; nouvelle version téléchargée en arrière-plan et appliquée à l'ouverture suivante, sans message ; polices Google en cache ; pas de bouton d'installation dans l'application ; icône : coque vue de dessus et deux aussières sur fond bleu ; nom « Mini Cassiopée » sous l'icône aussi ; jamais enregistré en développement ni dans la version de test | Décidé |
 | Hébergement | Dépôt public et GitHub Pages | Décidé |
 | Déploiement | GitHub Actions : tests sur chaque proposition, déploiement à chaque fusion ; un déploiement en cours n'est jamais annulé | Décidé |
 | Licence du code | MIT | Décidé |
