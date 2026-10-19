@@ -272,6 +272,17 @@ En manœuvre, l'élève a besoin du moteur, de la barre et des amarres, pas des 
 - **Retour au départ** : « ⏮ » fait tout réapparaître, comme en préparation. Changer de situation passe donc par le retour au départ.
 - Même comportement sur téléphone, tablette et PC.
 
+## Installation et hors-ligne
+
+Au port, le réseau est souvent faible ou absent : après une première visite, l'application s'ouvre et fonctionne entièrement sans réseau, comme le bout de tissu qu'on sort de sa poche.
+
+- **Installation** : l'élève l'ajoute à l'écran d'accueil par le menu du navigateur (« Installer l'application » sur Android et sur PC, « Partager › Sur l'écran d'accueil » sur iOS). Elle s'ouvre alors en plein écran, sans barre d'adresse. L'application n'a pas de bouton d'installation à elle.
+- **Icône** : la coque blanche vue de dessus, étrave vers le haut, sur fond bleu, tenue par deux aussières rouges à un quai. Nom sous l'icône : « Mini Cassiopée », même si certains téléphones le coupent.
+- **Hors ligne** : installée ou non, une fois ouverte en ligne, elle fonctionne sans réseau, polices comprises. Tout se passe déjà dans le navigateur : rien d'autre n'est nécessaire.
+- **Ouverture** : toujours immédiate, depuis l'appareil, même avec un réseau faible ; elle n'attend jamais le réseau.
+- **Mise à jour** : quand une nouvelle version est publiée, elle se télécharge en arrière-plan à l'ouverture et s'applique à l'ouverture suivante, sans message. La séance en cours n'est jamais interrompue. Si le réseau coupe pendant le téléchargement, l'ancienne version reste et la mise à jour est retentée plus tard.
+- **Données** : l'appareil ne garde que les fichiers de l'application ; aucune donnée sur l'élève.
+
 ## Exigences techniques et non fonctionnelles
 
 | Thème | Exigence |
@@ -279,7 +290,7 @@ En manœuvre, l'élève a besoin du moteur, de la barre et des amarres, pas des 
 | Plateformes | Navigateur web sur PC, Android et iOS |
 | Architecture | Fonctionnement entièrement dans le navigateur, sans serveur applicatif |
 | Stockage | Aucun obligatoire ; stockage local du navigateur possible |
-| Hors-ligne | Souhaitable, pour un usage au port avec une couverture réseau faible |
+| Hors-ligne | Installable sur l'écran d'accueil et utilisable sans réseau après une première visite, pour un usage au port avec une couverture réseau faible |
 | Affichage | Adapté aux petits écrans tactiles, en portrait comme en paysage |
 | Performance | Animation fluide sur un smartphone milieu de gamme |
 | Langue | Interface en français uniquement |
@@ -289,7 +300,7 @@ En manœuvre, l'élève a besoin du moteur, de la barre et des amarres, pas des 
 
 ## Évolutions
 
-Le socle est livré : amarrage le long du quai, aussières fixes, moteur avant, neutre et arrière, largage individuel, barre, vent faible ou soutenu, tension des aussières et point de pivot, pause, pas à pas et retour arrière, catalogue et éditeur. Depuis, l'élève peut aussi choquer une aussière, placer des bateaux voisins devant et derrière, manœuvrer un bateau amarré perpendiculaire au quai, le long d'un catway, avec ses voisins de part et d'autre, et zoomer sur la scène. Il peut aussi activer le pas d'hélice, à droite ou à gauche, et le fardage, qui fait abattre l'avant vent de face, et choisir le bord du bateau au quai ou au catway. Il peut tourner une aussière sur un taquet au maître-bau, et donner un coup de fouet au moteur, en avant comme en arrière. En manœuvre, le panneau ne montre plus que les commandes : moteur, barre et amarres. Enfin, il peut manœuvrer un bateau libre, sans quai ni amarre, en milieu de port. Le moteur pousse à une allure de manœuvre de port, autour de 3 nœuds, et le vent pèse d'autant plus. Les départs et les sorties du catalogue placent des voisins de part et d'autre, que l'élève peut retirer.
+Le socle est livré : amarrage le long du quai, aussières fixes, moteur avant, neutre et arrière, largage individuel, barre, vent faible ou soutenu, tension des aussières et point de pivot, pause, pas à pas et retour arrière, catalogue et éditeur. Depuis, l'élève peut aussi choquer une aussière, placer des bateaux voisins devant et derrière, manœuvrer un bateau amarré perpendiculaire au quai, le long d'un catway, avec ses voisins de part et d'autre, et zoomer sur la scène. Il peut aussi activer le pas d'hélice, à droite ou à gauche, et le fardage, qui fait abattre l'avant vent de face, et choisir le bord du bateau au quai ou au catway. Il peut tourner une aussière sur un taquet au maître-bau, et donner un coup de fouet au moteur, en avant comme en arrière. En manœuvre, le panneau ne montre plus que les commandes : moteur, barre et amarres. Enfin, il peut manœuvrer un bateau libre, sans quai ni amarre, en milieu de port. Le moteur pousse à une allure de manœuvre de port, autour de 3 nœuds, et le vent pèse d'autant plus. Les départs et les sorties du catalogue placent des voisins de part et d'autre, que l'élève peut retirer. L'application s'installe sur l'écran d'accueil et fonctionne sans réseau après une première visite.
 
 Le projet s'enrichit ensuite progressivement, une fonctionnalité à la fois, sans paliers ni jalons : l'ordre suit les envies et les retours des élèves. Le backlog est tenu dans les issues GitHub du dépôt ; chaque issue devient une branche et une demande de fusion, qui met à jour ce document si elle change le périmètre.
 
