@@ -300,7 +300,7 @@ En situation libre, l'éditeur ne propose que le vent, le pas d'hélice et le fa
 #### Bateaux en face
 
 - **Réglage** : sur catway seulement, dans les options avancées, « Bateaux en face » vaut aucun, allée étroite ou allée large. Le long du quai et en libre, il n'est pas proposé.
-- **Fixe** : la largeur se compte depuis la place d'origine du bateau. Glisser le bateau le long de son catway ne change pas le choix affiché, seulement l'eau libre devant lui.
+- **Fixe** : la largeur se compte depuis la place d'origine du bateau. Glisser le bateau le long de son catway ne change pas le choix affiché, seulement l'eau libre devant lui. Il ne s'approche pas à moins de 5 m des bateaux d'en face.
 - « Situation d'origine » remet l'allée du catalogue : large dans les sorties sur catway, absente ailleurs.
 
 #### Situation préparée et situation d'origine
