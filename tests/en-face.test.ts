@@ -2,12 +2,15 @@
 // deux catways tournés vers l'allée et quatre bateaux immobiles, étrave à la panne.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { loadSituation, rawSituation, run } from './helpers.ts';
+import { loadSituation, rawSituation } from './helpers.ts';
 import { buildState } from '../src/situations/build.ts';
 import { cloneState, tick } from '../src/sim/engine.ts';
 import { DEFAULT_PARAMS } from '../src/sim/params.ts';
 import { HALF_LENGTH, HULL, hullPenetration, toLocal, toWorld } from '../src/sim/geometry.ts';
 import type { SimState } from '../src/sim/types.ts';
+import { bateauxEnFace, catwaysEnFace } from '../src/sim/enface.ts';
+import { camera, hauteurVue } from '../src/render/renderer.ts';
+import { HAUTEUR_VUE, bornerCadrage, echelleDefaut } from '../src/render/cadrage.ts';
 import { Session } from '../src/session/session.ts';
 import {
   EditionError, alleeEnFace, bornesDeplacement, changerBord, deplacerBateau, reglerEnFace,
@@ -20,14 +23,15 @@ import { parseSituation, SituationError, type Situation } from '../src/situation
 const allee = (): Situation => loadSituation('catway-allee');
 const sansFace = (sit: Situation): Situation => { const { enFace: _e, ...reste } = sit; return reste; };
 const etroite = (sit: Situation): Situation => ({ ...sit, enFace: distanceEnFace(sit, ALLEES.etroite) });
-const face = (s: SimState) => s.neighbors.filter((n) => n.id.startsWith('face-'));
-const touches = (s: SimState) => face(s).some((n) => n.contacts.length > 0);
+/** Bateaux d'en face assez proches du bateau pour le toucher. */
+const proches = (s: SimState) => (s.enFace ? bateauxEnFace(s.enFace, s.body.x - 12, s.body.x + 12) : []);
+const touches = (s: SimState) => (s.enFace?.contacts.length ?? 0) > 0;
 const near = (a: number, b: number, eps = 1e-9) => Math.abs(a - b) < eps;
 
 /** Plus grande pénétration entre la coque et les bateaux d'en face (m). */
 function penetrationFace(s: SimState): number {
   let m = 0;
-  for (const nb of face(s)) {
+  for (const nb of proches(s)) {
     for (const p of HULL) {
       const a = hullPenetration(toLocal(nb, toWorld(s.body, p)));
       if (a) m = Math.max(m, a.depth);
@@ -52,57 +56,59 @@ function sortie(sit: Situation, barreApres: number, barre: number, duree: number
   return { s, touche, pen };
 }
 
-test('géométrie : panne au bout de l’allée, deux catways tournés vers elle, quatre bateaux étrave à la panne', () => {
+test('géométrie : rangée sans fin, panne au bout de l’allée, catways tournés vers elle, bateaux étrave à la panne', () => {
   const sit = allee();
   const g = geometrieEnFace(sit);
   assert.ok(g);
+  const r = { ...g, contacts: [] };
   // Allée large : 20 m d'eau libre entre le bout du bateau côté chenal et les arrières d'en face.
   assert.equal(sit.enFace, sit.bateau.x + HALF_LENGTH + ALLEES.large);
-  const axes = axesCatways(sit).slice().sort((a, b) => a - b);
-  assert.deepEqual(g.catways.map((c) => c.x), axes, 'catways d’en face dans l’alignement de ceux du bateau');
+  // Catways d'en face dans l'alignement de ceux du bateau, et ainsi de suite tous les 9 m.
+  const cw = catwaysEnFace(r, -50, 50);
+  for (const x of axesCatways(sit)) assert.ok(cw.some((c) => near(c.x, x)), `catway d’en face en face de ${x}`);
+  assert.equal(cw.length, 11);
   const yPanne = -(sit.enFace as number) - 2 * HALF_LENGTH - ECART_PANNE;
-  for (const c of g.catways) {
+  assert.equal(g.yPanne, yPanne);
+  assert.equal(g.largeurPanne, LARGEUR_PANNE);
+  for (const c of cw) {
     assert.equal(c.y, yPanne, 'pied contre la panne');
     assert.equal(c.dir, 1, 'catway tourné vers l’allée');
     assert.equal(c.length, LONGUEUR_CATWAY);
   }
-  assert.equal(g.panne.y1, yPanne);
-  assert.equal(g.panne.y1 - g.panne.y0, LARGEUR_PANNE);
-  assert.equal(g.bateaux.length, 4);
-  for (const b of g.bateaux) {
+  // Un bateau de chaque côté de chaque catway : deux par intervalle de 9 m, à 0,6 m l'un de l'autre.
+  const bateaux = bateauxEnFace(r, -50, 50);
+  assert.equal(bateaux.length, 22);
+  for (const b of bateaux) {
     assert.ok(near(b.th, -Math.PI / 2), 'étrave vers la panne');
     assert.ok(near(toWorld(b, [-HALF_LENGTH, 0])[1], -(sit.enFace as number), 1e-6), 'arrière sur la limite de l’allée');
     assert.ok(near(toWorld(b, [HALF_LENGTH, 0])[1], yPanne + ECART_PANNE, 1e-6), 'étrave à 1 m de la panne');
-    assert.ok(b.x > g.panne.x0 && b.x < g.panne.x1, 'au-dessus de la panne');
   }
-  // Un bateau de chaque côté de chaque catway : en face de la place du bateau, il y en a un dans son axe.
-  const pose = buildState(sit).body;
-  assert.ok(g.bateaux.some((b) => near(b.x, pose.x, 1e-6)));
-  // L'état de la simulation les porte : panne, catways et bateaux d'en face, traités comme des voisins.
+  const xs = bateaux.map((b) => b.x).sort((u, v) => u - v);
+  for (let i = 1; i < xs.length; i++) assert.ok(xs[i] - xs[i - 1] > 2 * 1.7, 'les coques ne se chevauchent pas');
+  // Le bateau a une coque en face de lui.
   const s = buildState(sit);
-  assert.deepEqual(s.pannes, [g.panne]);
-  assert.equal(s.catways.length, 4);
-  assert.deepEqual(face(s).map((n) => n.id), ['face-1', 'face-2', 'face-3', 'face-4']);
+  assert.ok(bateaux.some((b) => near(b.x, s.body.x, 1e-6)));
+  // L'état porte la rangée ; les voisins restent ceux du bateau.
+  assert.deepEqual(s.enFace, r);
+  assert.deepEqual(s.neighbors.map((n) => n.id), ['catway', 'large']);
+  assert.equal(s.catways.length, 2);
   // Bittes des catways d'en face : dessinées estompées avec celles du second catway, jamais proposées.
-  assert.equal(bittesAutresCatways(sit).length, 6);
+  assert.ok(bittesAutresCatways(sit).length > 2 + 2 * 40);
   assert.equal(geometrieEnFace(sansFace(sit)), null);
-  assert.deepEqual(buildState(sansFace(sit)).pannes, []);
+  assert.equal(buildState(sansFace(sit)).enFace, null);
 });
 
-test('géométrie : la rangée d’en face suit le bateau quand il change de bord, étrave ou arrière au quai', () => {
+test('géométrie : la rangée d’en face reste en face du bateau quand il change de bord, étrave ou arrière au quai', () => {
   const o = allee();
   for (const bout of ['arriere', 'etrave'] as const) {
-    const sit: Situation = { ...o, bateau: { ...o.bateau, boutAuQuai: bout } };
-    const tri = changerBord(sit, sit, 'tribord');
-    assert.equal(tri.enFace, sit.enFace, 'enFace inchangé');
-    const a = geometrieEnFace(sit), b = geometrieEnFace(tri);
-    assert.ok(a && b);
-    // Symétrique par rapport à l'axe du catway du bateau (x = 0).
-    assert.deepEqual(b.catways.map((c) => c.x).sort((u, v) => u - v), a.catways.map((c) => -c.x + 0).sort((u, v) => u - v));
-    assert.deepEqual(b.bateaux.map((n) => n.x).sort((u, v) => u - v), a.bateaux.map((n) => -n.x + 0).sort((u, v) => u - v));
-    // Le bateau a toujours une coque en face de lui.
-    const x = buildState(tri).body.x;
-    assert.ok(b.bateaux.some((n) => near(n.x, x, 1e-6)), `${bout} au quai, tribord`);
+    for (const bord of ['babord', 'tribord'] as const) {
+      const sit = changerBord({ ...o, bateau: { ...o.bateau, boutAuQuai: bout } }, o, bord);
+      assert.equal(sit.enFace, o.enFace, 'enFace inchangé');
+      const s = buildState(sit);
+      assert.ok(s.enFace);
+      assert.ok(bateauxEnFace(s.enFace, -20, 20).some((n) => near(n.x, s.body.x, 1e-6)), `${bout} au quai, ${bord}`);
+      for (const x of axesCatways(sit)) assert.ok(catwaysEnFace(s.enFace, -20, 20).some((c) => near(c.x, x)));
+    }
   }
 });
 
@@ -164,7 +170,7 @@ test('sans contact, les bateaux en face ne changent rien à la manœuvre', () =>
     tick(avec, DEFAULT_PARAMS);
     tick(sans, DEFAULT_PARAMS);
   }
-  assert.ok(!face(avec).some((n) => n.contacts.length > 0));
+  assert.ok(!touches(avec));
   assert.deepEqual(avec.body, sans.body);
 });
 
@@ -188,46 +194,49 @@ test('allée étroite ou large : le même demi-tour touche la rangée d’en fac
   assert.ok(e.pen < 0.15, `pénétration ${e.pen.toFixed(2)} m`);
 });
 
-test('la panne et les catways d’en face arrêtent le bateau comme le quai et le catway', () => {
-  // Sans les bateaux d'en face, on pousse l'étrave droit sur la panne, entre les deux catways,
-  // puis droit sur le bout d'un catway d'en face.
-  const sit = allee();
-  const g = geometrieEnFace(sit);
-  assert.ok(g);
-  const [a0, a1] = g.catways.map((c) => c.x).sort((u, v) => u - v);
-  const cas: { nom: string; x: number; limite: number }[] = [
-    { nom: 'panne', x: (a0 + a1) / 2, limite: g.panne.y1 },
-    { nom: 'catway d’en face', x: a0, limite: g.panne.y1 + LONGUEUR_CATWAY },
-  ];
-  for (const { nom, x, limite } of cas) {
-    const s = buildState(sit);
-    s.neighbors = s.neighbors.filter((n) => !n.id.startsWith('face-'));
-    s.body.x = x;
-    s.body.y = limite + HALF_LENGTH + 1;
-    s.body.th = -Math.PI / 2;
-    s.engine = 1;
-    let appui = false;
-    let pire = Infinity;
-    for (let i = 0; i < 20 * 60; i++) {
-      tick(s, DEFAULT_PARAMS);
-      appui ||= s.contacts.length > 0;
-      pire = Math.min(pire, toWorld(s.body, [HALF_LENGTH, 0])[1]);
-    }
-    assert.ok(appui, `${nom} : appui signalé`);
-    assert.ok(pire > limite - 0.15, `${nom} : l'étrave ne s'y enfonce pas (${(limite - pire).toFixed(2)} m)`);
+/** Pousse l'étrave droit vers le bas, depuis 1 m au-dessus de `limite`, et mesure l'appui. */
+function pousser(s: SimState, x: number, limite: number): { appui: boolean; enfoncement: number } {
+  s.body.x = x;
+  s.body.y = limite + HALF_LENGTH + 1;
+  s.body.th = -Math.PI / 2;
+  s.engine = 1;
+  let appui = false, pire = Infinity;
+  for (let i = 0; i < 20 * 60; i++) {
+    tick(s, DEFAULT_PARAMS);
+    appui ||= s.contacts.length > 0;
+    pire = Math.min(pire, toWorld(s.body, [HALF_LENGTH, 0])[1]);
   }
-  // Un angle de la panne qui entre dans la coque la repousse aussi : flanc contre le coin de la panne.
-  const s = buildState(sit);
-  s.neighbors = [];
-  s.catways = [];
-  s.body.th = 0;
-  s.body.x = g.panne.x1 + 0.5;
-  s.body.y = g.panne.y1 + 1.5;
-  s.body.vy = -0.5;
-  run(s, 5);
-  const coin = toLocal(s.body, [g.panne.x1, g.panne.y1]);
-  const pen = hullPenetration(coin);
-  assert.ok(!pen || pen.depth < 0.15, 'le coin de la panne ne traverse pas la coque');
+  return { appui, enfoncement: limite - pire };
+}
+
+test('la panne et les catways d’en face arrêtent le bateau comme le quai et le catway', () => {
+  // On écarte de la rangée les éléments qui gêneraient : bateaux très loin des catways (recul),
+  // puis catways très espacés (pas), pour atteindre le bout d'un catway, puis la panne.
+  const base = buildState(allee());
+  const r = base.enFace;
+  assert.ok(r);
+  const catway = buildState(allee());
+  catway.enFace = { ...r, recul: 500 };
+  const c = pousser(catway, 0, r.yPanne + r.longueurCatway);
+  assert.ok(c.appui, 'catway d’en face : appui signalé');
+  assert.ok(c.enfoncement < 0.15, `catway d’en face : l'étrave ne s'y enfonce pas (${c.enfoncement.toFixed(2)} m)`);
+  const panne = buildState(allee());
+  panne.enFace = { ...r, recul: 300, pas: 1000, x0: 500 };
+  const q = pousser(panne, 0, r.yPanne);
+  assert.ok(q.appui, 'panne : appui signalé');
+  assert.ok(q.enfoncement < 0.15, `panne : l'étrave ne s'y enfonce pas (${q.enfoncement.toFixed(2)} m)`);
+});
+
+test('rangée sans fin : loin le long de l’allée, les bateaux d’en face arrêtent encore le bateau', () => {
+  const s = buildState(allee());
+  const r = s.enFace;
+  assert.ok(r);
+  // 150 m plus loin, sur l'axe d'un bateau d'en face.
+  const loin = bateauxEnFace(r, 150, 160)[0];
+  const { appui } = pousser(s, loin.x, -(allee().enFace as number));
+  assert.ok(touches(s) || appui);
+  assert.ok(s.enFace?.contacts.some((c) => near(c.x, loin.x, 1e-6)), 'contact signalé sur ce bateau-là');
+  assert.ok(penetrationFace(s) < 0.15);
 });
 
 test('relecture : un contact avec un bateau d’en face se rejoue à l’identique', () => {
@@ -235,8 +244,25 @@ test('relecture : un contact avec un bateau d’en face se rejoue à l’identiq
   ses.act({ type: 'engine', value: 1 });
   ses.advance(60 * 25);
   const fin = cloneState(ses.state);
-  assert.ok(face(fin).some((n) => n.contacts.length > 0));
+  assert.ok(touches(fin));
   ses.seek(331);
   ses.seek(60 * 25);
   assert.deepEqual(ses.state, fin);
+});
+
+test('cadrage par défaut : sur PC, l’allée entière jusqu’à la panne d’en face ; sur téléphone, inchangé', () => {
+  const s = buildState(allee());
+  const r = s.enFace;
+  assert.ok(r);
+  const sans = buildState(sansFace(allee()));
+  // PC : quai en haut, panne d'en face entière en bas de la vue.
+  const pc = camera(s, 910, 720);
+  assert.ok(pc.Y(0) >= 0 && pc.Y(r.yPanne - r.largeurPanne) <= 720 - 80 + 1e-6, 'quai et panne dans la vue, le bas laissé à l’échelle et au vent');
+  assert.ok(hauteurVue(s, 910, 720) > hauteurVue(sans, 910, 720));
+  assert.equal(hauteurVue(sans, 910, 720), HAUTEUR_VUE);
+  // Téléphone : même cadrage que sans bateaux en face ; on dézoome pour voir l'allée.
+  assert.equal(camera(s, 390, 420).sc, camera(sans, 390, 420).sc);
+  // Les bornes du zoom suivent la même hauteur : dézoomée au plus, la vue contient le cadrage par défaut.
+  const k = bornerCadrage({ k: 0.1, ox: 0, oy: -1000 }, 910, 720, hauteurVue(s, 910, 720));
+  assert.ok(Math.abs(k.oy) <= (720 / 2 / echelleDefaut(910, 720, hauteurVue(s, 910, 720))) * (1 / k.k - 1) + 1e-9);
 });

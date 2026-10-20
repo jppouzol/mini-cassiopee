@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, type PointerEvent } from 'react';
 import type { Body, SimState, Vec } from '../sim/types.ts';
 import { HULL, toWorld } from '../sim/geometry.ts';
-import { TOUCH_RADIUS, camera, readPalette, render, type EditionView } from '../render/renderer.ts';
+import { TOUCH_RADIUS, camera, hauteurVue, readPalette, render, type EditionView } from '../render/renderer.ts';
 import { CADRAGE_DEFAUT, estDefaut, pincer, zoomerAutour, type Cadrage, type Pincement } from '../render/cadrage.ts';
 
 /** Ce que l'élève a touché sur la scène pendant l'édition. */
@@ -78,6 +78,11 @@ export function Scene({ state, ghost, debug, bollards, otherBollards, edition, o
   const [cadrage, setCadrageState] = useState<Cadrage>(CADRAGE_DEFAUT);
   const cadrageRef = useRef<Cadrage>(CADRAGE_DEFAUT);
   const setCadrage = (c: Cadrage) => { cadrageRef.current = c; setCadrageState(c); };
+  // Hauteur de scène du cadrage par défaut, qui grandit avec une allée et ses bateaux en face :
+  // les gestes de zoom bornent le cadrage avec elle, comme la caméra.
+  const etatRef = useRef(state);
+  etatRef.current = state;
+  const hauteur = (w: number, h: number) => hauteurVue(etatRef.current, w, h);
   /** Doigts posés sur la scène (px, repère de la toile). */
   const doigts = useRef(new Map<number, { x: number; y: number }>());
   /** Pincement en cours : dernière position des deux doigts. */
@@ -109,7 +114,7 @@ export function Scene({ state, ghost, debug, bollards, otherBollards, edition, o
       const r = canvas.getBoundingClientRect();
       const dy = e.deltaMode === 1 ? e.deltaY * 16 : e.deltaMode === 2 ? e.deltaY * r.height : e.deltaY;
       const c0 = cadrageRef.current;
-      const c1 = zoomerAutour(c0, r.width, r.height, e.clientX - r.left, e.clientY - r.top, Math.exp(-dy * (e.ctrlKey ? 0.01 : 0.002)));
+      const c1 = zoomerAutour(c0, r.width, r.height, e.clientX - r.left, e.clientY - r.top, Math.exp(-dy * (e.ctrlKey ? 0.01 : 0.002)), hauteur(r.width, r.height));
       if (e.ctrlKey || !estDefaut(c0) || !estDefaut(c1)) e.preventDefault();
       if (c1.k !== c0.k || c1.ox !== c0.ox || c1.oy !== c0.oy) setCadrage(c1);
     };
@@ -200,7 +205,7 @@ export function Scene({ state, ghost, debug, bollards, otherBollards, edition, o
     if (avant && doigts.current.size >= 2) {
       const apres = pincement(doigts.current);
       pinch.current = apres;
-      setCadrage(pincer(cadrageRef.current, r.width, r.height, avant, apres));
+      setCadrage(pincer(cadrageRef.current, r.width, r.height, avant, apres, hauteur(r.width, r.height)));
       return;
     }
     const g = gesture.current;
@@ -220,7 +225,7 @@ export function Scene({ state, ghost, debug, bollards, otherBollards, edition, o
     if (g.pan) {
       const d = { x: g.pan.x, y: g.pan.y, d: 1 };
       g.pan = { x: px, y: py };
-      setCadrage(pincer(cadrageRef.current, r.width, r.height, d, { x: px, y: py, d: 1 }));
+      setCadrage(pincer(cadrageRef.current, r.width, r.height, d, { x: px, y: py, d: 1 }, hauteur(r.width, r.height)));
       return;
     }
     // Le déplacement est mesuré depuis le début du geste : la position visée ne dérive pas.

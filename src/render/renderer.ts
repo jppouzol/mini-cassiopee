@@ -1,6 +1,7 @@
 import type { Body, MooringLine, SimState, Vec } from '../sim/types.ts';
 import { HALF_LENGTH, HULL, toWorld } from '../sim/geometry.ts';
-import { CADRAGE_DEFAUT, bornerCadrage, echelleDefaut, longueurEchelle, type Cadrage } from './cadrage.ts';
+import { CADRAGE_DEFAUT, HAUTEUR_VUE, bornerCadrage, echelleDefaut, longueurEchelle, type Cadrage } from './cadrage.ts';
+import { bateauxEnFace, catwaysEnFace } from '../sim/enface.ts';
 
 export interface Palette {
   water: string; grid: string; quay: string; quayEdge: string; bollard: string;
@@ -89,6 +90,24 @@ export function readPalette(el: Element): Palette {
  */
 export const MARGE_LIBRE = 6;
 
+/** Bas de la vue laissé libre sous la panne d'en face, pour l'échelle et le vent (px). */
+const BAS_LIBRE = 80;
+
+/** Bord haut de la vue par défaut, au-dessus du bord du quai (m) : la rangée de bittes et le libellé « QUAI ». */
+const HAUT_DE_VUE = 3.2;
+
+/**
+ * Hauteur de scène (m) que montre le cadrage par défaut. D'ordinaire HAUTEUR_VUE ; sur un
+ * écran large (PC, tablette), s'il y a des bateaux en face, assez pour montrer l'allée entière,
+ * du quai à la panne d'en face, en laissant BAS_LIBRE sous la panne pour l'échelle et le vent.
+ * Sur téléphone, le bateau resterait trop petit : on dézoome.
+ */
+export function hauteurVue(s: Readonly<SimState>, W: number, H: number): number {
+  if (!s.enFace || W < 520) return HAUTEUR_VUE;
+  const scene = HAUT_DE_VUE - (s.enFace.yPanne - s.enFace.largeurPanne);
+  return Math.max(HAUTEUR_VUE, (scene * H) / Math.max(H - BAS_LIBRE, H / 2));
+}
+
 /**
  * Caméra : quai en haut, on suit le bateau quand il s'éloigne. Le cadrage de l'élève (zoom et décalage)
  * s'ajoute au cadrage par défaut, qui continue de suivre le bateau. Sans quai (situation libre), la vue
@@ -96,10 +115,11 @@ export const MARGE_LIBRE = 6;
  */
 export function camera(s: Readonly<SimState>, W: number, H: number, cadrage: Cadrage = CADRAGE_DEFAUT): Camera & { cx: number; cy: number; halfW: number; halfH: number } {
   const b = s.body;
-  const sc0 = echelleDefaut(W, H);
+  const hauteur = hauteurVue(s, W, H);
+  const sc0 = echelleDefaut(W, H, hauteur);
   const halfW0 = W / 2 / sc0, halfH0 = H / 2 / sc0;
   let cx = 0;
-  let cy = 3.2 - halfH0;
+  let cy = HAUT_DE_VUE - halfH0;
   if (!s.quay) {
     // Libre : la vue ne bouge que si le centre du bateau sort de la zone centrale.
     cy = 0;
@@ -112,7 +132,7 @@ export function camera(s: Readonly<SimState>, W: number, H: number, cadrage: Cad
     const lowY = cy - halfH0 * 0.45;
     if (b.y < lowY) cy += b.y - lowY;
   }
-  const z = bornerCadrage(cadrage, W, H);
+  const z = bornerCadrage(cadrage, W, H, hauteur);
   const sc = sc0 * z.k;
   cx += z.ox;
   cy += z.oy;
@@ -159,25 +179,34 @@ export function render(ctx: CanvasRenderingContext2D, s: Readonly<SimState>, v: 
     ctx.fillText('QUAI', W - 12, Math.max(14, yRow));
   }
 
-  // Panne d'en face, de l'autre côté de l'allée : ponton de la couleur du quai, bordé sur ses quatre côtés.
-  for (const q of s.pannes) {
-    const xa = X(q.x0), xb = X(q.x1), ya = Y(q.y1), yb = Y(q.y0);
+  // Rangée d'en face, sans fin : la panne sur toute la largeur de la vue, puis ses catways et
+  // ses bateaux visibles. Catways et bateaux se dessinent avec ceux du quai, plus bas.
+  const face = s.enFace;
+  const catwaysVus = face ? s.catways.concat(catwaysEnFace(face, cx - halfW - 1, cx + halfW + 1)) : s.catways;
+  const bateauxVus = face
+    ? s.neighbors.map((nb) => ({ pose: nb as Pick<Body, 'x' | 'y' | 'th'>, contacts: nb.contacts }))
+      .concat(bateauxEnFace(face, cx - halfW - HALF_LENGTH, cx + halfW + HALF_LENGTH).map((pose) => ({
+        pose, contacts: face.contacts.find((c) => Math.abs(c.x - pose.x) < 1e-6)?.points ?? [],
+      })))
+    : s.neighbors.map((nb) => ({ pose: nb as Pick<Body, 'x' | 'y' | 'th'>, contacts: nb.contacts }));
+  if (face) {
+    const ya = Y(face.yPanne), yb = Y(face.yPanne - face.largeurPanne);
     ctx.fillStyle = C.quay;
-    ctx.fillRect(xa, ya, xb - xa, yb - ya);
+    ctx.fillRect(0, ya, W, yb - ya);
     ctx.strokeStyle = C.quayEdge;
     ctx.lineWidth = 2;
-    ctx.strokeRect(xa, ya, xb - xa, yb - ya);
+    ctx.beginPath(); ctx.moveTo(0, ya); ctx.lineTo(W, ya); ctx.moveTo(0, yb); ctx.lineTo(W, yb); ctx.stroke();
     ctx.fillStyle = C.quayEdge;
     ctx.font = `600 11px ${v.labelFont}`;
-    ctx.textAlign = 'center';
+    ctx.textAlign = 'right';
     ctx.textBaseline = 'middle';
-    ctx.fillText('PANNE', (xa + xb) / 2, (ya + yb) / 2);
+    ctx.fillText('PANNE', W - 12, (ya + yb) / 2);
     ctx.textBaseline = 'alphabetic';
   }
 
   // Catways : pontons accrochés au quai, ou à la panne d'en face, de la couleur du quai, bordés
   // sur leurs flancs et leur bout. Le pied, contre le quai ou la panne, n'est pas bordé.
-  for (const c of s.catways) {
+  for (const c of catwaysVus) {
     const bout = c.y + c.dir * c.length;
     const xa = X(c.x - c.halfWidth), xb = X(c.x + c.halfWidth), yp = Y(c.y), yt = Y(bout);
     ctx.fillStyle = C.quay;
@@ -247,9 +276,9 @@ export function render(ctx: CanvasRenderingContext2D, s: Readonly<SimState>, v: 
   };
 
   // Bateaux voisins, immobiles : estompés, et contour d'alerte tant que le bateau les touche.
-  for (const nb of s.neighbors) {
-    const touched = nb.contacts.length > 0;
-    hullPath(nb);
+  for (const { pose, contacts } of bateauxVus) {
+    const touched = contacts.length > 0;
+    hullPath(pose);
     ctx.fillStyle = C.neighbor;
     ctx.fill();
     ctx.strokeStyle = touched ? C.alert : C.slack;
@@ -389,8 +418,8 @@ export function render(ctx: CanvasRenderingContext2D, s: Readonly<SimState>, v: 
   ctx.strokeStyle = C.alert;
   ctx.fillStyle = C.alert;
   ctx.lineWidth = 2;
-  for (const nb of s.neighbors) {
-    for (const c of nb.contacts) {
+  for (const { contacts } of bateauxVus) {
+    for (const c of contacts) {
       ctx.beginPath();
       ctx.arc(X(c[0]), Y(c[1]), 7, 0, Math.PI * 2);
       ctx.stroke();

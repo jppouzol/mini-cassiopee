@@ -92,7 +92,7 @@ export interface Neighbor {
 
 /**
  * Catway : petit ponton immobile, accroché par son pied au bord du quai (y = 0) ou
- * de la panne d'en face, qui s'avance dans l'eau sur sa longueur, centré sur l'abscisse x :
+ * de la panne d'en face (voir RangeeEnFace), qui s'avance dans l'eau sur sa longueur, centré sur l'abscisse x :
  * vers le bas (dir = -1) depuis le quai, vers le haut (dir = 1) depuis la panne d'en face.
  */
 export interface Catway {
@@ -109,15 +109,28 @@ export interface Catway {
 }
 
 /**
- * Panne : ponton flottant immobile, rectangle parallèle au quai ; dans l'appli, celle
- * d'en face, de l'autre côté de l'allée. Tous ses côtés arrêtent le bateau.
+ * Rangée d'en face, de l'autre côté de l'allée : une panne parallèle au quai, sans fin,
+ * des catways qui en montent vers l'allée tous les `pas` mètres, et un bateau immobile de
+ * chaque côté de chaque catway, étrave à la panne. Rangée périodique : seuls les éléments
+ * proches du bateau sont calculés (`src/sim/enface.ts`).
  */
-export interface Panne {
-  /** bornes du rectangle (m, repère monde), x0 < x1 et y0 < y1 */
+export interface RangeeEnFace {
+  /** abscisse de l'axe d'un des catways ; les autres tous les `pas` mètres (m) */
   x0: number;
-  x1: number;
-  y0: number;
-  y1: number;
+  pas: number;
+  /** bord de la panne côté allée, pied des catways, et largeur de la panne (m) */
+  yPanne: number;
+  largeurPanne: number;
+  /** catways : demi-largeur et longueur depuis la panne (m) */
+  demiLargeurCatway: number;
+  longueurCatway: number;
+  /** écart entre l'axe d'un catway et celui des bateaux qui le bordent (m) */
+  recul: number;
+  /** ordonnée du centre des bateaux et leur cap, étrave vers la panne */
+  yBateaux: number;
+  th: number;
+  /** bateaux touchés à la dernière image : abscisse de leur centre et points de contact (repère monde) */
+  contacts: { x: number; points: Vec[] }[];
 }
 
 /**
@@ -157,8 +170,8 @@ export interface SimState {
   contacts: Vec[];
   /** catways, immobiles (liste vide le long du quai) */
   catways: Catway[];
-  /** pannes, immobiles : celle d'en face s'il y a des bateaux en face, sinon liste vide */
-  pannes: Panne[];
+  /** rangée d'en face, de l'autre côté de l'allée, ou null sans bateaux en face */
+  enFace: RangeeEnFace | null;
   /** bateaux voisins, immobiles (liste vide sans voisin) */
   neighbors: Neighbor[];
   /** position du point de pivot sur l'axe (m, repère bateau), null si le bateau ne tourne pas */

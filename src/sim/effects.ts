@@ -1,4 +1,5 @@
 import type { Body, Catway, Effect, Forces, Params, SimState, Vec } from './types.ts';
+import { bateauxEnFace, catwaysEnFace } from './enface.ts';
 import { thrustOf } from './kick.ts';
 import { DT } from './params.ts';
 import { CONTACT_POINTS, HALF_LENGTH, SLICES, hullPenetration, pointVelocity, rotate, toLocal, toWorld } from './geometry.ts';
@@ -206,30 +207,45 @@ function push(f: Forces, b: Body, p: Params, pt: Vec, n: Vec, depth: number): nu
 }
 
 /**
- * Contact avec les bateaux voisins, immobiles : coque contre coque, traité
- * comme le quai. On repousse les points de la coque entrés dans un voisin, et
- * la coque là où un point du voisin y est entré (un angle de tableau contre le
- * flanc, par exemple). Sans voisin, cet effet n'ajoute rien.
+ * Appuis entre le bateau et une coque immobile : on repousse les points de la coque
+ * entrés dans l'autre, et la coque là où un point de l'autre y est entré (un angle de
+ * tableau contre le flanc, par exemple). Renvoie les points touchés (repère monde).
+ */
+function hullContact(s: SimState, p: Params, f: Forces, nb: Pick<Body, 'x' | 'y' | 'th'>): Vec[] {
+  const b = s.body;
+  const contacts: Vec[] = [];
+  // Deux coques de 10 m ne se touchent pas si leurs centres sont à plus de 2 × 5,3 m.
+  if (Math.hypot(nb.x - b.x, nb.y - b.y) > 2 * HALF_LENGTH + 0.7) return contacts;
+  for (const pt of CONTACT_POINTS) {
+    const w = toWorld(b, pt);
+    const pen = hullPenetration(toLocal(nb, w));
+    if (pen && push(f, b, p, pt, rotate(nb.th, pen.n), pen.depth) > 0) contacts.push(w);
+  }
+  for (const q of CONTACT_POINTS) {
+    const w = toWorld(nb, q);
+    const local = toLocal(b, w);
+    const pen = hullPenetration(local);
+    if (!pen) continue;
+    const out = rotate(b.th, pen.n);
+    if (push(f, b, p, local, [-out[0], -out[1]], pen.depth) > 0) contacts.push(w);
+  }
+  return contacts;
+}
+
+/**
+ * Contact avec les bateaux voisins et ceux d'en face, immobiles : coque contre coque,
+ * traité comme le quai (voir hullContact). Les points touchés sont gardés par bateau pour
+ * l'affichage. Sans voisin ni bateaux en face, cet effet n'ajoute rien.
  */
 export const neighborContact: Effect = (s, p, f) => {
-  const b = s.body;
-  for (const nb of s.neighbors) {
-    nb.contacts = [];
-    // Deux coques de 10 m ne se touchent pas si leurs centres sont à plus de 2 × 5,3 m.
-    if (Math.hypot(nb.x - b.x, nb.y - b.y) > 2 * HALF_LENGTH + 0.7) continue;
-    for (const pt of CONTACT_POINTS) {
-      const w = toWorld(b, pt);
-      const pen = hullPenetration(toLocal(nb, w));
-      if (pen && push(f, b, p, pt, rotate(nb.th, pen.n), pen.depth) > 0) nb.contacts.push(w);
-    }
-    for (const q of CONTACT_POINTS) {
-      const w = toWorld(nb, q);
-      const local = toLocal(b, w);
-      const pen = hullPenetration(local);
-      if (!pen) continue;
-      const out = rotate(b.th, pen.n);
-      if (push(f, b, p, local, [-out[0], -out[1]], pen.depth) > 0) nb.contacts.push(w);
-    }
+  for (const nb of s.neighbors) nb.contacts = hullContact(s, p, f, nb);
+  const r = s.enFace;
+  if (!r) return;
+  r.contacts = [];
+  // Seuls les bateaux d'en face assez proches du bateau peuvent le toucher.
+  for (const nb of bateauxEnFace(r, s.body.x - 2 * HALF_LENGTH - 1, s.body.x + 2 * HALF_LENGTH + 1)) {
+    const points = hullContact(s, p, f, nb);
+    if (points.length > 0) r.contacts.push({ x: nb.x, points });
   }
 };
 
@@ -288,21 +304,22 @@ function rectContact(s: SimState, p: Params, f: Forces, r: { x0: number; x1: num
 }
 
 /**
- * Contact avec les catways et les pannes, immobiles : traités comme le quai. On repousse
- * les points de la coque entrés dans un catway ou une panne, et la coque là où un angle
- * du bout d'un catway, ou un angle d'une panne, y est entré. Le pied d'un catway n'est pas
- * une sortie : le quai ou la panne d'en face l'arrêtent. Les points d'appui rejoignent ceux
- * du quai. Sans catway ni panne, cet effet n'ajoute rien.
+ * Contact avec les catways et la panne d'en face, immobiles : traités comme le quai. On
+ * repousse les points de la coque entrés dans un catway ou dans la panne, et la coque là
+ * où un angle du bout d'un catway y est entré. Le pied d'un catway n'est pas une sortie :
+ * le quai ou la panne l'arrêtent. La panne d'en face, sans fin, n'a pas d'angle. Les points
+ * d'appui rejoignent ceux du quai. Sans catway ni rangée d'en face, cet effet n'ajoute rien.
  */
 export const catwayContact: Effect = (s, p, f) => {
-  for (const c of s.catways) {
-    const r = catwayRect(c);
+  const r = s.enFace;
+  // Catways d'en face proches du bateau : seuls ceux-là peuvent le toucher.
+  const enFace = r ? catwaysEnFace(r, s.body.x - HALF_LENGTH - r.demiLargeurCatway - 1, s.body.x + HALF_LENGTH + r.demiLargeurCatway + 1) : [];
+  for (const c of s.catways.concat(enFace)) {
+    const q = catwayRect(c);
     const bout = c.y + c.dir * c.length;
-    rectContact(s, p, f, r, r.pied, [[r.x0, bout], [r.x1, bout]]);
+    rectContact(s, p, f, q, q.pied, [[q.x0, bout], [q.x1, bout]]);
   }
-  for (const q of s.pannes) {
-    rectContact(s, p, f, q, null, [[q.x0, q.y0], [q.x1, q.y0], [q.x0, q.y1], [q.x1, q.y1]]);
-  }
+  if (r) rectContact(s, p, f, { x0: -Infinity, x1: Infinity, y0: r.yPanne - r.largeurPanne, y1: r.yPanne }, null, []);
 };
 
 /**

@@ -1,4 +1,4 @@
-import type { Catway, MooringLine, Neighbor, Panne, SimState, Vec, Wind } from '../sim/types.ts';
+import type { Catway, MooringLine, Neighbor, SimState, Vec, Wind } from '../sim/types.ts';
 import { cleatPosition, toWorld } from '../sim/geometry.ts';
 import { cotesVoisin, type Situation, type WindDirection } from './schema.ts';
 import {
@@ -71,19 +71,13 @@ export function buildState(sit: Situation, windOverride?: Situation['vent'], aba
   }
   // Catway du bateau et second catway, côté large, descendant du quai ; aucun le long du quai.
   const catways: Catway[] = axesCatways(sit).map((x) => ({ x, halfWidth: DEMI_LARGEUR_CATWAY, length: LONGUEUR_CATWAY, y: 0, dir: -1 }));
-  // Bateaux en face, de l'autre côté de l'allée : panne, catways tournés vers l'allée, et
-  // quatre bateaux immobiles, traités comme des voisins.
-  const pannes: Panne[] = [];
+  // Bateaux en face, de l'autre côté de l'allée : rangée sans fin, panne, catways et bateaux.
   const face = geometrieEnFace(sit);
-  if (face) {
-    pannes.push({ ...face.panne });
-    catways.push(...face.catways);
-    face.bateaux.forEach((pose, i) => neighbors.push({ id: `face-${i + 1}`, ...pose, contacts: [] }));
-  }
+  const enFace = face ? { ...face, contacts: [] } : null;
   // Effets avancés : seuls ceux que la situation active.
   const options: SimState['options'] = {};
   if (sit.options?.pasHelice) options.propWalk = sit.options.pasHelice;
   if (sit.options?.fardage) options.windage = abattee;
   // Sans quai en situation libre : rien à toucher.
-  return { frame: 0, body, lines, engine: 0, kick: null, rudder: 0, wind, quay: !libre(sit), contacts: [], catways, pannes, neighbors, pivot: null, options };
+  return { frame: 0, body, lines, engine: 0, kick: null, rudder: 0, wind, quay: !libre(sit), contacts: [], catways, neighbors, enFace, pivot: null, options };
 }

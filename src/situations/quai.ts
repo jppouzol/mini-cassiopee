@@ -14,7 +14,8 @@
 // En situation libre, il n'y a ni quai ni bitte : le bateau part de l'origine,
 // étrave vers +y (le haut de l'écran).
 
-import type { Vec } from '../sim/types.ts';
+import type { RangeeEnFace, Vec } from '../sim/types.ts';
+import { catwaysEnFace } from '../sim/enface.ts';
 import { HALF_BEAM, HALF_LENGTH } from '../sim/geometry.ts';
 
 /** Distance de la rangée de bittes au bord du quai (m). */
@@ -53,8 +54,6 @@ export const LARGEUR_PANNE = 2;
 export const ECART_PANNE = 1;
 /** Écart entre un bateau d'en face et son catway (m), celui des places du catalogue. */
 export const ECART_CATWAY_EN_FACE = 0.3;
-/** Longueur dont la panne d'en face dépasse ses coques extrêmes (m). */
-const DEBORD_PANNE = 1;
 
 /** Étendue des rangées de bittes du quai, bien au-delà de ce que la caméra montre (m). */
 const ETENDUE_QUAI = 200;
@@ -219,13 +218,15 @@ export function bittesDuPort(sit: Placement): Vec[] {
 
 /**
  * Bittes des autres catways, qui servent aux places voisines : le second catway, puis les
- * catways d'en face s'il y en a. Dessinées, jamais proposées.
+ * catways d'en face s'il y en a, sur l'étendue de la rangée de bittes du quai. Dessinées,
+ * jamais proposées.
  */
 export function bittesAutresCatways(sit: Placement & { enFace?: number }): Vec[] {
   const second = axesCatways(sit).slice(1).flatMap((x) => BITTES_CATWAY.map((u): Vec => [x, -u]));
   const face = geometrieEnFace(sit);
   if (!face) return second;
-  return second.concat(face.catways.flatMap((c) => BITTES_CATWAY.map((u): Vec => [c.x, c.y + u])));
+  return second.concat(catwaysEnFace({ ...face, contacts: [] }, -ETENDUE_QUAI, ETENDUE_QUAI)
+    .flatMap((c) => BITTES_CATWAY.map((u): Vec => [c.x, c.y + u])));
 }
 
 /**
@@ -236,36 +237,27 @@ export function distanceEnFace(origine: Pick<Placement, 'bateau'>, largeur: numb
   return arrondi(origine.bateau.x + HALF_LENGTH + largeur);
 }
 
-/** Rangée d'en face : panne, catways tournés vers l'allée et bateaux, étrave à la panne. */
-export interface EnFace {
-  panne: { x0: number; x1: number; y0: number; y1: number };
-  catways: { x: number; halfWidth: number; length: number; y: number; dir: 1 }[];
-  bateaux: { x: number; y: number; th: number }[];
-}
-
 /**
- * Géométrie de la rangée d'en face, de l'autre côté de l'allée, ou null s'il n'y en a pas
- * (champ `enFace` absent, ou hors du catway). Les arrières des bateaux sont à `enFace` du
- * bord du quai ; leurs étraves, à ECART_PANNE de la panne. Deux catways, dans l'alignement
- * de ceux du bateau (ils le suivent quand il change de bord), montent de la panne vers
- * l'allée ; un bateau de chaque côté de chacun, à ECART_CATWAY_EN_FACE : quatre places, en
- * face de celles du bateau et de ses voisins. La panne dépasse de DEBORD_PANNE les coques extrêmes.
+ * Rangée d'en face, de l'autre côté de l'allée, ou null s'il n'y en a pas (champ `enFace`
+ * absent, ou hors du catway). Elle est sans fin le long du quai : une panne, des catways qui
+ * en montent vers l'allée dans l'alignement de ceux du bateau, tous les 9 m (deux places
+ * entre deux catways, comme de notre côté), et un bateau de chaque côté de chaque catway,
+ * à ECART_CATWAY_EN_FACE, étrave à ECART_PANNE de la panne. Les arrières des bateaux sont à
+ * `enFace` du bord du quai. La rangée suit le catway du bateau quand il change de bord.
  */
-export function geometrieEnFace(sit: Placement & { enFace?: number }): EnFace | null {
+export function geometrieEnFace(sit: Placement & { enFace?: number }): Omit<RangeeEnFace, 'contacts'> | null {
   if (!perpendiculaire(sit) || sit.enFace === undefined) return null;
   const yArrieres = -sit.enFace;
-  const yPanne = yArrieres - 2 * HALF_LENGTH - ECART_PANNE;
-  const axes = axesCatways(sit).slice().sort((a, b) => a - b);
-  const recul = DEMI_LARGEUR_CATWAY + ECART_CATWAY_EN_FACE + HALF_BEAM;
-  const bateaux = axes.flatMap((a) => [-1, 1].map((cote) => ({
-    x: arrondi(a + cote * recul), y: arrondi(yArrieres - HALF_LENGTH), th: -Math.PI / 2,
-  })));
-  const catways = axes.map((x) => ({ x, halfWidth: DEMI_LARGEUR_CATWAY, length: LONGUEUR_CATWAY, y: yPanne, dir: 1 as const }));
-  const bord = recul + HALF_BEAM + DEBORD_PANNE;
   return {
-    panne: { x0: arrondi(axes[0] - bord), x1: arrondi(axes[axes.length - 1] + bord), y0: arrondi(yPanne - LARGEUR_PANNE), y1: yPanne },
-    catways,
-    bateaux,
+    x0: X_CATWAY,
+    pas: ECART_CATWAYS + 2 * DEMI_LARGEUR_CATWAY,
+    yPanne: arrondi(yArrieres - 2 * HALF_LENGTH - ECART_PANNE),
+    largeurPanne: LARGEUR_PANNE,
+    demiLargeurCatway: DEMI_LARGEUR_CATWAY,
+    longueurCatway: LONGUEUR_CATWAY,
+    recul: arrondi(DEMI_LARGEUR_CATWAY + ECART_CATWAY_EN_FACE + HALF_BEAM),
+    yBateaux: arrondi(yArrieres - HALF_LENGTH),
+    th: -Math.PI / 2,
   };
 }
 
