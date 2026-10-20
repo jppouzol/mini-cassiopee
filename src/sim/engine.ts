@@ -63,6 +63,7 @@ export function cloneState(s: SimState): SimState {
     quay: s.quay,
     contacts: s.contacts.map((c) => [c[0], c[1]]),
     catways: s.catways.map((c) => ({ ...c })),
+    pannes: s.pannes.map((q) => ({ ...q })),
     neighbors: s.neighbors.map((n) => ({ ...n, contacts: n.contacts.map((c) => [c[0], c[1]]) })),
     pivot: s.pivot,
     options: { ...s.options },

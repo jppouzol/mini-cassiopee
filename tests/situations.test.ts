@@ -4,7 +4,7 @@ import { catalogue, rawSituation, scenarios } from './helpers.ts';
 import { parseSituation, SituationError } from '../src/situations/schema.ts';
 import { BOLLARD_SPACING, buildState } from '../src/situations/build.ts';
 import { bittesDuPort } from '../src/situations/quai.ts';
-import { ECARTS_VOISIN, ecartVoisin, etraveVoisinCatway, nomDeduit } from '../src/situations/edit.ts';
+import { ECARTS_VOISIN, alleeEnFace, ecartVoisin, etraveVoisinCatway, nomDeduit } from '../src/situations/edit.ts';
 import { tick } from '../src/sim/engine.ts';
 import { DEFAULT_PARAMS } from '../src/sim/params.ts';
 
@@ -101,5 +101,13 @@ test('catalogue : chaque voisin correspond à un choix de l’éditeur et ne tou
     const s = buildState(sit);
     for (let i = 0; i < 60; i++) tick(s, DEFAULT_PARAMS);
     assert.ok(s.neighbors.every((n) => n.contacts.length === 0), `${sit.id} : contact avec un voisin dès le départ`);
+  }
+});
+
+test('catalogue : des bateaux en face correspondent à un choix d’allée de l’éditeur', () => {
+  for (const { sit } of catalogue()) {
+    if (sit.enFace === undefined) continue;
+    // L'éditeur montre ainsi l'allée du catalogue comme un choix sélectionné (étroite ou large).
+    assert.notEqual(alleeEnFace(sit, sit), null, `${sit.id} : allée de ${sit.enFace} m hors des choix de l’éditeur`);
   }
 });

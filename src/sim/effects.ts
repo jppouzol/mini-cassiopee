@@ -233,45 +233,75 @@ export const neighborContact: Effect = (s, p, f) => {
   }
 };
 
+/** Pénétration dans un rectangle immobile : profondeur et normale (monde) de sortie. */
+type Penetration = { depth: number; n: Vec };
+
 /**
- * Pénétration d'un point monde dans le catway : profondeur sous le flanc ou le
- * bout le plus proche, et normale (monde) selon laquelle repousser le point.
- * Le côté du quai n'est pas une sortie : le quai a son propre contact.
+ * Pénétration d'un point monde dans un rectangle [x0, x1] × [y0, y1] : profondeur sous le
+ * côté le plus proche parmi ceux qui sont des sorties, et normale selon laquelle repousser
+ * le point. `sansSortie` écarte le côté du pied d'un catway (bas ou haut), que le quai
+ * ou la panne couvrent de leur propre contact.
  */
-function catwayPenetration(c: Catway, w: Vec): { depth: number; n: Vec } | null {
-  const x0 = c.x - c.halfWidth, x1 = c.x + c.halfWidth;
-  if (w[0] <= x0 || w[0] >= x1 || w[1] <= -c.length || w[1] >= 0) return null;
-  const faces: { depth: number; n: Vec }[] = [
+function rectPenetration(x0: number, x1: number, y0: number, y1: number, w: Vec, sansSortie: 'bas' | 'haut' | null): Penetration | null {
+  if (w[0] <= x0 || w[0] >= x1 || w[1] <= y0 || w[1] >= y1) return null;
+  const faces: Penetration[] = [
     { depth: w[0] - x0, n: [-1, 0] },
     { depth: x1 - w[0], n: [1, 0] },
-    { depth: w[1] + c.length, n: [0, -1] },
   ];
+  if (sansSortie !== 'bas') faces.push({ depth: w[1] - y0, n: [0, -1] });
+  if (sansSortie !== 'haut') faces.push({ depth: y1 - w[1], n: [0, 1] });
   return faces.reduce((a, b) => (b.depth < a.depth ? b : a));
 }
 
+/** Rectangle d'un catway, de son pied à son bout, et côté du pied, qui n'est pas une sortie. */
+function catwayRect(c: Catway): { x0: number; x1: number; y0: number; y1: number; pied: 'bas' | 'haut' } {
+  const bout = c.y + c.dir * c.length;
+  return {
+    x0: c.x - c.halfWidth, x1: c.x + c.halfWidth,
+    y0: Math.min(c.y, bout), y1: Math.max(c.y, bout),
+    // Catway du quai (dir = -1) : le pied est en haut ; catway d'en face (dir = 1) : en bas.
+    pied: c.dir < 0 ? 'haut' : 'bas',
+  };
+}
+
 /**
- * Contact avec les catways, immobiles : traités comme le quai. On repousse les
- * points de la coque entrés dans un catway, et la coque là où un angle du bout
- * d'un catway y est entré. Les points d'appui rejoignent ceux du quai. Sans
- * catway, cet effet n'ajoute rien.
+ * Appuis sur un rectangle immobile (catway ou panne) : on repousse les points de la coque
+ * qui y sont entrés, et la coque là où un de ses angles exposés y est entré. Les points
+ * d'appui rejoignent ceux du quai.
+ */
+function rectContact(s: SimState, p: Params, f: Forces, r: { x0: number; x1: number; y0: number; y1: number }, sansSortie: 'bas' | 'haut' | null, angles: Vec[]): void {
+  const b = s.body;
+  // La coque ne peut toucher le rectangle que si son centre en est à moins d'une demi-longueur.
+  if (b.x < r.x0 - HALF_LENGTH || b.x > r.x1 + HALF_LENGTH || b.y < r.y0 - HALF_LENGTH || b.y > r.y1 + HALF_LENGTH) return;
+  for (const pt of CONTACT_POINTS) {
+    const w = toWorld(b, pt);
+    const pen = rectPenetration(r.x0, r.x1, r.y0, r.y1, w, sansSortie);
+    if (pen && push(f, b, p, pt, pen.n, pen.depth) > 0) s.contacts.push(w);
+  }
+  for (const corner of angles) {
+    const local = toLocal(b, corner);
+    const pen = hullPenetration(local);
+    if (!pen) continue;
+    const out = rotate(b.th, pen.n);
+    if (push(f, b, p, local, [-out[0], -out[1]], pen.depth) > 0) s.contacts.push(corner);
+  }
+}
+
+/**
+ * Contact avec les catways et les pannes, immobiles : traités comme le quai. On repousse
+ * les points de la coque entrés dans un catway ou une panne, et la coque là où un angle
+ * du bout d'un catway, ou un angle d'une panne, y est entré. Le pied d'un catway n'est pas
+ * une sortie : le quai ou la panne d'en face l'arrêtent. Les points d'appui rejoignent ceux
+ * du quai. Sans catway ni panne, cet effet n'ajoute rien.
  */
 export const catwayContact: Effect = (s, p, f) => {
-  const b = s.body;
   for (const c of s.catways) {
-    // La coque ne peut toucher le catway que si son centre en est à moins d'une demi-longueur.
-    if (b.y < -c.length - HALF_LENGTH || Math.abs(b.x - c.x) > c.halfWidth + HALF_LENGTH) continue;
-    for (const pt of CONTACT_POINTS) {
-      const w = toWorld(b, pt);
-      const pen = catwayPenetration(c, w);
-      if (pen && push(f, b, p, pt, pen.n, pen.depth) > 0) s.contacts.push(w);
-    }
-    for (const corner of [[c.x - c.halfWidth, -c.length], [c.x + c.halfWidth, -c.length]] as Vec[]) {
-      const local = toLocal(b, corner);
-      const pen = hullPenetration(local);
-      if (!pen) continue;
-      const out = rotate(b.th, pen.n);
-      if (push(f, b, p, local, [-out[0], -out[1]], pen.depth) > 0) s.contacts.push(corner);
-    }
+    const r = catwayRect(c);
+    const bout = c.y + c.dir * c.length;
+    rectContact(s, p, f, r, r.pied, [[r.x0, bout], [r.x1, bout]]);
+  }
+  for (const q of s.pannes) {
+    rectContact(s, p, f, q, null, [[q.x0, q.y0], [q.x1, q.y0], [q.x0, q.y1], [q.x1, q.y1]]);
   }
 };
 

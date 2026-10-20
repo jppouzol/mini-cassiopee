@@ -2,7 +2,7 @@
 // l'éditeur produit le même format.
 
 import {
-  BATEAU_LIBRE, BOLLARD_SPACING, ECART_QUAI_MIN, LONGUEUR_CATWAY, ecartVoisinLarge, surLaRangee, type BoutAuQuai, type TypeQuai,
+  ALLEE_MAX, ALLEE_MIN, BATEAU_LIBRE, BOLLARD_SPACING, ECART_QUAI_MIN, LONGUEUR_CATWAY, ecartVoisinLarge, surLaRangee, type BoutAuQuai, type TypeQuai,
 } from './quai.ts';
 import { HALF_LENGTH } from '../sim/geometry.ts';
 
@@ -144,6 +144,11 @@ export interface Situation {
    * distance (m) entre l'étrave du voisin et le bord du quai.
    */
   voisins?: Partial<Record<CoteVoisin, number>>;
+  /**
+   * en perpendiculaire seulement : bateaux en face, de l'autre côté de l'allée. Distance (m)
+   * du bord du quai aux arrières des bateaux d'en face ; absent, pas de bateaux en face.
+   */
+  enFace?: number;
   /** effets avancés ; absents, le comportement de base est inchangé */
   options?: {
     /** pas d'hélice, selon le sens de rotation de l'hélice ; absent, pas de pas d'hélice */
@@ -207,7 +212,7 @@ function parseLibre(input: Obj, id: string): Situation {
   if (!Array.isArray(input.aussieres) || input.aussieres.length > 0) {
     throw new SituationError(`${id} : en situation libre, « aussieres » doit être une liste vide.`);
   }
-  for (const k of ['voisins', 'plafondAussieres'] as const) {
+  for (const k of ['voisins', 'plafondAussieres', 'enFace'] as const) {
     if (input[k] !== undefined) throw new SituationError(`${id} : en situation libre, « ${k} » est sans objet.`);
   }
   const sit: Situation = {
@@ -343,6 +348,16 @@ export function parseSituation(input: unknown): Situation {
       voisins[cote] = e;
     }
     if (Object.keys(voisins).length > 0) sit.voisins = voisins;
+  }
+
+  if (input.enFace !== undefined) {
+    if (!perp) throw new SituationError(`${id} : « enFace » ne sert qu'en perpendiculaire, sur catway.`);
+    const d = input.enFace;
+    const allee = isNum(d) ? d - (navire.x + HALF_LENGTH) : NaN;
+    if (!(allee >= ALLEE_MIN - 1e-9 && allee <= ALLEE_MAX + 1e-9)) {
+      throw new SituationError(`${id} : « enFace » doit laisser une allée de ${ALLEE_MIN} à ${ALLEE_MAX} m entre le bout du bateau et les bateaux d'en face.`);
+    }
+    sit.enFace = d as number;
   }
 
   const options = parseOptions(input, id);

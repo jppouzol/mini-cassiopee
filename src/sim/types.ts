@@ -91,16 +91,33 @@ export interface Neighbor {
 }
 
 /**
- * Catway : petit ponton immobile accroché au bord du quai (y = 0), qui descend
- * dans l'eau (y < 0) sur sa longueur, centré sur l'abscisse x.
+ * Catway : petit ponton immobile, accroché par son pied au bord du quai (y = 0) ou
+ * de la panne d'en face, qui s'avance dans l'eau sur sa longueur, centré sur l'abscisse x :
+ * vers le bas (dir = -1) depuis le quai, vers le haut (dir = 1) depuis la panne d'en face.
  */
 export interface Catway {
   /** abscisse de l'axe (m, repère monde) */
   x: number;
   /** demi-largeur (m) */
   halfWidth: number;
-  /** longueur depuis le bord du quai (m) */
+  /** longueur depuis son pied (m) */
   length: number;
+  /** ordonnée du pied : bord du quai (0) ou de la panne d'en face (m, repère monde) */
+  y: number;
+  /** sens dans lequel il s'avance dans l'eau depuis son pied : -1 vers le bas, 1 vers le haut */
+  dir: 1 | -1;
+}
+
+/**
+ * Panne : ponton flottant immobile, rectangle parallèle au quai ; dans l'appli, celle
+ * d'en face, de l'autre côté de l'allée. Tous ses côtés arrêtent le bateau.
+ */
+export interface Panne {
+  /** bornes du rectangle (m, repère monde), x0 < x1 et y0 < y1 */
+  x0: number;
+  x1: number;
+  y0: number;
+  y1: number;
 }
 
 /**
@@ -140,6 +157,8 @@ export interface SimState {
   contacts: Vec[];
   /** catways, immobiles (liste vide le long du quai) */
   catways: Catway[];
+  /** pannes, immobiles : celle d'en face s'il y a des bateaux en face, sinon liste vide */
+  pannes: Panne[];
   /** bateaux voisins, immobiles (liste vide sans voisin) */
   neighbors: Neighbor[];
   /** position du point de pivot sur l'axe (m, repère bateau), null si le bateau ne tourne pas */

@@ -1,5 +1,5 @@
 import type { Body, MooringLine, SimState, Vec } from '../sim/types.ts';
-import { HULL, toWorld } from '../sim/geometry.ts';
+import { HALF_LENGTH, HULL, toWorld } from '../sim/geometry.ts';
 import { CADRAGE_DEFAUT, bornerCadrage, echelleDefaut, longueurEchelle, type Cadrage } from './cadrage.ts';
 
 export interface Palette {
@@ -159,18 +159,40 @@ export function render(ctx: CanvasRenderingContext2D, s: Readonly<SimState>, v: 
     ctx.fillText('QUAI', W - 12, Math.max(14, yRow));
   }
 
-  // Catways : pontons accrochés au quai, de la couleur du quai, bordés sur leurs flancs et leur bout.
-  for (const c of s.catways) {
-    const xa = X(c.x - c.halfWidth), xb = X(c.x + c.halfWidth), yt = Y(-c.length);
+  // Panne d'en face, de l'autre côté de l'allée : ponton de la couleur du quai, bordé sur ses quatre côtés.
+  for (const q of s.pannes) {
+    const xa = X(q.x0), xb = X(q.x1), ya = Y(q.y1), yb = Y(q.y0);
     ctx.fillStyle = C.quay;
-    ctx.fillRect(xa, Y(0) - 1, xb - xa, yt - Y(0) + 1);
+    ctx.fillRect(xa, ya, xb - xa, yb - ya);
     ctx.strokeStyle = C.quayEdge;
     ctx.lineWidth = 2;
-    ctx.beginPath(); ctx.moveTo(xa, Y(0)); ctx.lineTo(xa, yt); ctx.lineTo(xb, yt); ctx.lineTo(xb, Y(0)); ctx.stroke();
+    ctx.strokeRect(xa, ya, xb - xa, yb - ya);
+    ctx.fillStyle = C.quayEdge;
+    ctx.font = `600 11px ${v.labelFont}`;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText('PANNE', (xa + xb) / 2, (ya + yb) / 2);
+    ctx.textBaseline = 'alphabetic';
+  }
+
+  // Catways : pontons accrochés au quai, ou à la panne d'en face, de la couleur du quai, bordés
+  // sur leurs flancs et leur bout. Le pied, contre le quai ou la panne, n'est pas bordé.
+  for (const c of s.catways) {
+    const bout = c.y + c.dir * c.length;
+    const xa = X(c.x - c.halfWidth), xb = X(c.x + c.halfWidth), yp = Y(c.y), yt = Y(bout);
+    ctx.fillStyle = C.quay;
+    // Un pixel de recouvrement côté pied, pour que le catway se fonde dans le quai ou la panne.
+    const y0 = Math.min(yp, yt), y1 = Math.max(yp, yt);
+    ctx.fillRect(xa, y0 - (c.dir < 0 ? 1 : 0), xb - xa, y1 - y0 + 1);
+    ctx.strokeStyle = C.quayEdge;
+    ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.moveTo(xa, yp); ctx.lineTo(xa, yt); ctx.lineTo(xb, yt); ctx.lineTo(xb, yp); ctx.stroke();
+    // Libellé sur les seuls catways du quai, ceux du bateau et de la place voisine.
+    if (c.dir > 0) continue;
     // Libellé le long du catway, du côté opposé au bateau, pour ne pas passer sous la coque.
     // Si un voisin occupe ce côté, le libellé passe sur le catway, entre le quai et la première bitte.
     const cote = b.x >= c.x ? -1 : 1;
-    const voisinDeCeCote = s.neighbors.some((nb) => Math.sign(nb.x - c.x) === cote && Math.abs(nb.x - c.x) < c.halfWidth + 4);
+    const voisinDeCeCote = s.neighbors.some((nb) => Math.sign(nb.x - c.x) === cote && Math.abs(nb.x - c.x) < c.halfWidth + 4 && nb.y > bout - HALF_LENGTH);
     ctx.save();
     if (voisinDeCeCote) ctx.translate(X(c.x), Y(-c.length / 4));
     else ctx.translate(X(c.x + cote * (c.halfWidth + 0.5)), Y(-c.length / 2));

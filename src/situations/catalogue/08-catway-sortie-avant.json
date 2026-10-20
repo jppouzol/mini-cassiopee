@@ -2,7 +2,7 @@
   "format": 1,
   "id": "catway-sortie-avant",
   "titre": "Sortie en marche avant",
-  "description": "Arrière au quai, bâbord le long du catway. Les pointes empêchent le bateau de s'éloigner du quai, la garde arrière l'empêche de reculer dedans. Larguez-les, puis marche avant : le bateau sort vers le chenal. Essayez aussi avec du vent du large, qui le plaque contre le catway. Les deux places voisines sont occupées : ne mettez pas la barre trop tôt, l'arrière balaierait le voisin côté large.",
+  "description": "Arrière au quai, bâbord le long du catway. Les pointes empêchent le bateau de s'éloigner du quai, la garde arrière l'empêche de reculer dedans. Larguez-les, puis marche avant : le bateau sort vers le chenal. Essayez aussi avec du vent du large, qui le plaque contre le catway. Les deux places voisines sont occupées : ne mettez pas la barre trop tôt, l'arrière balaierait le voisin côté large. En face, une panne et ses bateaux bordent l'allée : il faut tourner avant d'y arriver.",
   "quai": { "type": "perpendiculaire" },
   "bateau": { "x": 6, "distanceQuai": 0.3, "bordAuQuai": "babord", "boutAuQuai": "arriere" },
   "aussieres": [
@@ -11,5 +11,6 @@
     { "id": "garde-ar", "taquet": "arriere", "bitte": -2.7, "mou": 0 }
   ],
   "voisins": { "catway": 1, "large": 1 },
+  "enFace": 31,
   "vent": { "direction": "catway", "force": "aucun" }
 }

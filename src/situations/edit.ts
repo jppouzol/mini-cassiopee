@@ -4,9 +4,9 @@
 
 import { HALF_LENGTH, cleatPosition } from '../sim/geometry.ts';
 import {
-  ECART_QUAI_MIN, bitteDepuisSupport, bitteRepereBateau, bitteVersSupport, bowSign, ecartVoisinLarge, libre, perpendiculaire,
+  ALLEES, ALLEE_MIN, ECART_QUAI_MIN, bitteDepuisSupport, distanceEnFace, bitteRepereBateau, bitteVersSupport, bowSign, ecartVoisinLarge, libre, perpendiculaire,
   quaySide, surLaRangee,
-  type Placement,
+  type Allee, type Placement,
 } from './quai.ts';
 import {
   ECART_VOISIN_MIN, PLAFOND_DEFAUT, PLAFOND_MAX, cotesVoisin, plafond,
@@ -217,6 +217,8 @@ export function bornesDeplacement(sit: Situation, origine: Pick<Situation, 'bate
   lo = Math.max(lo, sit.bateau.x - versMoins);
   // En perpendiculaire, la position est comptée depuis le bord du quai : le bout du bateau s'arrête avant.
   if (perpendiculaire(sit)) lo = Math.max(lo, HALF_LENGTH + ECART_QUAI_MIN);
+  // Bateaux en face : le bout côté chenal garde au moins ALLEE_MIN d'eau libre devant lui.
+  if (perpendiculaire(sit) && sit.enFace !== undefined) hi = Math.min(hi, sit.enFace - HALF_LENGTH - ALLEE_MIN);
   const e = 1e-9;
   return [
     arrondi(x0 + Math.ceil((lo - x0) / PAS_DEPLACEMENT - e) * PAS_DEPLACEMENT),
@@ -389,6 +391,31 @@ export function reglerVoisin(sit: Situation, origine: Pick<Situation, 'bateau'>,
     voisins[cote] = relatif;
   }
   return Object.keys(voisins).length > 0 ? { ...reste, voisins } : reste;
+}
+
+/**
+ * Largeur d'allée choisie dans l'éditeur (étroite ou large), d'après la distance des bateaux
+ * d'en face au quai et la place d'origine du bateau ; null sans bateaux en face, ou si la
+ * distance ne correspond à aucun choix. Elle ne change pas quand on fait glisser le bateau.
+ */
+export function alleeEnFace(sit: Situation, origine: Pick<Situation, 'bateau'>): Allee | null {
+  if (sit.enFace === undefined) return null;
+  const choix = (Object.keys(ALLEES) as Allee[]).find((a) => Math.abs(distanceEnFace(origine, ALLEES[a]) - (sit.enFace as number)) < 0.01);
+  return choix ?? null;
+}
+
+/**
+ * Place les bateaux en face, de l'autre côté d'une allée étroite ou large comptée depuis le
+ * bout du bateau côté chenal dans la situation d'origine, ou les retire (null). Sur catway seulement.
+ */
+export function reglerEnFace(sit: Situation, origine: Pick<Situation, 'bateau'>, allee: Allee | null): Situation {
+  if (!perpendiculaire(sit)) {
+    throw new EditionError(libre(sit)
+      ? 'En situation libre, il n’y a pas de bateaux en face.'
+      : 'Les bateaux en face ne se placent que sur catway.');
+  }
+  const { enFace: _ancien, ...reste } = sit;
+  return allee === null ? reste : { ...reste, enFace: distanceEnFace(origine, ALLEES[allee]) };
 }
 
 function arrondi(v: number): number {

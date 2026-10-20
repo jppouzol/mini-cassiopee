@@ -4,9 +4,9 @@ import { buildState } from '../situations/build.ts';
 import { CATALOGUE, GROUPES } from '../situations/catalogue.ts';
 import {
   ECARTS_VOISIN, EditionError, PAS_DEPLACEMENT, ajouterAussiere, basculerMou, bornesDeplacement,
-  changerBord, deplacerBateau, ecartVoisin, etraveVoisinCatway, reglerEquipier, reglerFardage, reglerPasHelice, reglerPlafond, reglerVoisin, renommerAussiere, supprimerAussiere, taquetsProposes,
+  alleeEnFace, changerBord, deplacerBateau, ecartVoisin, etraveVoisinCatway, reglerEnFace, reglerEquipier, reglerFardage, reglerPasHelice, reglerPlafond, reglerVoisin, renommerAussiere, supprimerAussiere, taquetsProposes,
 } from '../situations/edit.ts';
-import { bitteDepuisPoint, bittesAutresCatways, bittesDuPort, libre, perpendiculaire } from '../situations/quai.ts';
+import { bitteDepuisPoint, bittesAutresCatways, bittesDuPort, libre, perpendiculaire, type Allee } from '../situations/quai.ts';
 import {
   PLAFOND_DEFAUT, PLAFOND_MAX, cotesVoisin, directionsVent, plafond,
   type Cleat, type CoteVoisin, type SensHelice, type Situation, type SituationLine, type WindDirection,
@@ -123,6 +123,12 @@ const VOISINS: { value: number | null; label: string }[] = [
   { value: null, label: 'Aucun' },
   { value: ECARTS_VOISIN.serre, label: 'Serré' },
   { value: ECARTS_VOISIN.large, label: 'Large' },
+];
+/** Réglages des bateaux en face, sur catway : largeur de l'allée comptée depuis la place d'origine du bateau. */
+const EN_FACE: { value: Allee | null; label: string }[] = [
+  { value: null, label: 'Aucun' },
+  { value: 'etroite', label: 'Allée étroite' },
+  { value: 'large', label: 'Allée large' },
 ];
 const COTE_LABELS: Record<CoteVoisin, string> = {
   avant: 'Voisin devant', arriere: 'Voisin derrière', catway: 'Voisin côté catway', large: 'Voisin côté large',
@@ -481,6 +487,18 @@ export function App() {
         <p className="hint" aria-live="polite">{voisinNotice ?? (catway
           ? 'Bateaux amarrés étrave au quai, de l’autre côté du catway ou contre le catway voisin, immobiles : le bateau peut s’y appuyer ou les toucher. Se règlent au départ.'
           : 'Bateaux amarrés devant ou derrière, immobiles : le bateau peut s’y appuyer ou les toucher. Se règlent au départ.')}</p>
+        {catway && <>
+        <div className="voisin">
+          <span>Bateaux en face</span>
+          <div className="seg" role="group" aria-label="Bateaux en face">
+            {EN_FACE.map((o) => (
+              <button key={o.label} aria-pressed={alleeEnFace(preparee, origine) === o.value && (o.value !== null || preparee.enFace === undefined)}
+                onClick={() => edit((sit) => reglerEnFace(sit, origine, o.value))}>{o.label}</button>
+            ))}
+          </div>
+        </div>
+        <p className="hint">Une panne et ses bateaux, immobiles, de l’autre côté de l’allée : étroite, le demi-tour se fait en plusieurs fois ; large, il passe juste. Se règlent au départ.</p>
+        </>}
         </>}
         <div className="row">
           <label htmlFor="pas-helice">Pas d’hélice</label>

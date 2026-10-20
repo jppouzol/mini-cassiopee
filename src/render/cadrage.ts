@@ -19,8 +19,11 @@ export const CADRAGE_DEFAUT: Cadrage = { k: 1, ox: 0, oy: 0 };
 /** Facteur de zoom maximal : à ×4, le bateau remplit l'écran d'un téléphone. */
 export const ZOOM_MAX = 4;
 
-/** Facteur de zoom minimal : à ×0,5, on voit le chenal devant un catway, même sur un téléphone. */
-export const ZOOM_MIN = 0.5;
+/**
+ * Facteur de zoom minimal : à un tiers, on voit le chenal devant un catway et, s'il y a des
+ * bateaux en face, l'allée entière jusqu'à leur panne, même sur un téléphone.
+ */
+export const ZOOM_MIN = 1 / 3;
 
 /** Deux doigts posés sur la scène : milieu (px) et écart (px). */
 export interface Pincement {

@@ -2,7 +2,7 @@
   "format": 1,
   "id": "catway-sortie-arriere",
   "titre": "Sortie en marche arrière",
-  "description": "Étrave au quai, bâbord le long du catway. Les pointes empêchent le bateau de s'éloigner du quai, la garde avant l'empêche d'avancer dedans. Larguez-les, puis marche arrière : le bateau recule le long du catway vers le chenal. La barre n'agit qu'une fois le bateau lancé. Les deux places voisines sont occupées.",
+  "description": "Étrave au quai, bâbord le long du catway. Les pointes empêchent le bateau de s'éloigner du quai, la garde avant l'empêche d'avancer dedans. Larguez-les, puis marche arrière : le bateau recule le long du catway vers le chenal. La barre n'agit qu'une fois le bateau lancé. Les deux places voisines sont occupées et, en face, une panne et ses bateaux bordent l'allée : ne reculez pas trop loin avant de mettre la barre.",
   "quai": { "type": "perpendiculaire" },
   "bateau": { "x": 6, "distanceQuai": 0.3, "bordAuQuai": "babord", "boutAuQuai": "etrave" },
   "aussieres": [
@@ -11,5 +11,6 @@
     { "id": "garde-av", "taquet": "etrave", "bitte": 2.7, "mou": 0 }
   ],
   "voisins": { "catway": 1, "large": 1 },
+  "enFace": 31,
   "vent": { "direction": "catway", "force": "aucun" }
 }
