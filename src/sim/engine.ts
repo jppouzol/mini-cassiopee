@@ -1,4 +1,4 @@
-import type { Effect, Forces, Params, SimState } from './types.ts';
+import type { Effect, Forces, Params, SimState, Vec } from './types.ts';
 import { activeEffects } from './effects.ts';
 import { updateKick } from './kick.ts';
 import { DT, FPS, SUBSTEPS } from './params.ts';
@@ -63,6 +63,7 @@ export function cloneState(s: SimState): SimState {
     quay: s.quay,
     contacts: s.contacts.map((c) => [c[0], c[1]]),
     catways: s.catways.map((c) => ({ ...c })),
+    enFace: s.enFace ? { ...s.enFace, contacts: s.enFace.contacts.map((c) => ({ x: c.x, points: c.points.map((q): Vec => [q[0], q[1]]) })) } : null,
     neighbors: s.neighbors.map((n) => ({ ...n, contacts: n.contacts.map((c) => [c[0], c[1]]) })),
     pivot: s.pivot,
     options: { ...s.options },

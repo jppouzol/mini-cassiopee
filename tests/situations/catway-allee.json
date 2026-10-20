@@ -1,0 +1,12 @@
+{
+  "format": 1,
+  "id": "catway-allee",
+  "titre": "Allée, sortie en marche avant",
+  "description": "Arrière au quai, bâbord le long du catway, sans amarre, voisins des deux côtés. En face, de l'autre côté d'une allée large, une panne et ses bateaux.",
+  "quai": { "type": "perpendiculaire" },
+  "bateau": { "x": 6, "distanceQuai": 0.3, "bordAuQuai": "babord", "boutAuQuai": "arriere" },
+  "aussieres": [],
+  "voisins": { "catway": 1, "large": 1 },
+  "enFace": 31,
+  "vent": { "direction": "catway", "force": "aucun" }
+}

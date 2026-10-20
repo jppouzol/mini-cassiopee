@@ -1,4 +1,5 @@
 import type { Body, Catway, Effect, Forces, Params, SimState, Vec } from './types.ts';
+import { bateauxEnFace, catwaysEnFace } from './enface.ts';
 import { thrustOf } from './kick.ts';
 import { DT } from './params.ts';
 import { CONTACT_POINTS, HALF_LENGTH, SLICES, hullPenetration, pointVelocity, rotate, toLocal, toWorld } from './geometry.ts';
@@ -206,73 +207,119 @@ function push(f: Forces, b: Body, p: Params, pt: Vec, n: Vec, depth: number): nu
 }
 
 /**
- * Contact avec les bateaux voisins, immobiles : coque contre coque, traité
- * comme le quai. On repousse les points de la coque entrés dans un voisin, et
- * la coque là où un point du voisin y est entré (un angle de tableau contre le
- * flanc, par exemple). Sans voisin, cet effet n'ajoute rien.
+ * Appuis entre le bateau et une coque immobile : on repousse les points de la coque
+ * entrés dans l'autre, et la coque là où un point de l'autre y est entré (un angle de
+ * tableau contre le flanc, par exemple). Renvoie les points touchés (repère monde).
  */
-export const neighborContact: Effect = (s, p, f) => {
+function hullContact(s: SimState, p: Params, f: Forces, nb: Pick<Body, 'x' | 'y' | 'th'>): Vec[] {
   const b = s.body;
-  for (const nb of s.neighbors) {
-    nb.contacts = [];
-    // Deux coques de 10 m ne se touchent pas si leurs centres sont à plus de 2 × 5,3 m.
-    if (Math.hypot(nb.x - b.x, nb.y - b.y) > 2 * HALF_LENGTH + 0.7) continue;
-    for (const pt of CONTACT_POINTS) {
-      const w = toWorld(b, pt);
-      const pen = hullPenetration(toLocal(nb, w));
-      if (pen && push(f, b, p, pt, rotate(nb.th, pen.n), pen.depth) > 0) nb.contacts.push(w);
-    }
-    for (const q of CONTACT_POINTS) {
-      const w = toWorld(nb, q);
-      const local = toLocal(b, w);
-      const pen = hullPenetration(local);
-      if (!pen) continue;
-      const out = rotate(b.th, pen.n);
-      if (push(f, b, p, local, [-out[0], -out[1]], pen.depth) > 0) nb.contacts.push(w);
-    }
+  const contacts: Vec[] = [];
+  // Deux coques de 10 m ne se touchent pas si leurs centres sont à plus de 2 × 5,3 m.
+  if (Math.hypot(nb.x - b.x, nb.y - b.y) > 2 * HALF_LENGTH + 0.7) return contacts;
+  for (const pt of CONTACT_POINTS) {
+    const w = toWorld(b, pt);
+    const pen = hullPenetration(toLocal(nb, w));
+    if (pen && push(f, b, p, pt, rotate(nb.th, pen.n), pen.depth) > 0) contacts.push(w);
   }
-};
-
-/**
- * Pénétration d'un point monde dans le catway : profondeur sous le flanc ou le
- * bout le plus proche, et normale (monde) selon laquelle repousser le point.
- * Le côté du quai n'est pas une sortie : le quai a son propre contact.
- */
-function catwayPenetration(c: Catway, w: Vec): { depth: number; n: Vec } | null {
-  const x0 = c.x - c.halfWidth, x1 = c.x + c.halfWidth;
-  if (w[0] <= x0 || w[0] >= x1 || w[1] <= -c.length || w[1] >= 0) return null;
-  const faces: { depth: number; n: Vec }[] = [
-    { depth: w[0] - x0, n: [-1, 0] },
-    { depth: x1 - w[0], n: [1, 0] },
-    { depth: w[1] + c.length, n: [0, -1] },
-  ];
-  return faces.reduce((a, b) => (b.depth < a.depth ? b : a));
+  for (const q of CONTACT_POINTS) {
+    const w = toWorld(nb, q);
+    const local = toLocal(b, w);
+    const pen = hullPenetration(local);
+    if (!pen) continue;
+    const out = rotate(b.th, pen.n);
+    if (push(f, b, p, local, [-out[0], -out[1]], pen.depth) > 0) contacts.push(w);
+  }
+  return contacts;
 }
 
 /**
- * Contact avec les catways, immobiles : traités comme le quai. On repousse les
- * points de la coque entrés dans un catway, et la coque là où un angle du bout
- * d'un catway y est entré. Les points d'appui rejoignent ceux du quai. Sans
- * catway, cet effet n'ajoute rien.
+ * Contact avec les bateaux voisins et ceux d'en face, immobiles : coque contre coque,
+ * traité comme le quai (voir hullContact). Les points touchés sont gardés par bateau pour
+ * l'affichage. Sans voisin ni bateaux en face, cet effet n'ajoute rien.
+ */
+export const neighborContact: Effect = (s, p, f) => {
+  for (const nb of s.neighbors) nb.contacts = hullContact(s, p, f, nb);
+  const r = s.enFace;
+  if (!r) return;
+  r.contacts = [];
+  // Seuls les bateaux d'en face assez proches du bateau peuvent le toucher.
+  for (const nb of bateauxEnFace(r, s.body.x - 2 * HALF_LENGTH - 1, s.body.x + 2 * HALF_LENGTH + 1)) {
+    const points = hullContact(s, p, f, nb);
+    if (points.length > 0) r.contacts.push({ x: nb.x, points });
+  }
+};
+
+/** Pénétration dans un rectangle immobile : profondeur et normale (monde) de sortie. */
+type Penetration = { depth: number; n: Vec };
+
+/**
+ * Pénétration d'un point monde dans un rectangle [x0, x1] × [y0, y1] : profondeur sous le
+ * côté le plus proche parmi ceux qui sont des sorties, et normale selon laquelle repousser
+ * le point. `sansSortie` écarte le côté du pied d'un catway (bas ou haut), que le quai
+ * ou la panne couvrent de leur propre contact.
+ */
+function rectPenetration(x0: number, x1: number, y0: number, y1: number, w: Vec, sansSortie: 'bas' | 'haut' | null): Penetration | null {
+  if (w[0] <= x0 || w[0] >= x1 || w[1] <= y0 || w[1] >= y1) return null;
+  const faces: Penetration[] = [
+    { depth: w[0] - x0, n: [-1, 0] },
+    { depth: x1 - w[0], n: [1, 0] },
+  ];
+  if (sansSortie !== 'bas') faces.push({ depth: w[1] - y0, n: [0, -1] });
+  if (sansSortie !== 'haut') faces.push({ depth: y1 - w[1], n: [0, 1] });
+  return faces.reduce((a, b) => (b.depth < a.depth ? b : a));
+}
+
+/** Rectangle d'un catway, de son pied à son bout, et côté du pied, qui n'est pas une sortie. */
+function catwayRect(c: Catway): { x0: number; x1: number; y0: number; y1: number; pied: 'bas' | 'haut' } {
+  const bout = c.y + c.dir * c.length;
+  return {
+    x0: c.x - c.halfWidth, x1: c.x + c.halfWidth,
+    y0: Math.min(c.y, bout), y1: Math.max(c.y, bout),
+    // Catway du quai (dir = -1) : le pied est en haut ; catway d'en face (dir = 1) : en bas.
+    pied: c.dir < 0 ? 'haut' : 'bas',
+  };
+}
+
+/**
+ * Appuis sur un rectangle immobile (catway ou panne) : on repousse les points de la coque
+ * qui y sont entrés, et la coque là où un de ses angles exposés y est entré. Les points
+ * d'appui rejoignent ceux du quai.
+ */
+function rectContact(s: SimState, p: Params, f: Forces, r: { x0: number; x1: number; y0: number; y1: number }, sansSortie: 'bas' | 'haut' | null, angles: Vec[]): void {
+  const b = s.body;
+  // La coque ne peut toucher le rectangle que si son centre en est à moins d'une demi-longueur.
+  if (b.x < r.x0 - HALF_LENGTH || b.x > r.x1 + HALF_LENGTH || b.y < r.y0 - HALF_LENGTH || b.y > r.y1 + HALF_LENGTH) return;
+  for (const pt of CONTACT_POINTS) {
+    const w = toWorld(b, pt);
+    const pen = rectPenetration(r.x0, r.x1, r.y0, r.y1, w, sansSortie);
+    if (pen && push(f, b, p, pt, pen.n, pen.depth) > 0) s.contacts.push(w);
+  }
+  for (const corner of angles) {
+    const local = toLocal(b, corner);
+    const pen = hullPenetration(local);
+    if (!pen) continue;
+    const out = rotate(b.th, pen.n);
+    if (push(f, b, p, local, [-out[0], -out[1]], pen.depth) > 0) s.contacts.push(corner);
+  }
+}
+
+/**
+ * Contact avec les catways et la panne d'en face, immobiles : traités comme le quai. On
+ * repousse les points de la coque entrés dans un catway ou dans la panne, et la coque là
+ * où un angle du bout d'un catway y est entré. Le pied d'un catway n'est pas une sortie :
+ * le quai ou la panne l'arrêtent. La panne d'en face, sans fin, n'a pas d'angle. Les points
+ * d'appui rejoignent ceux du quai. Sans catway ni rangée d'en face, cet effet n'ajoute rien.
  */
 export const catwayContact: Effect = (s, p, f) => {
-  const b = s.body;
-  for (const c of s.catways) {
-    // La coque ne peut toucher le catway que si son centre en est à moins d'une demi-longueur.
-    if (b.y < -c.length - HALF_LENGTH || Math.abs(b.x - c.x) > c.halfWidth + HALF_LENGTH) continue;
-    for (const pt of CONTACT_POINTS) {
-      const w = toWorld(b, pt);
-      const pen = catwayPenetration(c, w);
-      if (pen && push(f, b, p, pt, pen.n, pen.depth) > 0) s.contacts.push(w);
-    }
-    for (const corner of [[c.x - c.halfWidth, -c.length], [c.x + c.halfWidth, -c.length]] as Vec[]) {
-      const local = toLocal(b, corner);
-      const pen = hullPenetration(local);
-      if (!pen) continue;
-      const out = rotate(b.th, pen.n);
-      if (push(f, b, p, local, [-out[0], -out[1]], pen.depth) > 0) s.contacts.push(corner);
-    }
+  const r = s.enFace;
+  // Catways d'en face proches du bateau : seuls ceux-là peuvent le toucher.
+  const enFace = r ? catwaysEnFace(r, s.body.x - HALF_LENGTH - r.demiLargeurCatway - 1, s.body.x + HALF_LENGTH + r.demiLargeurCatway + 1) : [];
+  for (const c of s.catways.concat(enFace)) {
+    const q = catwayRect(c);
+    const bout = c.y + c.dir * c.length;
+    rectContact(s, p, f, q, q.pied, [[q.x0, bout], [q.x1, bout]]);
   }
+  if (r) rectContact(s, p, f, { x0: -Infinity, x1: Infinity, y0: r.yPanne - r.largeurPanne, y1: r.yPanne }, null, []);
 };
 
 /**

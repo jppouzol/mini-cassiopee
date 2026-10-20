@@ -1,8 +1,8 @@
-import type { MooringLine, Neighbor, SimState, Vec, Wind } from '../sim/types.ts';
+import type { Catway, MooringLine, Neighbor, SimState, Vec, Wind } from '../sim/types.ts';
 import { cleatPosition, toWorld } from '../sim/geometry.ts';
 import { cotesVoisin, type Situation, type WindDirection } from './schema.ts';
 import {
-  DEMI_LARGEUR_CATWAY, LONGUEUR_CATWAY, X_CATWAY, axesCatways, bowSign, libre, perpendiculaire, pointBitte, poseDepart, poseVoisin, quaySide,
+  DEMI_LARGEUR_CATWAY, LONGUEUR_CATWAY, X_CATWAY, axesCatways, bowSign, geometrieEnFace, libre, perpendiculaire, pointBitte, poseDepart, poseVoisin, quaySide,
 } from './quai.ts';
 import { nomsAffiches } from './edit.ts';
 
@@ -69,12 +69,15 @@ export function buildState(sit: Situation, windOverride?: Situation['vent'], aba
     const valeur = sit.voisins?.[cote];
     if (valeur !== undefined) neighbors.push({ id: cote, ...poseVoisin(sit, cote, valeur), contacts: [] });
   }
-  // Catway du bateau et second catway, côté large ; aucun le long du quai.
-  const catways = axesCatways(sit).map((x) => ({ x, halfWidth: DEMI_LARGEUR_CATWAY, length: LONGUEUR_CATWAY }));
+  // Catway du bateau et second catway, côté large, descendant du quai ; aucun le long du quai.
+  const catways: Catway[] = axesCatways(sit).map((x) => ({ x, halfWidth: DEMI_LARGEUR_CATWAY, length: LONGUEUR_CATWAY, y: 0, dir: -1 }));
+  // Bateaux en face, de l'autre côté de l'allée : rangée sans fin, panne, catways et bateaux.
+  const face = geometrieEnFace(sit);
+  const enFace = face ? { ...face, contacts: [] } : null;
   // Effets avancés : seuls ceux que la situation active.
   const options: SimState['options'] = {};
   if (sit.options?.pasHelice) options.propWalk = sit.options.pasHelice;
   if (sit.options?.fardage) options.windage = abattee;
   // Sans quai en situation libre : rien à toucher.
-  return { frame: 0, body, lines, engine: 0, kick: null, rudder: 0, wind, quay: !libre(sit), contacts: [], catways, neighbors, pivot: null, options };
+  return { frame: 0, body, lines, engine: 0, kick: null, rudder: 0, wind, quay: !libre(sit), contacts: [], catways, neighbors, enFace, pivot: null, options };
 }

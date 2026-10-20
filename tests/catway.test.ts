@@ -58,8 +58,8 @@ test('format : situations du catalogue lues, catway en place', () => {
     const s = buildState(sit);
     // Le catway du bateau, puis le second, côté large, à 8 m de bord à bord : deux places entre eux.
     assert.deepEqual(s.catways, [
-      { x: 0, halfWidth: 0.5, length: LONGUEUR_CATWAY },
-      { x: 9 * Math.sign(s.body.x), halfWidth: 0.5, length: LONGUEUR_CATWAY },
+      { x: 0, halfWidth: 0.5, length: LONGUEUR_CATWAY, y: 0, dir: -1 },
+      { x: 9 * Math.sign(s.body.x), halfWidth: 0.5, length: LONGUEUR_CATWAY, y: 0, dir: -1 },
     ]);
     assert.ok(near(LONGUEUR_CATWAY, 6.67, 1e-9));
     assert.equal(penetrationCatway(s), 0);

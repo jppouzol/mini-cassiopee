@@ -67,6 +67,14 @@ La scène se compose d'un seul bateau, d'un quai, d'aussières et du vent ; en s
 - **Contact** : le catway arrête le bateau comme le quai et peut lui servir d'appui ; le bout du bateau peut aussi venir toucher le quai.
 - **Repères du port** : le catway est d'un côté du bateau, le large de l'autre ; le quai est à un bout, le chenal à l'autre.
 - **Voisins** : deux places voisines, chacune occupée ou non, réglées à part. **Côté catway**, le voisin est amarré de l'autre flanc du catway du bateau, qui sépare les deux coques. **Côté large**, il occupe la seconde place entre les deux catways, contre le second catway : rien ne sépare les coques, à 0,6 m l'une de l'autre. Chaque voisin a la même coque que le bateau, le même écart à son catway, l'étrave au quai quel que soit le bout au quai du bateau (tête-bêche si le bateau a l'arrière au quai) et son bout côté quai aligné sur celui du bateau dans la situation d'origine. Il reste immobile et se comporte comme le long du quai : il arrête le bateau, peut lui servir d'appui, et le contact est signalé de même.
+- **Allée et bateaux en face** : comme dans un vrai port, le chenal devant les places peut être une allée, bordée de l'autre côté par une panne et ses bateaux. C'est sa largeur qui rend la sortie délicate. Option « Bateaux en face », dans les options avancées : aucun, allée étroite ou allée large.
+  - **Panne d'en face** : ponton parallèle au quai, de l'autre côté de l'allée, sur toute la longueur du port comme le quai. Des catways en montent vers l'allée tous les 9 m, dans l'alignement de ceux du bateau, et chaque place est occupée : un bateau de chaque côté de chaque catway, comme de notre côté entre deux catways. On peut longer l'allée aussi loin qu'on veut.
+  - **Bateaux d'en face** : même coque que le bateau, étrave à leur panne, en miroir des voisins : leurs arrières bordent l'allée. Immobiles, ils sont toujours là quand l'allée l'est et ne se règlent pas un à un.
+  - **Largeur** : comptée en eau libre, du bout du bateau côté chenal, dans la situation d'origine, aux arrières des bateaux d'en face. Étroite, environ 15 m, une fois et demie la longueur du bateau : le demi-tour se fait en plusieurs fois. Large, environ 20 m : barre à fond, le demi-tour passe juste. Aucune valeur chiffrée n'est affichée.
+  - **Contact** : la panne et ses catways se comportent comme le quai et le catway, les bateaux d'en face comme les voisins : ils arrêtent le bateau et peuvent lui servir d'appui ; le contact avec un bateau est signalé de même.
+  - **Fixe dans le port** : l'allée ne bouge pas quand on fait glisser le bateau le long de son catway ; quand il change de bord, elle le suit, comme les voisins et le second catway. Les bittes des catways d'en face sont dessinées estompées et ne reçoivent pas d'aussière.
+  - **Vue** : sur PC et tablette, le cadrage par défaut montre l'allée entière, du quai à la panne d'en face. Sur téléphone, le bateau y serait trop petit : le cadrage reste celui du catway, et l'on dézoome pour voir l'allée.
+  - Le long du quai, rien n'est prévu en face.
 
 #### Libre, en milieu de port
 
@@ -105,13 +113,14 @@ La scène se compose d'un seul bateau, d'un quai, d'aussières et du vent ; en s
 
 La simulation est en deux dimensions, vue de dessus, et vise un comportement qualitativement juste plutôt qu'une précision physique.
 
-- **Forces prises en compte dans le socle** : poussée du moteur (avant ou arrière, en marche ou au ralenti, à moitié de la marche, et doublée pendant un coup de fouet), effort de la barre sur le safran quand le bateau a de l'erre ou que le flux de l'hélice passe sur le safran, résistance de la quille et du safran au dérapage, force du vent, retenue des aussières tendues, contact avec le quai, avec le catway et, s'il y en a, avec les bateaux voisins.
+- **Forces prises en compte dans le socle** : poussée du moteur (avant ou arrière, en marche ou au ralenti, à moitié de la marche, et doublée pendant un coup de fouet), effort de la barre sur le safran quand le bateau a de l'erre ou que le flux de l'hélice passe sur le safran, résistance de la quille et du safran au dérapage, force du vent, retenue des aussières tendues, contact avec le quai, avec le catway et, s'il y en a, avec les bateaux voisins et, en face, avec la panne, ses catways et ses bateaux.
 - **Mouvements** : translation dans le plan et rotation autour d'un axe vertical. Le point de pivot résulte des aussières tendues et des points de contact ; en eau libre, de la quille et du safran, qui le placent sur la coque : dans la moitié avant en marche avant, dans la moitié arrière en marche arrière.
 - **Vitesse** : moteur en avant, le bateau libre plafonne à environ 3 nœuds, et 2,5 en marche arrière, une allure de manœuvre de port ; au ralenti, environ 2 nœuds en avant et 1,7 en arrière. Le coup de fouet donne le coup de moteur plus franc qui redonne de la manœuvrabilité.
 - **Giration** : barre à fond, le bateau libre tourne dans un cercle d'environ deux longueurs, comme un voilier de croisière à quille aileron, et fait demi-tour dans une allée de port réaliste, en moins de 20 m. La quille limite la dérive au vent dès que le bateau a de l'erre ; à l'arrêt, le vent le pousse comme avant.
 - **Aussières** : longueur maximale fixe ; une aussière ne retient que lorsqu'elle est tendue, jamais en compression.
 - **Contact avec le quai** : traitement simple qui empêche le bateau de traverser le quai et peut servir de point d'appui ; les défenses ne sont pas modélisées dans le socle. Le catway reçoit le même traitement, sur ses deux flancs et son bout. En situation libre, il n'y a pas de quai : aucun contact.
 - **Contact avec un voisin** : même traitement que le quai, coque contre coque. Le voisin, immobile, arrête le bateau et peut servir de point d'appui (l'étrave contre son tableau, par exemple).
+- **Contact en face** : la panne d'en face et ses catways reçoivent le traitement du quai et du catway, ses bateaux celui des voisins.
 - **Amortissement** : le bateau ralentit naturellement dans l'eau, pour éviter des oscillations ou des glissements irréalistes.
 - **Effets avancés, désactivés par défaut** : pas d'hélice selon le sens de rotation et fardage, le vent pesant plus au bout qui le reçoit (livrés) ; différence mono/bi-safran (envisagée).
 - **Reproductibilité** : à conditions de départ et actions identiques, la simulation produit le même résultat. C'est la condition du pas à pas et du retour arrière.
@@ -191,13 +200,13 @@ L'écran de simulation est une vue de dessus 2D, la plus épurée possible, dans
 
 Éléments affichés :
 
-- le bateau, le quai et, selon la situation, le catway et les bateaux voisins ;
+- le bateau, le quai et, selon la situation, le catway, les bateaux voisins et, de l'autre côté de l'allée, la panne, ses catways et ses bateaux ;
 - les aussières, avec un code couleur tendue / molle, et un chevron sur le trait tant que leur longueur change : tourné vers la bitte sur celle qui file, vers le taquet sur celle qu'on reprend ;
 - la position de la commande moteur (avant, neutre, arrière, et en étendu ralenti avant et ralenti arrière) et l'angle de barre ;
 - la poussée du moteur, par une flèche à l'arrière du bateau, plus courte et plus fine au ralenti, plus longue et plus épaisse pendant un coup de fouet ;
 - la direction et la force du vent ;
 - quand le bateau pivote : le point de pivot marqué sur la coque et une flèche de rotation à une extrémité du bateau ;
-- quand le bateau touche un voisin : le contour du voisin en rouge et un anneau rouge sur chaque point de contact, tant que le contact dure.
+- quand le bateau touche un voisin ou un bateau d'en face : le contour de ce bateau en rouge et un anneau rouge sur chaque point de contact, tant que le contact dure.
 
 Le quai reste en haut de l'écran ; en perpendiculaire, le catway et le bateau descendent verticalement depuis le quai. En situation libre, le bateau part étrave vers le haut ; la vue reste fixe tant qu'il est dans le cadre, et se recale dès qu'il approche d'un bord, sans jamais le perdre. Le quadrillage de l'eau sert alors de repère pour voir le bateau avancer et tourner.
 
@@ -207,7 +216,7 @@ Le bateau paraît petit sur un téléphone, et le chenal y est vite hors de l'é
 
 - **Sur téléphone et tablette** : le pincement à deux doigts zoome et déplace la vue en même temps. Un doigt garde ses rôles (toucher un taquet ou une bitte, glisser le bateau en préparation) ; poser un second doigt annule le geste à un doigt en cours, sans sélection ni déplacement du bateau.
 - **Sur PC** : la molette, ou le pincement du pavé tactile, zoome autour du pointeur. Un glisser à la souris déplace la vue, comme deux doigts sur téléphone ; en préparation, un glisser commencé sur le bateau le déplace toujours, et un clic garde son rôle.
-- **Bornes** : de ×0,5 à ×4 autour du cadrage par défaut (×1). Dézoomer sert surtout sur téléphone, pour voir le chenal devant un catway pendant la manœuvre. Zoomée, la vue reste à l'intérieur du cadrage par défaut ; dézoomée, elle le contient : on ne s'éloigne jamais du bateau.
+- **Bornes** : d'un tiers (×0,33) à ×4 autour du cadrage par défaut (×1). Dézoomer sert surtout sur téléphone, pour voir le chenal devant un catway pendant la manœuvre et, s'il y a des bateaux en face, l'allée entière. Zoomée, la vue reste à l'intérieur du cadrage par défaut ; dézoomée, elle le contient : on ne s'éloigne jamais du bateau.
 - **Suivi** : la vue reste accrochée au bateau, décalée de ce que l'élève a déplacé ; en manœuvre, le bateau ne sort pas de l'écran pour autant.
 - **Rendu** : seules les distances changent. Traits, textes, bittes et cibles tactiles gardent leur taille à l'écran ; l'échelle change de longueur (10 m, 5 m, 2 m ou 1 m) pour garder sa taille dans son coin.
 - **Recadrer** : un bouton sur la scène, visible seulement quand le cadrage a changé, revient au cadrage par défaut. Changer de situation ou de famille recadre aussi ; « Situation d'origine » et « ⏮ » gardent le zoom choisi.
@@ -221,14 +230,14 @@ L'élève part d'un catalogue de situations types, qu'il peut ajuster dans un pe
 
 ### Catalogue
 
-Chaque situation définit : la configuration du quai (le long, perpendiculaire, étrave ou arrière au quai, ou aucun quai), la position du bateau, les aussières en place et celles qui sont tendues au démarrage, le vent, les bateaux voisins et les options avancées actives. Contenu proposé, à valider : chaque famille commence par l'amarrage complet, suivi des manœuvres de départ. Les départs et les sorties ont des voisins de part et d'autre, comme dans un vrai port où l'on part rarement d'un quai vide : ils montrent l'intérêt de la manœuvre, déborder sans toucher le bateau d'à côté. Les amarrages et la situation libre n'en ont pas. Dans les options avancées, l'élève retire ou remet chaque voisin, ou change son écart.
+Chaque situation définit : la configuration du quai (le long, perpendiculaire, étrave ou arrière au quai, ou aucun quai), la position du bateau, les aussières en place et celles qui sont tendues au démarrage, le vent, les bateaux voisins et en face, et les options avancées actives. Contenu proposé, à valider : chaque famille commence par l'amarrage complet, suivi des manœuvres de départ. Les départs et les sorties ont des voisins de part et d'autre, comme dans un vrai port où l'on part rarement d'un quai vide : ils montrent l'intérêt de la manœuvre, déborder sans toucher le bateau d'à côté. Les amarrages et la situation libre n'en ont pas. Dans les options avancées, l'élève retire ou remet chaque voisin, ou change son écart. Les sorties sur catway ont aussi des bateaux en face, de l'autre côté d'une allée large : l'élève la rétrécit ou la retire de même.
 
 - le long du quai, amarrage complet : deux pointes et deux gardes, vent soutenu du quai, sans commande : vérification d'amarrage (à essayer aussi vent du large) ;
 - départ sur garde avant : seule la garde avant est tournée, voisins serrés devant et derrière ;
 - départ sur garde arrière : seule la garde arrière est tournée, voisins serrés devant et derrière ; l'étrave ne déborde le voisin de devant qu'après un appui assez long sur la garde ;
 - sur catway, amarrage complet : arrière au quai, deux pointes et deux gardes, vent soutenu du catway, sans commande : vérification d'amarrage, l'avant qui dépasse du catway est le plus exposé ;
-- sur catway, arrière au quai : sortie en marche avant, depuis les deux pointes et la garde arrière, voisins côté catway et côté large ;
-- sur catway, étrave au quai : sortie en marche arrière, depuis les deux pointes et la garde avant, voisins côté catway et côté large ;
+- sur catway, arrière au quai : sortie en marche avant, depuis les deux pointes et la garde arrière, voisins côté catway et côté large, bateaux en face, allée large ;
+- sur catway, étrave au quai : sortie en marche arrière, depuis les deux pointes et la garde avant, voisins côté catway et côté large, bateaux en face, allée large ;
 - libre, sans vent : bateau arrêté en milieu de port, sans amarre, pour la giration, le demi-tour et la marche arrière.
 
 Sur catway, le bout au quai porte deux pointes, une vers chaque bord, en plus des gardes tournées sur le catway. Les pointes empêchent le bateau de s'éloigner du quai. Dans les sorties, une seule garde reste : celle qui l'empêche d'aller taper dans le quai, partie du bout tourné vers le quai. Comme sur un vrai bateau, chaque aussière du catalogue part vers l'extérieur du bateau, du bord de son taquet : sa bitte est plus écartée de l'axe que le taquet, et les deux pointes s'ouvrent en V.
@@ -248,7 +257,7 @@ L'éditeur agit pendant la préparation, c'est-à-dire tant que la simulation es
 - Ajouter, retirer ou déplacer une aussière entre un taquet du bateau et une bitte du quai ou du catway.
 - Indiquer pour chaque aussière si elle est tendue au moment de la mise en mouvement, et si elle file ou si l'équipier la reprend dès ce moment.
 - Régler la direction et la force du vent.
-- Activer les options avancées : plafond d'aussières, bateaux voisins, pas d'hélice, fardage.
+- Activer les options avancées : plafond d'aussières, bateaux voisins, bateaux en face (sur catway), pas d'hélice, fardage.
 
 En situation libre, l'éditeur ne propose que le vent, le pas d'hélice et le fardage : sans quai ni aussière, la position, le bord, les amarres, le plafond d'aussières et les voisins n'ont pas de sens et sont masqués.
 
@@ -287,6 +296,12 @@ En situation libre, l'éditeur ne propose que le vent, le pas d'hélice et le fa
 - **Réglage en perpendiculaire** : « Voisin côté catway » et « Voisin côté large » valent chacun aucun ou présent ; leur place découle des catways.
 - **Place** : le long du quai, un voisin est refusé, avec un message, si le bateau, déplacé, est trop près de la place qu'il occuperait. En perpendiculaire, glisser le bateau le long du catway ne le rapproche pas des voisins : leur réglage ne limite pas le déplacement.
 - Comme le reste de la situation, les voisins se règlent en préparation ; « Situation d'origine » les remet comme dans le catalogue : présents dans les départs et les sorties, absents ailleurs.
+
+#### Bateaux en face
+
+- **Réglage** : sur catway seulement, dans les options avancées, « Bateaux en face » vaut aucun, allée étroite ou allée large. Le long du quai et en libre, il n'est pas proposé.
+- **Fixe** : la largeur se compte depuis la place d'origine du bateau. Glisser le bateau le long de son catway ne change pas le choix affiché, seulement l'eau libre devant lui. Il ne s'approche pas à moins de 5 m des bateaux d'en face.
+- « Situation d'origine » remet l'allée du catalogue : large dans les sorties sur catway, absente ailleurs.
 
 #### Situation préparée et situation d'origine
 
@@ -333,7 +348,7 @@ Au port, le réseau est souvent faible ou absent : après une première visite, 
 
 ## Évolutions
 
-Le socle est livré : amarrage le long du quai, aussières fixes, moteur avant, neutre et arrière, largage individuel, barre, vent faible ou soutenu, tension des aussières et point de pivot, pause, pas à pas et retour arrière, catalogue et éditeur. Depuis, l'élève peut aussi choquer une aussière, placer des bateaux voisins devant et derrière, manœuvrer un bateau amarré perpendiculaire au quai, le long d'un catway, avec ses voisins de part et d'autre, et zoomer sur la scène. Il peut aussi activer le pas d'hélice, à droite ou à gauche, et le fardage, qui fait abattre l'avant vent de face, et choisir le bord du bateau au quai ou au catway. Il peut tourner une aussière sur un taquet au maître-bau, et donner un coup de fouet au moteur, en avant comme en arrière, ou passer le moteur au ralenti, pour une poussée plus douce et un pas d'hélice plus discret. Par défaut, la commande moteur se réduit à avant, neutre et arrière ; un interrupteur affiche le ralenti et le coup de fouet. De même, la liste des amarres se réduit au largage ; un interrupteur propre aux amarres affiche les crans Choquer, Bloquer et Reprendre : l'équipier peut embraquer une aussière, et la lâche si le bateau tire plus fort que lui. En manœuvre, le panneau ne montre plus que les commandes : moteur, barre et amarres. Enfin, il peut manœuvrer un bateau libre, sans quai ni amarre, en milieu de port. Le moteur pousse à une allure de manœuvre de port, autour de 3 nœuds, et le vent pèse d'autant plus. Les départs et les sorties du catalogue placent des voisins de part et d'autre, que l'élève peut retirer. L'application s'installe sur l'écran d'accueil et fonctionne sans réseau après une première visite.
+Le socle est livré : amarrage le long du quai, aussières fixes, moteur avant, neutre et arrière, largage individuel, barre, vent faible ou soutenu, tension des aussières et point de pivot, pause, pas à pas et retour arrière, catalogue et éditeur. Depuis, l'élève peut aussi choquer une aussière, placer des bateaux voisins devant et derrière, manœuvrer un bateau amarré perpendiculaire au quai, le long d'un catway, avec ses voisins de part et d'autre, et zoomer sur la scène. Il peut aussi activer le pas d'hélice, à droite ou à gauche, et le fardage, qui fait abattre l'avant vent de face, et choisir le bord du bateau au quai ou au catway. Il peut tourner une aussière sur un taquet au maître-bau, et donner un coup de fouet au moteur, en avant comme en arrière, ou passer le moteur au ralenti, pour une poussée plus douce et un pas d'hélice plus discret. Par défaut, la commande moteur se réduit à avant, neutre et arrière ; un interrupteur affiche le ralenti et le coup de fouet. De même, la liste des amarres se réduit au largage ; un interrupteur propre aux amarres affiche les crans Choquer, Bloquer et Reprendre : l'équipier peut embraquer une aussière, et la lâche si le bateau tire plus fort que lui. En manœuvre, le panneau ne montre plus que les commandes : moteur, barre et amarres. Sur catway, une allée étroite ou large peut séparer le bateau d'une panne et de ses bateaux, en face. Enfin, il peut manœuvrer un bateau libre, sans quai ni amarre, en milieu de port. Le moteur pousse à une allure de manœuvre de port, autour de 3 nœuds, et le vent pèse d'autant plus. Les départs et les sorties du catalogue placent des voisins de part et d'autre, que l'élève peut retirer. L'application s'installe sur l'écran d'accueil et fonctionne sans réseau après une première visite.
 
 Le projet s'enrichit ensuite progressivement, une fonctionnalité à la fois, sans paliers ni jalons : l'ordre suit les envies et les retours des élèves. Le backlog est tenu dans les issues GitHub du dépôt ; chaque issue devient une branche et une demande de fusion, qui met à jour ce document si elle change le périmètre.
 
@@ -384,6 +399,8 @@ Les points suivants n'ont pas été tranchés et figurent dans les points ouvert
 | Aussière | Cordage reliant un taquet du bateau à une bitte du quai |
 | Bitte | Point d'amarrage fixe sur le quai ou le catway ; dans l'appli, une rangée espacée de 2 m sur le quai, et deux bittes par catway |
 | Chenal | Passage d'eau libre devant les places de port ; en perpendiculaire, le bout du bateau opposé au quai lui fait face |
+| Allée | Chenal entre deux rangées de places de port ; dans l'appli, entre la place du bateau et les bateaux d'en face, étroite (environ 15 m) ou large (environ 20 m) |
+| Panne | Ponton flottant d'où partent les catways ; dans l'appli, celle d'en face, de l'autre côté de l'allée, parallèle au quai, sur toute sa longueur, avec ses catways et ses bateaux |
 | Pointe avant / arrière | Aussière partant de l'avant (ou de l'arrière) du bateau vers l'avant (ou l'arrière) sur le quai |
 | Garde avant / arrière | Aussière partant de l'avant (ou de l'arrière) du bateau, frappée vers l'arrière (ou l'avant) sur le quai ; limite les mouvements longitudinaux |
 | Traversier | Aussière perpendiculaire au bateau, qui le tient contre le quai ; dans l'appli, toute aussière à moins de 20° de la perpendiculaire au départ |

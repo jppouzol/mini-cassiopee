@@ -14,7 +14,8 @@
 // En situation libre, il n'y a ni quai ni bitte : le bateau part de l'origine,
 // étrave vers +y (le haut de l'écran).
 
-import type { Vec } from '../sim/types.ts';
+import type { RangeeEnFace, Vec } from '../sim/types.ts';
+import { catwaysEnFace } from '../sim/enface.ts';
 import { HALF_BEAM, HALF_LENGTH } from '../sim/geometry.ts';
 
 /** Distance de la rangée de bittes au bord du quai (m). */
@@ -36,6 +37,24 @@ export const BITTES_CATWAY: readonly number[] = [
 ];
 /** En perpendiculaire, écart minimal entre le bout du bateau et le quai (m). */
 export const ECART_QUAI_MIN = 0.5;
+/**
+ * Bateaux en face, de l'autre côté de l'allée : largeur d'allée proposée par l'éditeur (m),
+ * en eau libre, du bout du bateau côté chenal dans la situation d'origine aux arrières des
+ * bateaux d'en face. Étroite : une fois et demie la longueur du bateau, le demi-tour se fait
+ * en plusieurs fois. Large : barre à fond, le demi-tour passe juste.
+ */
+export const ALLEES = { etroite: 15, large: 20 } as const;
+export type Allee = keyof typeof ALLEES;
+/** Bornes de l'allée acceptées dans une situation, depuis le bout du bateau côté chenal (m). */
+export const ALLEE_MIN = 5;
+export const ALLEE_MAX = 40;
+/** Largeur de la panne d'en face (m). */
+export const LARGEUR_PANNE = 2;
+/** Écart entre l'étrave d'un bateau d'en face et sa panne (m). */
+export const ECART_PANNE = 1;
+/** Écart entre un bateau d'en face et son catway (m), celui des places du catalogue. */
+export const ECART_CATWAY_EN_FACE = 0.3;
+
 /** Étendue des rangées de bittes du quai, bien au-delà de ce que la caméra montre (m). */
 const ETENDUE_QUAI = 200;
 
@@ -197,9 +216,49 @@ export function bittesDuPort(sit: Placement): Vec[] {
   return quai.concat(BITTES_CATWAY.map((u): Vec => [X_CATWAY, -u]));
 }
 
-/** Bittes de l'autre catway, qui servent à la place voisine : dessinées, jamais proposées. */
-export function bittesAutresCatways(sit: Placement): Vec[] {
-  return axesCatways(sit).slice(1).flatMap((x) => BITTES_CATWAY.map((u): Vec => [x, -u]));
+/**
+ * Bittes des autres catways, qui servent aux places voisines : le second catway, puis les
+ * catways d'en face s'il y en a, sur l'étendue de la rangée de bittes du quai. Dessinées,
+ * jamais proposées.
+ */
+export function bittesAutresCatways(sit: Placement & { enFace?: number }): Vec[] {
+  const second = axesCatways(sit).slice(1).flatMap((x) => BITTES_CATWAY.map((u): Vec => [x, -u]));
+  const face = geometrieEnFace(sit);
+  if (!face) return second;
+  return second.concat(catwaysEnFace({ ...face, contacts: [] }, -ETENDUE_QUAI, ETENDUE_QUAI)
+    .flatMap((c) => BITTES_CATWAY.map((u): Vec => [c.x, c.y + u])));
+}
+
+/**
+ * Distance du bord du quai aux arrières des bateaux d'en face, pour une allée de la largeur
+ * donnée comptée depuis le bout du bateau côté chenal dans la situation d'origine (m).
+ */
+export function distanceEnFace(origine: Pick<Placement, 'bateau'>, largeur: number): number {
+  return arrondi(origine.bateau.x + HALF_LENGTH + largeur);
+}
+
+/**
+ * Rangée d'en face, de l'autre côté de l'allée, ou null s'il n'y en a pas (champ `enFace`
+ * absent, ou hors du catway). Elle est sans fin le long du quai : une panne, des catways qui
+ * en montent vers l'allée dans l'alignement de ceux du bateau, tous les 9 m (deux places
+ * entre deux catways, comme de notre côté), et un bateau de chaque côté de chaque catway,
+ * à ECART_CATWAY_EN_FACE, étrave à ECART_PANNE de la panne. Les arrières des bateaux sont à
+ * `enFace` du bord du quai. La rangée suit le catway du bateau quand il change de bord.
+ */
+export function geometrieEnFace(sit: Placement & { enFace?: number }): Omit<RangeeEnFace, 'contacts'> | null {
+  if (!perpendiculaire(sit) || sit.enFace === undefined) return null;
+  const yArrieres = -sit.enFace;
+  return {
+    x0: X_CATWAY,
+    pas: ECART_CATWAYS + 2 * DEMI_LARGEUR_CATWAY,
+    yPanne: arrondi(yArrieres - 2 * HALF_LENGTH - ECART_PANNE),
+    largeurPanne: LARGEUR_PANNE,
+    demiLargeurCatway: DEMI_LARGEUR_CATWAY,
+    longueurCatway: LONGUEUR_CATWAY,
+    recul: arrondi(DEMI_LARGEUR_CATWAY + ECART_CATWAY_EN_FACE + HALF_BEAM),
+    yBateaux: arrondi(yArrieres - HALF_LENGTH),
+    th: -Math.PI / 2,
+  };
 }
 
 /** Bitte d'une aussière d'après la position monde d'une bitte touchée dans l'éditeur. */

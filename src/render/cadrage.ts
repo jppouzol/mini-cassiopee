@@ -19,8 +19,11 @@ export const CADRAGE_DEFAUT: Cadrage = { k: 1, ox: 0, oy: 0 };
 /** Facteur de zoom maximal : à ×4, le bateau remplit l'écran d'un téléphone. */
 export const ZOOM_MAX = 4;
 
-/** Facteur de zoom minimal : à ×0,5, on voit le chenal devant un catway, même sur un téléphone. */
-export const ZOOM_MIN = 0.5;
+/**
+ * Facteur de zoom minimal : à un tiers, on voit le chenal devant un catway et, s'il y a des
+ * bateaux en face, l'allée entière jusqu'à leur panne, même sur un téléphone.
+ */
+export const ZOOM_MIN = 1 / 3;
 
 /** Deux doigts posés sur la scène : milieu (px) et écart (px). */
 export interface Pincement {
@@ -29,10 +32,17 @@ export interface Pincement {
   d: number;
 }
 
-/** Échelle du cadrage par défaut, en pixels par mètre : cadrage plus serré sur un écran étroit. */
-export function echelleDefaut(W: number, H: number): number {
+/** Hauteur de scène (m) que montre d'ordinaire le cadrage par défaut : le bateau entier sur son catway. */
+export const HAUTEUR_VUE = 17;
+
+/**
+ * Échelle du cadrage par défaut, en pixels par mètre : cadrage plus serré sur un écran étroit.
+ * `hauteur` est la hauteur de scène à montrer (m) ; la caméra l'agrandit pour montrer une allée
+ * et ses bateaux en face (voir hauteurVue).
+ */
+export function echelleDefaut(W: number, H: number, hauteur = HAUTEUR_VUE): number {
   const narrow = W < 520;
-  return Math.max(6, Math.min(W / (narrow ? 21 : 30), H / 17));
+  return Math.max(6, Math.min(W / (narrow ? 21 : 30), H / hauteur));
 }
 
 /** Bornes du facteur, appliquées avant le calcul du décalage pour que le point visé reste en place. */
@@ -47,10 +57,10 @@ export function estDefaut(c: Cadrage): boolean {
  * Borne le facteur entre ZOOM_MIN et ZOOM_MAX, et le décalage : zoomée, la vue reste dans le cadrage
  * par défaut ; dézoomée, elle le contient, si bien que le bateau ne sort pas de l'écran.
  */
-export function bornerCadrage(c: Cadrage, W: number, H: number): Cadrage {
+export function bornerCadrage(c: Cadrage, W: number, H: number, hauteur = HAUTEUR_VUE): Cadrage {
   const k = borneK(Number.isFinite(c.k) ? c.k : 1);
   if (k === 1) return CADRAGE_DEFAUT;
-  const sc0 = echelleDefaut(W, H);
+  const sc0 = echelleDefaut(W, H, hauteur);
   // Écart entre les demi-largeurs (et demi-hauteurs) du cadrage par défaut et de la vue.
   const mx = (W / 2 / sc0) * Math.abs(1 - 1 / k);
   const my = (H / 2 / sc0) * Math.abs(1 - 1 / k);
@@ -59,26 +69,26 @@ export function bornerCadrage(c: Cadrage, W: number, H: number): Cadrage {
 }
 
 /** Change le facteur sans bornes, en gardant en place le point monde sous le point écran (px, py). */
-function zoomLibre(c: Cadrage, W: number, H: number, px: number, py: number, k: number): Cadrage {
-  const sc0 = echelleDefaut(W, H);
+function zoomLibre(c: Cadrage, W: number, H: number, px: number, py: number, k: number, hauteur: number): Cadrage {
+  const sc0 = echelleDefaut(W, H, hauteur);
   const r = 1 / c.k - 1 / k;
   return { k, ox: c.ox + ((px - W / 2) / sc0) * r, oy: c.oy - ((py - H / 2) / sc0) * r };
 }
 
 /** Zoom d'un facteur autour d'un point de l'écran (molette, pincement du pavé tactile). */
-export function zoomerAutour(c: Cadrage, W: number, H: number, px: number, py: number, facteur: number): Cadrage {
-  return bornerCadrage(zoomLibre(c, W, H, px, py, borneK(c.k * facteur)), W, H);
+export function zoomerAutour(c: Cadrage, W: number, H: number, px: number, py: number, facteur: number, hauteur = HAUTEUR_VUE): Cadrage {
+  return bornerCadrage(zoomLibre(c, W, H, px, py, borneK(c.k * facteur), hauteur), W, H, hauteur);
 }
 
 /**
  * Pincement entre deux positions des doigts : zoom autour de l'ancien milieu, dans le rapport des écarts,
  * puis déplacement de la vue avec le milieu, pour que la scène suive les doigts.
  */
-export function pincer(c: Cadrage, W: number, H: number, avant: Pincement, apres: Pincement): Cadrage {
+export function pincer(c: Cadrage, W: number, H: number, avant: Pincement, apres: Pincement, hauteur = HAUTEUR_VUE): Cadrage {
   const facteur = avant.d > 0 && apres.d > 0 ? apres.d / avant.d : 1;
-  const z = zoomLibre(c, W, H, avant.x, avant.y, borneK(c.k * facteur));
-  const sc = echelleDefaut(W, H) * z.k;
-  return bornerCadrage({ k: z.k, ox: z.ox - (apres.x - avant.x) / sc, oy: z.oy + (apres.y - avant.y) / sc }, W, H);
+  const z = zoomLibre(c, W, H, avant.x, avant.y, borneK(c.k * facteur), hauteur);
+  const sc = echelleDefaut(W, H, hauteur) * z.k;
+  return bornerCadrage({ k: z.k, ox: z.ox - (apres.x - avant.x) / sc, oy: z.oy + (apres.y - avant.y) / sc }, W, H, hauteur);
 }
 
 /** Longueur de l'échelle (m) : 10, 5, 2 ou 1 m, la plus grande qui ne dépasse pas sa longueur au cadrage par défaut. */
