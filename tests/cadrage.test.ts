@@ -18,7 +18,10 @@ const proche = (a: number, b: number, tol = 1e-9) => Math.abs(a - b) <= tol;
 /** Demi-largeur et demi-hauteur (m) du cadrage par défaut. */
 const demi = (W: number, H: number) => [W / 2 / echelleDefaut(W, H), H / 2 / echelleDefaut(W, H)];
 
-test('cadrage : zoom borné entre ×0,5 et ×4, sans décalage à ×1', () => {
+test('cadrage : zoom borné entre ×1/3 et ×4, sans décalage à ×1', () => {
+  // Bornes fixées par la spécification (« Zoom ») : on les affirme, pas seulement les constantes.
+  assert.ok(proche(ZOOM_MIN, 1 / 3), `zoom minimal ×${ZOOM_MIN}`);
+  assert.equal(ZOOM_MAX, 4);
   for (const { W, H } of [TELEPHONE, PC]) {
     assert.deepEqual(bornerCadrage({ k: 1, ox: 5, oy: -5 }, W, H), CADRAGE_DEFAUT);
     assert.equal(bornerCadrage({ k: 0.1, ox: 0, oy: 0 }, W, H).k, ZOOM_MIN);

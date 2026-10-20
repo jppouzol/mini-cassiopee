@@ -140,7 +140,7 @@ test('vent soutenu du large, sans amarre : le catway arrête le bateau, le voisi
   }
 });
 
-test('situation du catalogue : tout largué, marche arrière, le vent pousse le bateau sur le voisin', () => {
+test('sortie en marche arrière, voisin sous le vent : tout largué, marche arrière, le vent pousse le bateau sur le voisin', () => {
   for (const sit of toutes(lecon())) {
     const s = buildState(sit);
     const r = suivre(s, 20, (t) => {
@@ -152,7 +152,7 @@ test('situation du catalogue : tout largué, marche arrière, le vent pousse le 
   }
 });
 
-test('situation du catalogue : en reculant sur les gardes, l’arrière remonte au vent et le bateau sort sans toucher', () => {
+test('sortie en marche arrière, voisin sous le vent : en reculant sur les gardes, l’arrière remonte au vent et le bateau sort sans toucher', () => {
   for (const sit of toutes(lecon())) {
     for (const delai of [3, 6, 10]) {
       const s = buildState(sit);

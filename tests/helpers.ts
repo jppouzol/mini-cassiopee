@@ -35,8 +35,8 @@ export function scenarios(): Situation[] {
   return jsonFiles(SCENARIOS).map((f) => parseSituation(readJson(SCENARIOS, f)));
 }
 
-/** Situations du catalogue, validées, avec leur nom de fichier : seulement pour vérifier les règles du catalogue. */
-export function catalogue(): { file: string; sit: Situation }[] {
+/** Fichiers du dossier catalogue/, validés : seulement pour vérifier que le menu les présente tous. */
+export function fichiersCatalogue(): { file: string; sit: Situation }[] {
   return jsonFiles(CATALOGUE).map((file) => ({ file, sit: parseSituation(readJson(CATALOGUE, file)) }));
 }
 

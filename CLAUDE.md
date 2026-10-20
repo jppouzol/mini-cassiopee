@@ -7,7 +7,7 @@
 - Principes à respecter : voir « Principes directeurs » dans les spécifications (le bout de tissu d'abord, physique qualitative, complexité optionnelle, mobile d'abord).
 - Architecture : `src/sim` ne dépend de rien ; `session` dépend de `sim` ; `render` et `ui` passent par `session`. Pas de syntaxe TypeScript non effaçable (enums, propriétés de paramètres de constructeur) : les tests tournent avec la suppression de types de Node.js.
 - Avant de proposer une demande de fusion : `npm test` doit passer, et les comportements physiques modifiés doivent être couverts par un scénario dans `tests/`.
-- Tests et catalogue : les tests chargent leurs scénarios de référence dans `tests/situations/`, jamais dans le catalogue, qui évolue librement. Le catalogue n'est testé que sur ses règles (validité, bittes, aussières vers l'extérieur, gardes croisées). Un nouveau comportement se couvre par un scénario de référence, pas par une situation du catalogue.
+- Tests et catalogue : les tests chargent leurs scénarios de référence dans `tests/situations/`, jamais dans le catalogue, qui évolue librement. Le catalogue n'est testé que sur ses règles, dans `tests/catalogue.test.ts` (présence dans le menu, validité, bittes, aussières vers l'extérieur, gardes croisées, voisins et allée). Un nouveau comportement se couvre par un scénario de référence, pas par une situation du catalogue.
 
 ## Environnement de développement de Claude (claude.ai)
 

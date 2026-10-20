@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { start } from './helpers.ts';
-import { Session } from '../src/session/session.ts';
+import { MAX_FRAMES, Session } from '../src/session/session.ts';
 import { DEFAULT_PARAMS } from '../src/sim/params.ts';
 
 const snap = (s: unknown) => JSON.stringify(s);
@@ -59,4 +59,28 @@ test('la session ne dépasse pas la fin enregistrée lors d’un retour', () => 
   assert.equal(ses.frame, 900);
   ses.seek(-10);
   assert.equal(ses.frame, 0);
+});
+
+test('nouveaux paramètres : la suite est effacée et la manœuvre repart avec eux', () => {
+  const ses = scripted();
+  ses.seek(300);
+  const avant = snap(ses.state);
+  ses.setParams({ ...DEFAULT_PARAMS, thrustFwd: DEFAULT_PARAMS.thrustFwd * 2 });
+  assert.equal(ses.lastFrame, 300, 'la suite enregistrée est effacée');
+  assert.equal(snap(ses.state), avant, 'l’image affichée ne change pas');
+  // Avec une poussée doublée, la suite diffère de celle de la manœuvre d'origine.
+  ses.advance(300);
+  const ref = scripted();
+  ref.seek(600);
+  assert.notEqual(snap(ses.state), snap(ref.state));
+});
+
+test('une manœuvre s’arrête à sa durée maximale', () => {
+  const ses = new Session(start('libre'), DEFAULT_PARAMS);
+  ses.advance(MAX_FRAMES + 10);
+  assert.equal(ses.frame, MAX_FRAMES);
+  assert.equal(ses.lastFrame, MAX_FRAMES);
+  ses.advance(1);
+  assert.equal(ses.frame, MAX_FRAMES, 'aucune image au-delà');
+  assert.equal(MAX_FRAMES, 30 * 60 * 60, 'trente minutes à 60 images par seconde');
 });
