@@ -128,6 +128,16 @@ export function supprimerAussiere(sit: Situation, id: string): Situation {
   return { ...sit, aussieres: sit.aussieres.filter((a) => a.id !== id) };
 }
 
+/**
+ * Retire d'un coup toutes les aussières (« Tout supprimer » de l'éditeur), pour repartir
+ * d'un bateau sans amarre. Le reste de la situation (position, bord, vent, voisins, options,
+ * plafond) ne change pas. Renvoie la même situation si elle n'a déjà aucune aussière,
+ * ce qui évite de créer une session inutile.
+ */
+export function supprimerToutesAussieres(sit: Situation): Situation {
+  return sit.aussieres.length === 0 ? sit : { ...sit, aussieres: [] };
+}
+
 /** Bascule une aussière entre tendue (pas de mou) et molle (MOU_MOLLE). */
 export function basculerMou(sit: Situation, id: string): Situation {
   return modifier(sit, id, (a) => ({ ...a, mou: a.mou > 0 ? 0 : MOU_MOLLE }));
