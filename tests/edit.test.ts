@@ -34,7 +34,7 @@ test('nom déduit : traversier sous 20° de la perpendiculaire', () => {
   assert.equal(nomDeduit(vide(), { taquet: 'arriere', bitte: -4 }), 'Garde arrière');
 });
 
-test('les noms du catalogue sont déduits correctement', () => {
+test('les noms d’un amarrage complet sont déduits correctement', () => {
   const sit = loadSituation('amarre-quatre-amarres');
   assert.deepEqual(nomsAffiches(sit), ['Pointe avant', 'Garde avant', 'Garde arrière', 'Pointe arrière']);
   assert.deepEqual(buildState(sit).lines.map((l) => l.name), nomsAffiches(sit));
