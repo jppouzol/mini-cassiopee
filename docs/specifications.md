@@ -17,7 +17,7 @@ L'objectif est de garder la simplicité de cet outil tout en ajoutant ce que le 
 Ces principes arbitrent toutes les décisions de conception, en particulier lors des ajouts de fonctionnalités.
 
 1. **Le bout de tissu d'abord.** Toute situation doit pouvoir se décrire aussi simplement que sur la table : un bateau, un quai, quelques aussières, un sens de moteur.
-2. **Des principes, pas un bateau réel.** La physique est qualitativement correcte : le bateau part dans le bon sens, pivote autour du bon point, avec des ordres de grandeur plausibles. Aucune valeur réelle (kN, nœuds) n'est affichée ni garantie.
+2. **Des principes, pas un bateau réel.** La physique est qualitativement correcte : le bateau part dans le bon sens, pivote autour du bon point, avec des ordres de grandeur plausibles. Aucune valeur réelle (kN, nœuds) n'est garantie, ni affichée à l'élève par défaut ; seule l'option « Valeurs de mise au point » en montre, comme indications.
 3. **Le point de pivot est l'information centrale.** C'est ce que l'outil doit rendre visible avant tout.
 4. **La complexité est optionnelle.** Chaque enrichissement du modèle ou de la scène (pas d'hélice, fardage, bi-safran, bateaux voisins…) s'active dans des paramètres avancés ; désactivé, le comportement de base reste inchangé. Une nouvelle commande (ralenti, coup de fouet, choquer une aussière…) peut rester disponible si, tant qu'on ne s'en sert pas, elle ne change rien ; elle se range alors derrière un interrupteur « Étendue », pour que l'affichage par défaut reste aussi simple que le bout de tissu.
 5. **Enrichissement progressif.** On livre un socle utilisable, puis on ajoute des fonctionnalités une à une, sans ordre imposé ni palier, et sans basculer dans une simulation fine.
@@ -117,7 +117,7 @@ La simulation est en deux dimensions, vue de dessus, et vise un comportement qua
 - **Mouvements** : translation dans le plan et rotation autour d'un axe vertical. Le point de pivot résulte des aussières tendues et des points de contact ; en eau libre, de la quille et du safran, qui le placent sur la coque : dans la moitié avant en marche avant, dans la moitié arrière en marche arrière.
 - **Vitesse** : moteur en avant, le bateau libre plafonne à environ 3 nœuds, et 2,5 en marche arrière, une allure de manœuvre de port ; au ralenti, environ 2 nœuds en avant et 1,7 en arrière. Le coup de fouet donne le coup de moteur plus franc qui redonne de la manœuvrabilité.
 - **Giration** : barre à fond, le bateau libre tourne dans un cercle d'environ deux longueurs, comme un voilier de croisière à quille aileron, et fait demi-tour dans une allée de port réaliste, en moins de 20 m. La quille limite la dérive au vent dès que le bateau a de l'erre ; à l'arrêt, le vent le pousse comme avant.
-- **Aussières** : longueur maximale fixe ; une aussière ne retient que lorsqu'elle est tendue, jamais en compression.
+- **Aussières** : longueur maximale fixée au départ, qui ne change que si l'aussière file (choquée) ou si l'équipier la reprend ; une aussière ne retient que lorsqu'elle est tendue, jamais en compression.
 - **Contact avec le quai** : traitement simple qui empêche le bateau de traverser le quai et peut servir de point d'appui ; les défenses ne sont pas modélisées dans le socle. Le catway reçoit le même traitement, sur ses deux flancs et son bout. En situation libre, il n'y a pas de quai : aucun contact.
 - **Contact avec un voisin** : même traitement que le quai, coque contre coque. Le voisin, immobile, arrête le bateau et peut servir de point d'appui (l'étrave contre son tableau, par exemple).
 - **Contact en face** : la panne d'en face et ses catways reçoivent le traitement du quai et du catway, ses bateaux celui des voisins.
@@ -137,7 +137,7 @@ L'application a deux modes : la **préparation**, où l'on règle la situation, 
 | Ralenti | Ralenti avant ou ralenti arrière : moitié de la poussée, entre le neutre et la marche | Livré |
 | Coup de fouet | Coup avant ou coup arrière : poussée brève et forte, puis retour automatique du moteur | Livré |
 | Larguer une aussière | Individuellement, à tout moment | Socle |
-| Barre | Angle de barre, côté bâbord ou tribord | Socle |
+| Barre | Angle continu, jusqu'à 35° de chaque bord, affiché en degrés ; « Centrer » la remet droite | Socle |
 | Ne rien faire | Laisser agir le vent seul | Socle |
 | Choquer une aussière | Cran Choquer ou Bloquer de la commande étendue des amarres, individuellement, à tout moment, en lecture comme en pause | Livré |
 | Reprendre une aussière | Cran Reprendre de la commande étendue des amarres, individuellement, à tout moment, en lecture comme en pause | Livré |
@@ -188,9 +188,11 @@ L'application a deux modes : la **préparation**, où l'on règle la situation, 
 ### Contrôle du déroulement
 
 - Lecture, pause.
-- Avance pas à pas.
-- Retour arrière (rewind) jusqu'à n'importe quel instant de la manœuvre en cours.
-- Réinitialisation à la situation de départ.
+- Pas à pas, en avant comme en arrière, de 0,2 s.
+- Retour arrière (rewind) jusqu'à n'importe quel instant de la manœuvre en cours, par une chronologie.
+- Réinitialisation à la situation de départ (⏮).
+- Vitesse de lecture : ×0,5, ×1 (par défaut), ×2 ou ×4. Elle règle le rythme de l'affichage, pas la simulation : une manœuvre jouée à ×4 est la même qu'à ×1.
+- Une manœuvre dure au plus 30 min ; au-delà, la simulation s'arrête.
 
 Les commandes doivent être utilisables au doigt sur un écran de téléphone, d'une seule main si possible.
 
@@ -222,7 +224,16 @@ Le bateau paraît petit sur un téléphone, et le chenal y est vite hors de l'é
 - **Recadrer** : un bouton sur la scène, visible seulement quand le cadrage a changé, revient au cadrage par défaut. Changer de situation ou de famille recadre aussi ; « Situation d'origine » et « ⏮ » gardent le zoom choisi.
 - Le zoom est un réglage d'affichage : il ne change rien à la simulation ni à la manœuvre enregistrée.
 
-Rien d'autre n'est affiché par défaut. Toute aide visuelle supplémentaire (trajectoire, flèches de forces, position fantôme de départ) devra être optionnelle.
+Rien d'autre n'est affiché par défaut. Toute aide visuelle supplémentaire (trajectoire, flèches de forces) devra être optionnelle.
+
+### Affichage
+
+Une section « Affichage », sous les amarres, propose deux cases, décochées à chaque ouverture et disponibles en préparation comme en manœuvre :
+
+- **Position de départ** : le contour du bateau à son instant de départ, en pointillés, pour voir le chemin parcouru.
+- **Valeurs de mise au point** : sur la scène, la tension des aussières tendues en newtons, le cap, la vitesse en nœuds, la vitesse de rotation et la position du point de pivot ; dans la liste des amarres, la tension remplace « Tendue ». Ce sont des valeurs du modèle, sans prétention de réalisme (principe 2), utiles surtout pour la mise au point.
+
+Leur place définitive, pour l'élève ou réservées à la mise au point, reste à décider.
 
 ## Préparation des situations
 
@@ -360,24 +371,24 @@ Enrichissements envisagés, chacun optionnel et sans effet sur le comportement d
 - longueur finie des aussières ;
 - coup de fouet dosé par l'élève, tant qu'il maintient le bouton ;
 - vent fort, plus fort que le moteur en marche avant ;
-- aides visuelles en option (trajectoire, flèches de forces, position fantôme).
+- aides visuelles en option (trajectoire, flèches de forces).
 
-## Critères d'acceptation du socle
+## Critères permanents
 
-Le socle est réussi quand un élève reproduit sur son téléphone un départ sur garde complet, en deux phases, et que le bateau se comporte comme le bateau en tissu.
+Ce que l'application doit toujours permettre, quelles que soient les évolutions : qu'un élève reproduise sur son téléphone un départ sur garde complet, en deux phases, et que le bateau se comporte comme le bateau en tissu. Ces critères ont servi à valider le socle ; chaque version doit continuer à les satisfaire.
 
-- [ ] Positionner le bateau le long d'un quai, au doigt ou pas à pas, les aussières restant sur leurs bittes.
-- [ ] Placer les aussières et indiquer lesquelles sont tendues au moment de la mise en mouvement.
-- [ ] Partir d'une situation du catalogue, y ajouter une aussière (taquet puis bitte) et en supprimer une avant de lancer la simulation ; le nom déduit est juste, bâbord comme tribord au quai.
-- [ ] Piloter le moteur (avant, neutre, arrière) pendant la simulation.
-- [ ] Agir sur la barre pendant la simulation.
-- [ ] Larguer chaque aussière individuellement pendant la simulation.
-- [ ] Voir la tension des aussières (tendue / molle) et le point de pivot.
-- [ ] Mettre en pause, avancer pas à pas, revenir en arrière.
-- [ ] Phase 1 du départ sur garde : en appui sur la garde, le moteur fait pivoter le bateau autour de l'extrémité retenue, l'autre extrémité s'écarte du quai.
-- [ ] Phase 2 : moteur dans l'autre sens, garde larguée, le bateau se dégage du quai.
-- [ ] Vérification d'amarrage : sans commande, avec du vent, l'amarrage tient et les aussières qui travaillent sont visibles.
-- [ ] Fonctionnement sur PC, Android et iOS.
+| Critère | Vérifié par |
+| --- | --- |
+| Positionner le bateau le long d'un quai, au doigt ou pas à pas, les aussières restant sur leurs bittes | `tests/edit.test.ts` ; le geste, à la main |
+| Placer les aussières et indiquer lesquelles sont tendues au moment de la mise en mouvement | `tests/edit.test.ts` |
+| Partir d'une situation du catalogue, y ajouter une aussière (taquet puis bitte) et en supprimer une avant de lancer la simulation ; le nom déduit est juste, bâbord comme tribord au quai | `tests/edit.test.ts`, `tests/bord.test.ts` ; le toucher, à la main |
+| Piloter le moteur (avant, neutre, arrière), agir sur la barre et larguer chaque aussière pendant la simulation | `tests/session.test.ts`, `tests/sim.test.ts` ; les commandes, à la main |
+| Voir la tension des aussières (tendue / molle) et le point de pivot | `tests/sim.test.ts`, `tests/rendu.test.ts` ; l'image, à la main |
+| Mettre en pause, avancer pas à pas, revenir en arrière | `tests/session.test.ts` et les tests de relecture de chaque fonctionnalité |
+| Phase 1 du départ sur garde : en appui sur la garde, le moteur fait pivoter le bateau autour de l'extrémité retenue, l'autre extrémité s'écarte du quai | `tests/sim.test.ts` |
+| Phase 2 : moteur dans l'autre sens, garde larguée, le bateau se dégage du quai | `tests/sim.test.ts` |
+| Vérification d'amarrage : sans commande, avec du vent, l'amarrage tient et les aussières qui travaillent sont visibles | `tests/sim.test.ts`, `tests/catway.test.ts` |
+| Fonctionnement sur PC, Android et iOS | à la main, avant chaque version |
 
 ## Hors périmètre
 
@@ -425,6 +436,5 @@ Les points suivants n'ont pas été tranchés et figurent dans les points ouvert
 - [ ] Mouillage et bouée : dans ou hors du projet ? Le bateau libre, sans quai ni amarre, est livré.
 - [ ] Licence des contenus pédagogiques (situations, textes) : CC0 proposée.
 - [ ] Contenu définitif du catalogue de situations, à valider avec la monitrice.
-- [ ] Réglage de la barre : quelques positions fixes ou un angle continu ?
 - [ ] Défenses : à représenter un jour, ou le contact simple avec le quai, le catway et les voisins suffit-il ?
-- [ ] Aides visuelles optionnelles (trajectoire, flèches de forces, position fantôme) : lesquelles retenir ?
+- [ ] Aides visuelles optionnelles (trajectoire, flèches de forces) : lesquelles retenir ? Et la place des cases « Position de départ » et « Valeurs de mise au point » : pour l'élève, ou réservées à la mise au point ?
