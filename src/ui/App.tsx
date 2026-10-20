@@ -95,12 +95,11 @@ const ENGINE: { value: Engine; label: string; title: string; place: string }[] =
   { value: 0.5, label: 'Ralenti', title: 'Ralenti avant', place: 'ralenti-av' },
   { value: 1, label: 'Avant', title: 'Marche avant', place: 'marche-av' },
 ];
-/** Coups de fouet, sous la commande moteur : arrière à gauche, avant à droite, comme au-dessus. */
-/** Crans de la commande étendue des amarres (#75), dans l'ordre de l'échelle. */
 /** Raccourci qui mène à un cran, depuis les autres : Maj vers Choquer, Alt vers Reprendre. */
 const CRAN_TOUCHE: Record<Cran, string> = { choquer: 'Maj', bloquer: 'Maj ou Alt', reprendre: 'Alt' };
 /** Cran d'une aussière de la situation préparée, d'après ce que fait l'équipier au départ. */
 const cranDuDepart = (a: SituationLine): Cran => cranDe({ mode: a.equipier ?? 'bloque' });
+/** Coups de fouet, sous la commande moteur : arrière à gauche, avant à droite, comme au-dessus. */
 const KICKS: { value: 1 | -1; label: string }[] = [
   { value: -1, label: 'Coup arrière' },
   { value: 1, label: 'Coup avant' },

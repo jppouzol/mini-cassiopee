@@ -468,7 +468,7 @@ export function render(ctx: CanvasRenderingContext2D, s: Readonly<SimState>, v: 
     ctx.fillText(`VENT ${s.wind.force.toUpperCase()}`, ox, oy + 34);
   }
 
-  // Échelle : raccourcie quand on zoome (5, 2 ou 1 m), pour tenir dans son coin.
+  // Échelle : 10, 5, 2 ou 1 m selon le zoom, pour garder sa taille dans son coin.
   const lEch = longueurEchelle(sc / sc0);
   const sx = 14, sy = H - 16;
   ctx.strokeStyle = C.ink;
