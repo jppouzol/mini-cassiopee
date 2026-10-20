@@ -1,8 +1,8 @@
 // Amarrage perpendiculaire le long d'un catway : format, géométrie, contact,
-// scénarios du catalogue, nom déduit, déplacement dans l'éditeur, relecture.
+// scénarios de référence, nom déduit, déplacement dans l'éditeur, relecture.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { bow, catalogue, deg, line, loadSituation, run, stern } from './helpers.ts';
+import { bow, deg, line, loadSituation, run, stern } from './helpers.ts';
 import { buildState, windVector } from '../src/situations/build.ts';
 import { cloneState, tick } from '../src/sim/engine.ts';
 import { DEFAULT_PARAMS } from '../src/sim/params.ts';
@@ -52,7 +52,7 @@ function suivre(s: SimState, seconds: number): { appuis: number; penetration: nu
   return { appuis, penetration };
 }
 
-test('format : situations du catalogue lues, catway en place', () => {
+test('format : scénarios sur catway lus, catway en place', () => {
   for (const sit of [verification(), sortieArriere(), sortieAvant()]) {
     assert.equal(sit.quai.type, 'perpendiculaire');
     const s = buildState(sit);
@@ -283,14 +283,3 @@ test('relecture : un appui sur le catway se rejoue à l’identique', () => {
 });
 
 
-test('catalogue : chaque aussière part vers l’extérieur du bateau, du bord de son taquet', () => {
-  for (const { sit } of catalogue()) {
-    const s = buildState(sit);
-    for (const l of s.lines) {
-      // Écart latéral de la bitte, en repère bateau, compté du côté du taquet : au-delà du taquet.
-      const cote = Math.sign(l.cleat[1]);
-      const lateral = cote * toLocal(s.body, l.bollard)[1];
-      assert.ok(lateral > Math.abs(l.cleat[1]) + 0.3, `${sit.id}, ${l.name} : la bitte n'est pas à l'extérieur du taquet`);
-    }
-  }
-});

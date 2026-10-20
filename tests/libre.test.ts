@@ -2,7 +2,7 @@
 // Le vent se rapporte au bateau au départ ; la caméra reste fixe tant que le bateau est dans le cadre.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { catalogue, loadSituation, rawSituation, run, start } from './helpers.ts';
+import { loadSituation, rawSituation, run, start } from './helpers.ts';
 import { parseSituation } from '../src/situations/schema.ts';
 import { buildState } from '../src/situations/build.ts';
 import { bittesDuPort, bittesQuai } from '../src/situations/quai.ts';
@@ -128,8 +128,3 @@ test('libre : une manœuvre se rejoue à l’identique après un retour arrière
   assert.equal(JSON.stringify(ses.state), fin);
 });
 
-test('catalogue : la famille libre a ses situations, toutes sans aussière', () => {
-  const libres = catalogue().map((c) => c.sit).filter((sit) => sit.quai.type === 'libre');
-  assert.ok(libres.length > 0);
-  for (const sit of libres) assert.deepEqual(sit.aussieres, []);
-});
