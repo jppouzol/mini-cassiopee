@@ -233,6 +233,7 @@ La stack reste courte et courante, pour que le projet soit facile à reprendre p
 | Tests | Lanceur de tests de Node.js | Aucune dépendance, tests du moteur sans navigateur ni installation |
 | Validation des situations | Validation écrite à la main | Format petit : messages d'erreur lisibles sans dépendance |
 | Hors-ligne | Service worker écrit à la main, liste des fichiers injectée par un plugin Vite de quelques lignes | Aucune dépendance ; comportement maîtrisé (ouverture depuis le cache, mise à jour au lancement suivant, polices en cache) |
+| Versions des dépendances | `package-lock.json` versionné, installation par `npm ci` | Installations reproductibles : une nouvelle version d'une dépendance n'entre qu'avec un commit qui met à jour ce fichier |
 
 Aucune autre dépendance d'exécution n'est prévue. Le poste de développement n'a besoin que de Node.js 22.18 ou plus récent et de Git, installables sans droits d'administrateur sous Windows (archive Node.js décompressée dans le dossier utilisateur, Git en version portable).
 
@@ -246,7 +247,7 @@ mini-cassiopee/
     ui/           composants React : commandes, lecteur, éditeur
     pwa/          service worker (gabarit) et son enregistrement
   public/         manifeste et icônes, copiés tels quels à la construction
-  outils/         scripts de développement (génération des icônes)
+  outils/         scripts de développement (génération des icônes, version de test des PR)
   tests/          tests et scénarios de référence (tests/situations/)
   docs/           spécifications et architecture
 ```
@@ -273,7 +274,7 @@ Un service worker écrit à la main, sans bibliothèque : une centaine de lignes
 
 ### Hébergement et déploiement
 
-Le dépôt et l'application sont hébergés sur GitHub : le code dans un dépôt public, l'application sur GitHub Pages (<https://jppouzol.github.io/mini-cassiopee/>), gratuitement. Le workflow `.github/workflows/ci.yml` lance les tests, la vérification des types et la construction à chaque demande de fusion, puis déploie l'application à chaque fusion dans `main`. Sur une demande de fusion, un nouveau commit annule les vérifications en cours. Sur `main`, un déploiement commencé n'est jamais interrompu : la fusion suivante attend qu'il se termine, et seule la plus récente des fusions en attente est déployée. Un déploiement interrompu en pleine publication peut en effet bloquer GitHub Pages pour les suivants.
+Le dépôt et l'application sont hébergés sur GitHub : le code dans un dépôt public, l'application sur GitHub Pages (<https://jppouzol.github.io/mini-cassiopee/>), gratuitement. Le workflow `.github/workflows/ci.yml` installe les dépendances aux versions de `package-lock.json` (`npm ci`), puis lance les tests, la vérification des types et la construction à chaque demande de fusion, puis déploie l'application à chaque fusion dans `main`. Sur une demande de fusion, un nouveau commit annule les vérifications en cours. Sur `main`, un déploiement commencé n'est jamais interrompu : la fusion suivante attend qu'il se termine, et seule la plus récente des fusions en attente est déployée. Un déploiement interrompu en pleine publication peut en effet bloquer GitHub Pages pour les suivants.
 
 Codeberg a été écarté comme hébergement principal parce que l'environnement de développement assisté n'y a pas accès, ce qui obligerait à transférer chaque livraison à la main. Un miroir Codeberg reste possible à tout moment ; le projet ne contient ni données personnelles ni comptes, l'enjeu de souveraineté est donc faible.
 
@@ -432,6 +433,7 @@ Chaque choix structurant est noté ici avec son statut ; une décision ne change
 | Hors-ligne | Service worker écrit à la main plutôt que vite-plugin-pwa, sans dépendance ; liste des fichiers et version injectées à la construction par un plugin Vite ; ouverture toujours depuis le cache ; nouvelle version téléchargée en arrière-plan et appliquée à l'ouverture suivante, sans message ; polices Google en cache ; pas de bouton d'installation dans l'application ; icône : coque vue de dessus et deux aussières sur fond bleu ; nom « Mini Cassiopée » sous l'icône aussi ; jamais enregistré en développement ni dans la version de test | Décidé |
 | Hébergement | Dépôt public et GitHub Pages | Décidé |
 | Déploiement | GitHub Actions : tests sur chaque proposition, déploiement à chaque fusion ; un déploiement en cours n'est jamais annulé | Décidé |
+| Versions des dépendances | `package-lock.json` versionné, `npm ci` dans la CI, pour des installations reproductibles (#71) | Décidé |
 | Licence du code | MIT | Décidé |
 | Licence des contenus | CC0 proposée pour les situations et textes pédagogiques | Ouvert |
 | Pilotage des évolutions | Pas de paliers ni de jalons ; backlog dans les issues GitHub, une issue par évolution | Décidé |

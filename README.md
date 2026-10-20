@@ -20,12 +20,14 @@ L'application est en ligne sur <https://jppouzol.github.io/mini-cassiopee/>. Ell
 Prérequis : Node.js 22.18 ou plus récent (sous Windows sans droits d'administrateur, l'archive zip de Node.js décompressée dans le dossier utilisateur suffit) et Git.
 
 ```sh
-npm install
+npm ci             # dépendances, aux versions de package-lock.json
 npm run dev        # application en local, rechargée à chaque modification
 npm test           # scénarios de référence du moteur, de la session et des situations
 npm run typecheck  # vérification des types
 npm run build      # version de production dans dist/
 ```
+
+Pour ajouter ou mettre à jour une dépendance, `npm install <paquet>`, puis commiter `package-lock.json` avec `package.json`.
 
 Les réglages physiques sont accessibles en ajoutant `#reglages` à l'adresse de l'application.
 

@@ -26,8 +26,11 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 22
+          cache: npm
+      # Versions exactes de package-lock.json : une nouvelle version d'une dépendance
+      # n'entre qu'avec un commit qui met à jour ce fichier.
       - name: Installer les dépendances
-        run: npm install --no-audit --no-fund
+        run: npm ci --no-audit --no-fund
       - name: Tests du moteur et de la session
         run: npm test
       - name: Vérification des types
