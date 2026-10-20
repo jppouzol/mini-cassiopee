@@ -1,4 +1,5 @@
-// Édition des aussières d'une situation, pendant la préparation.
+// Édition d'une situation pendant la préparation : aussières, position et bord du bateau,
+// voisins, bateaux en face, plafond d'aussières et options avancées.
 // Fonctions pures : chacune renvoie une nouvelle situation, ou lève une
 // EditionError au message lisible. Aucune dépendance au navigateur.
 

@@ -40,15 +40,18 @@ src/
   situations/   format JSON des situations, validation, catalogue
   render/       dessin de la scène sur Canvas
   ui/           interface React
-tests/          scénarios de référence, exécutés avec le lanceur de tests de Node.js
+  pwa/          service worker (hors-ligne) et son enregistrement
+public/         manifeste et icônes, copiés tels quels à la construction
+outils/         scripts de développement (icônes, version de test des PR)
+tests/          scénarios de référence et tests, exécutés avec le lanceur de tests de Node.js
 docs/           spécifications et architecture (documents de référence)
 ```
 
-`sim` ne dépend de rien ; `session` dépend de `sim` ; `render` et `ui` passent par `session`.
+`sim` ne dépend de rien ; `session` dépend de `sim`. Seule la session fait avancer la simulation : `render` et `ui` passent par elle, et n'empruntent à `sim` que ses types, sa géométrie et ses constantes.
 
 ### Ajouter une situation au catalogue
 
-Créer un fichier JSON dans `src/situations/catalogue/` sur le modèle des fichiers existants, puis l'ajouter à la liste de `src/situations/catalogue.ts`. Les tests vérifient automatiquement que chaque situation est valide.
+Créer un fichier JSON dans `src/situations/catalogue/` sur le modèle des fichiers existants, puis l'importer dans `src/situations/catalogue.ts` et l'ajouter à `GROUPES`, dans un groupe de sa famille (le long du quai, sur catway ou libre). Les tests vérifient que chaque fichier du dossier figure au menu, dans la bonne famille, et respecte les règles du catalogue.
 
 ### Cycle de développement
 

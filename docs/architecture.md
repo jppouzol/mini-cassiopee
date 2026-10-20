@@ -9,7 +9,7 @@ Mini Cassiopée est une application web statique, sans serveur, écrite en TypeS
 - **Moteur de simulation maison**, en TypeScript pur, sans dépendance au navigateur : corps rigide 2D, pas de temps fixe, aussières en traction seule, contact simple avec le quai.
 - **Effets physiques activables** : chaque enrichissement (pas d'hélice, fardage, puis bi-safran) est un module qu'on branche ou non, sans toucher au socle.
 - **Relecture par journal d'actions et images clés**, qui rend le retour arrière fiable et peu gourmand en mémoire.
-- **Situations décrites en JSON**, chargées par le catalogue et, à terme, produites par l'éditeur.
+- **Situations décrites en JSON**, chargées par le catalogue et produites par l'éditeur.
 - **Rendu Canvas 2D**, interface en React, construction avec Vite.
 - **Application web hébergée sur GitHub Pages** et déployée automatiquement par GitHub Actions ; installable sur l'écran d'accueil et utilisable hors ligne grâce à un service worker écrit à la main.
 
@@ -17,7 +17,7 @@ Le code est publié sous licence MIT. Seule la licence des contenus pédagogique
 
 ## Vue d'ensemble
 
-L'application se découpe en cinq modules ; le moteur de simulation, au centre du projet, n'en connaît aucun autre.
+L'application se découpe en cinq modules, plus le hors-ligne (`src/pwa`), à part ; le moteur de simulation, au centre du projet, n'en connaît aucun autre.
 
 ```mermaid
 flowchart TB
@@ -25,18 +25,20 @@ flowchart TB
   R["<b>Rendu (Canvas 2D)</b><br/>Bateau, aussières, pivot"]
   S["<b>Session de manœuvre</b><br/>Journal d'actions, images clés<br/>Lecture, pause, retour arrière"]
   M["<b>Moteur de simulation</b><br/>Forces, effets activables<br/>Point de pivot, pas fixe"]
-  SI["<b>Situations (JSON)</b><br/>Catalogue, validation du format"]
+  SI["<b>Situations (JSON)</b><br/>Catalogue, format, édition<br/>Géométrie du port"]
   UI -- envoie les actions --> S
+  UI -- édite la situation, construit l'état de départ --> SI
+  UI -- dessine --> R
   R -- lit l'état affiché --> S
   S -- avance d'une image --> M
-  S -- charge une situation --> SI
+  SI -- géométrie, types --> M
 ```
 
-Chaque flèche va d'un module vers ce dont il dépend. L'interface et le rendu ne touchent jamais directement au moteur : ils passent par la session, qui seule fait avancer la simulation et tient l'historique.
+Chaque flèche va d'un module vers ce dont il dépend. La session seule fait avancer la simulation (`tick`), modifie l'état et tient l'historique : l'interface lui envoie les actions de l'élève et lui confie l'état de départ, construit à partir de la situation préparée (`buildState`) ; le rendu lit l'état qu'elle affiche. Les autres modules n'empruntent au moteur que ses types, sa géométrie (coque, taquets, rangée d'en face) et ses constantes, des fonctions pures qu'ils ne font jamais avancer.
 
 ## Moteur de simulation
 
-Le moteur est écrit sur mesure plutôt qu'adossé à une bibliothèque physique (Planck.js, Matter.js, Rapier). Environ 200 lignes suffisent, et un moteur maison garde la main sur ce qui compte ici : aussières en traction seule, résistance latérale répartie qui place le pivot, contact avec le quai servant de point d'appui.
+Le moteur est écrit sur mesure plutôt qu'adossé à une bibliothèque physique (Planck.js, Matter.js, Rapier). Il tient en un millier de lignes, et un moteur maison garde la main sur ce qui compte ici : aussières en traction seule, résistance latérale répartie qui place le pivot, contact avec le quai servant de point d'appui.
 
 ### Repères et unités
 
@@ -59,7 +61,7 @@ Le moteur est écrit sur mesure plutôt qu'adossé à une bibliothèque physique
 - Aussières : ressort amorti qui ne travaille qu'en traction. Chacune a un mode (`mode`, type `LineMode`), ce que fait l'équipier qui tient le bout : `bloque` (par défaut), `choque` ou `reprend`. Choquée, elle file sans retenue : à chaque sous-pas, sa longueur rejoint la distance du taquet à la bitte dès que le bateau s'en éloigne, et ne raccourcit jamais. Reprise (#22), elle raccourcit de `haulSpeed` (0,3 m/s) à chaque sous-pas tant que la tension du sous-pas précédent reste sous l'effort de l'équipier (`crewEffort`, 600 N), sans descendre sous `lineMinLen` (1 m, le taquet contre la bitte) : elle rattrape le mou, puis reste raide. L'équipier ressent la tension lissée sur `crewHold` (0,5 s, champ `load` de l'aussière) : il encaisse ainsi l'à-coup bref du mou qui se rattrape. Quand cette tension ressentie dépasse son effort de plus de `crewMargin` (25 %), il lâche : le mode passe de lui-même à `choque`, dans la simulation, sans action de l'élève, ce qui garde la relecture exacte (comme la fin d'un coup de fouet). La marge évite qu'il lâche à la fin de sa propre reprise. Après chaque image, `tick` note dans `rate` la variation de longueur de chaque aussière (m/s), que lit l'affichage. Ce n'est pas un effet optionnel mais un état de l'aussière, changé par une action de l'élève ou par le lâcher.
 - Moteur et ralenti : `engine` vaut -1 (marche arrière), -0,5 (ralenti arrière), 0 (neutre), 0,5 (ralenti avant) ou 1 (marche avant), dans cet ordre (`ENGINE_POSITIONS`). Son signe donne le sens de la poussée ; au ralenti, `thrustOf` la multiplie par `idleFactor` (0,5), et le flux d'hélice au safran (`washSpeed`) et le pas d'hélice suivent, comme pour le coup de fouet. Ce n'est pas un effet optionnel mais une position de la commande : en marche, le facteur vaut 1 et rien ne change.
 - Coup de fouet : état du moteur (`kick`, nul hors d'un coup), pas un effet optionnel. Pendant un coup, la poussée a le sens du coup et est multipliée par `kickFactor` (2) ; le flux d'hélice au safran (`washSpeed`) et le pas d'hélice suivent, puisqu'ils dépendent de la poussée. `engine` garde la position où le moteur reviendra, ralenti compris ; depuis le ralenti, le coup garde le facteur `kickFactor`, le double de la marche. Un coup donné depuis cette position ou dans son sens dure `kickTime` (2 s). À contre-sens (signe de `engine` opposé au coup), `engine` passe au neutre et le coup casse l'erre : il s'arrête dès que la vitesse longitudinale ne va plus dans le sens de l'ancienne marche, au plus tard après `kickMaxTime` (5 s) ; si elle était déjà presque nulle (moins de 5 cm/s, `KICK_ERRE_MIN`), il dure `kickTime`. Un nouveau coup remplace le précédent selon les mêmes règles, depuis `engine` ; une action moteur l'annule. Le démarrage (`startKick`) est appliqué par l'action de l'élève, sans les paramètres ; la fin (`updateKick`) est vérifiée par `tick` à chaque image, avec le compte des images écoulées, ce qui garde la relecture exacte. Fonctions dans `src/sim/kick.ts`, sens et facteur de la poussée du moment donnés par `thrustOf`.
-- Point de pivot calculé à chaque image : point de l'axe dont la vitesse latérale est nulle, lissé et masqué quand le bateau translate sans tourner. L'affichage le borne à la coque, de l'étrave à l'arrière ; le montrer hors de la coque est une option envisagée (#45).
+- Point de pivot calculé à chaque image : point de l'axe dont la vitesse latérale est nulle, lissé et masqué quand le bateau translate sans tourner. Le moteur le borne à la coque, de l'étrave à l'arrière (`updatePivot`) ; le montrer hors de la coque est une option envisagée (#45).
 
 ### Effets activables
 
@@ -73,7 +75,7 @@ Chaque force est un **effet** (`src/sim/effects.ts`) : une fonction qui reçoit 
 
 ### Paramètres
 
-Les constantes physiques (poussée, efficacité de barre, résistances, vent, raideur des aussières) sont regroupées dans un seul jeu de paramètres (`src/sim/params.ts`), versionné avec le code. Un panneau de réglages, accessible en ajoutant `#reglages` à l'adresse de l'application, permet de les affiner.
+Les constantes physiques (poussée, efficacité de barre, résistances, vent, raideur des aussières) sont regroupées dans un seul jeu de paramètres (`src/sim/params.ts`), versionné avec le code. Un panneau de réglages, accessible en ajoutant `#reglages` à l'adresse de l'application, permet de les affiner. Un changement de réglage efface la suite de la manœuvre enregistrée, qui reprend avec les nouveaux paramètres depuis l'image affichée (`setParams`). Limite connue : revenir ensuite plus tôt recalcule les images situées entre deux images clés avec les nouveaux paramètres, si bien que le passé change par morceaux d'une seconde ; seul ce panneau de mise au point est concerné.
 
 #### Ordres de grandeur
 
@@ -115,7 +117,8 @@ Une manœuvre est enregistrée comme une situation de départ plus un journal ho
 - **Journal d'actions** : chaque action (moteur, ralenti compris, coup de fouet, barre, largage, cran d'une aussière) est notée avec le numéro d'image où elle s'applique. Le cran d'une aussière est une seule action, `line-mode`, qui porte le mode choisi (`choque`, `bloque` ou `reprend`) ; elle remplace l'action `pay-out` (booléen) de #13. Le lâcher de l'équipier n'est pas une action : la simulation le rejoue d'elle-même.
 - **Images clés** : l'état complet est sauvegardé toutes les 60 images (1 s). Pour afficher l'image n, on repart de l'image clé précédente et on resimule au plus 59 images, ce qui reste imperceptible.
 - **Embranchement** : une action faite après un retour arrière efface la suite du journal et des images clés, puis la manœuvre repart de ce point.
-- **Mémoire** : un état tient en moins de 200 octets ; un quart d'heure de manœuvre représente environ 900 images clés, soit moins de 200 ko.
+- **Mémoire** : un état tient en 0,5 à 1,2 Ko (mesuré en JSON, selon les aussières, voisins, catways et bateaux en face) ; un quart d'heure de manœuvre représente environ 900 images clés, soit environ 1 Mo.
+- **Durée** : une manœuvre enregistrée dure au plus 30 min (`MAX_FRAMES`) ; au-delà, `advance` n'avance plus.
 
 La resimulation exige que le moteur soit déterministe sur un même appareil : pas de hasard, pas de dépendance à l'horloge, ordre de calcul fixe. Une relecture ne sort jamais de l'appareil, donc les écarts infimes de calcul entre navigateurs ne posent pas de problème.
 
@@ -216,9 +219,11 @@ La scène est dessinée en Canvas 2D par un module impératif (`src/render`) ; l
 - **Options avancées** : sous le plafond d'aussières et les voisins, un menu « Pas d'hélice » (aucun, hélice à droite, hélice à gauche), puis « Fardage » (sans, avec). Rien n'est dessiné de plus dans la scène. À chaque nouvelle session, `App` tire le côté de l'abattée (`Math.random`, seul tirage au hasard de l'application) et le passe à `buildState`.
 - **Panneau en libre** : la section « Situation » ne montre que la famille, la situation et le vent ; la section « Amarres » disparaît, en préparation comme en manœuvre ; les options avancées se réduisent au pas d'hélice et au fardage ; le rappel des raccourcis omet le déplacement du bateau, le largage et le choquer.
 - **Panneau en manœuvre** : hors de la préparation (`preparing` faux : lecture, ou image différente de 0), `App` n'affiche ni le titre, ni la section « Situation », ni les options avancées, ni les textes d'aide : le panneau commence par le moteur. Ce n'est qu'une condition d'affichage ; rien ne change dans la session, le rendu ni le format des situations.
+- **Lecture** : sous la scène, ⏮, pas à pas arrière et avant de 0,2 s (12 images), lecture ou pause, chronologie de ce qui est enregistré, et vitesse de lecture (×0,5, ×1, ×2 ou ×4). La boucle d'animation avance la session au rythme de l'affichage multiplié par cette vitesse, en images entières : le pas de simulation ne change pas, donc la manœuvre non plus.
+- **Affichage** : deux cases du panneau, décochées à chaque ouverture et non mémorisées. « Position de départ » passe au rendu le corps de l'état initial (`ghost`), dessiné en pointillés ; « Valeurs de mise au point » (`debug`) fait dessiner la tension des aussières tendues en newtons, le cap, la vitesse en nœuds, la vitesse de lacet et le pivot, et remplace « Tendue » par la tension dans la liste des amarres. Ce sont des préférences d'affichage, sans effet sur la session.
 - **Liste des aussières** : chaque ligne montre le nom, l'état (tendue, molle, file, reprise, larguée) et « Larguer » (en préparation : « Tendue / Molle » et « Supprimer ») ; en préparation, un bouton « Tout supprimer » en pied de liste, présent s'il y a au moins une aussière, appelle `supprimerToutesAussieres`, sans confirmation ; en étendu, la rangée des crans Choquer, Bloquer et Reprendre en dessous.
 - **Chevron du bout qui bouge** : tant que la longueur d'une aussière change, un petit chevron de sa couleur est dessiné sur le trait, au quart de sa longueur côté taquet : tourné vers la bitte quand elle file, vers le taquet quand l'équipier la reprend. `sensDuBout(ligne)` (`src/render/renderer.ts`, pure et testée seule) le décide d'après l'état seul, sans mémoire : aussière attachée dont la longueur a varié de plus de 2 cm/s à la dernière image (`rate`). Le rendu reste sans état.
-- **Clavier** sur PC : raccourcis pour la lecture, le moteur (↑ et ↓ d'un cran, ralentis compris en étendu), le coup de fouet (Page ↑ en avant, Page ↓ en arrière, en étendu seulement), la barre, le largage (chiffre), les crans des amarres en étendu seulement (Maj + chiffre vers Choquer, Alt + chiffre vers Reprendre), le pas à pas et, en préparation, le déplacement du bateau (Maj + flèches gauche et droite le long du quai, haut et bas le long du catway), rappelés en bas du panneau de commandes. Les chiffres sont repérés par la touche et non par le caractère, pour fonctionner pareil en AZERTY et en QWERTY.
+- **Clavier** sur PC : raccourcis pour la lecture, le moteur (↑ et ↓ d'un cran, ralentis compris en étendu), le coup de fouet (Page ↑ en avant, Page ↓ en arrière, en étendu seulement), la barre, le largage (chiffre), les crans des amarres en étendu seulement (Maj + chiffre vers Choquer, Alt + chiffre vers Reprendre), le pas à pas et, en préparation, le déplacement du bateau (Maj + flèches gauche et droite le long du quai, haut et bas le long du catway), ainsi qu'Espace (lecture ou pause), ← et → (barre, de 5° en 5°), C (barre au centre), virgule et point (pas à pas de 0,2 s), R (retour au départ) et Échap (annuler la sélection d'un taquet), rappelés en bas du panneau de commandes. Les chiffres sont repérés par la touche et non par le caractère, pour fonctionner pareil en AZERTY et en QWERTY.
 - **Accessibilité** : commandes utilisables au clavier, contrastes suffisants dans les deux thèmes, état des aussières indiqué par la couleur et par un libellé.
 
 ## Stack, outillage et organisation du code
@@ -252,7 +257,7 @@ mini-cassiopee/
   docs/           spécifications et architecture
 ```
 
-La règle de dépendance est stricte : `sim` ne dépend de rien, `session` dépend de `sim`, `render` et `ui` dépendent de `session`. Le moteur reste ainsi testable seul et réutilisable.
+La règle de dépendance est stricte : `sim` ne dépend de rien ; `session` dépend de `sim` ; `situations` dépend de `sim` pour sa géométrie et ses types ; `render` et `ui` passent par `session` pour faire avancer la simulation et lire l'état, et n'empruntent à `sim` que ses types, sa géométrie et ses constantes, jamais `tick`. Le moteur reste ainsi testable seul et réutilisable.
 
 ## Hors-ligne, hébergement et licence
 
@@ -410,6 +415,8 @@ Chaque choix structurant est noté ici avec son statut ; une décision ne change
 | Giration et pivot | Safran traité comme un aileron (barre et eau qui arrive de côté), quille portante dont le centre de poussée se porte vers l'extrémité qui ouvre la route, résistance latérale concentrée au milieu ; barre à fond, diamètre d'environ deux longueurs et pivot sur la coque ; correction du socle, sans option ; pivot hors de la coque (#45) traité à part ; vitesse de manœuvre : voir ci-dessous | Décidé |
 | Vitesse de manœuvre | Poussée unique abaissée (×0,55) : environ 3 nœuds en avant et 2,5 en arrière ; ralenti ajouté ensuite comme second régime, sans toucher à la marche (voir ci-dessous) ; vent abaissé un peu moins (×0,65), pour garder son poids à faible vitesse ; pas d'hélice abaissé comme la poussée ; coup de fouet toujours au double, environ l'ancienne poussée ; vent plus fort que le moteur traité à part (#65) | Décidé |
 | Relecture | Journal d'actions et images clés toutes les secondes | Décidé |
+| Barre | Angle continu, jusqu'à 35° de chaque bord, 5° par touche au clavier ; point ouvert « positions fixes ou angle continu » clos le 20 octobre 2026 (#83) | Décidé |
+| Aides d'affichage | Cases « Position de départ » et « Valeurs de mise au point », décochées par défaut, documentées telles quelles le 20 octobre 2026 (#83) ; leur place, pour l'élève ou réservées à la mise au point, reste à décider | Ouvert |
 | Stack | TypeScript, React, Vite ; tests avec le lanceur intégré à Node.js | Décidé |
 | Rendu | Canvas 2D | Décidé |
 | Format des situations | JSON versionné, validation écrite à la main | Décidé |
