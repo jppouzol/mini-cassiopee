@@ -189,7 +189,7 @@ test('format : « equipier » vaut choque ou reprend, et ne contredit pas « fil
   brut.aussieres[0].equipier = 'bloque';
   assert.throws(() => parseSituation(brut), SituationError, 'bloquée : le champ est absent');
   brut.aussieres[0].equipier = 'freine';
-  assert.throws(() => parseSituation(brut), SituationError, 'freiner viendra avec #23');
+  assert.throws(() => parseSituation(brut), SituationError, 'pas de freinage');
 });
 
 test('éditeur : régler une aussière sur Reprendre dès le départ, puis la rebloquer', () => {
