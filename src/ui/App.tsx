@@ -4,7 +4,7 @@ import { buildState } from '../situations/build.ts';
 import { CATALOGUE, GROUPES } from '../situations/catalogue.ts';
 import {
   ECARTS_VOISIN, EditionError, PAS_DEPLACEMENT, ajouterAussiere, basculerMou, bornesDeplacement,
-  alleeEnFace, changerBord, deplacerBateau, ecartVoisin, etraveVoisinCatway, reglerEnFace, reglerEquipier, reglerFardage, reglerPasHelice, reglerPlafond, reglerVoisin, renommerAussiere, supprimerAussiere, taquetsProposes,
+  alleeEnFace, changerBord, deplacerBateau, ecartVoisin, etraveVoisinCatway, reglerEnFace, reglerEquipier, reglerFardage, reglerPasHelice, reglerPlafond, reglerVoisin, renommerAussiere, supprimerAussiere, supprimerToutesAussieres, taquetsProposes,
 } from '../situations/edit.ts';
 import { bitteDepuisPoint, bittesAutresCatways, bittesDuPort, libre, perpendiculaire, type Allee } from '../situations/quai.ts';
 import {
@@ -722,6 +722,14 @@ export function App() {
                 );
               })}
           </div>
+          {/* Pied de liste, en préparation : retire d'un coup toutes les aussières, sans confirmation
+              ni annulation ; « Situation d'origine » remet celles du catalogue (#50). */}
+          {preparing && preparee.aussieres.length > 0 && (
+            <div className="row">
+              <button className="btn push-right" title="Retirer toutes les aussières pour poser les vôtres"
+                onClick={() => edit(supprimerToutesAussieres)}>Tout supprimer</button>
+            </div>
+          )}
           {preparing && etendues && <p className="hint">Les crans règlent ce que fait l’équipier dès la mise en mouvement.</p>}
           {preparing && (
             <p className="hint" aria-live="polite">

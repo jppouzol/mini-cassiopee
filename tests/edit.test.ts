@@ -5,7 +5,7 @@ import { line, loadSituation, run } from './helpers.ts';
 import { buildState } from '../src/situations/build.ts';
 import {
   DEPLACEMENT_MAX, EditionError, MOU_MOLLE, ajouterAussiere, basculerMou, deplacerBateau,
-  nomDeduit, nomsAffiches, reglerPlafond, renommerAussiere, supprimerAussiere, taquetsProposes,
+  nomDeduit, nomsAffiches, reglerPlafond, renommerAussiere, supprimerAussiere, supprimerToutesAussieres, taquetsProposes,
 } from '../src/situations/edit.ts';
 import { parseSituation, type Situation } from '../src/situations/schema.ts';
 import { bitteDepuisSupport, bitteVersSupport } from '../src/situations/quai.ts';
@@ -70,6 +70,25 @@ test('ajout et suppression d’aussières', () => {
   assert.equal(new Set(sit.aussieres.map((a) => a.id)).size, 2);
   // La situation produite reste valide au format du catalogue.
   assert.deepEqual(parseSituation(JSON.parse(JSON.stringify(sit))), sit);
+});
+
+test('tout supprimer retire toutes les aussières, et rien d’autre', () => {
+  const avant: Situation = { ...loadSituation('depart-garde-avant'), plafondAussieres: 8 };
+  let sit = ajouterAussiere(avant, 'arriere', 0);
+  sit = renommerAussiere(sit, sit.aussieres[0].id, 'Ma garde');
+  assert.ok(sit.aussieres.length >= 2);
+  const videe = supprimerToutesAussieres(sit);
+  assert.deepEqual(videe.aussieres, []);
+  assert.deepEqual({ ...videe, aussieres: sit.aussieres }, sit, 'le reste de la situation est inchangé');
+  // Déjà vide : même situation, pas de nouvelle session.
+  assert.equal(supprimerToutesAussieres(videe), videe);
+  // La situation produite reste valide et l'état construit n'a aucune aussière.
+  assert.deepEqual(parseSituation(JSON.parse(JSON.stringify(videe))), videe);
+  assert.equal(buildState(videe).lines.length, 0);
+  // On peut ensuite poser ses propres amarres, jusqu'au plafond conservé.
+  const reposee = ajouterAussiere(videe, 'etrave', -4);
+  assert.equal(reposee.aussieres.length, 1);
+  assert.equal(reposee.plafondAussieres, 8);
 });
 
 test('doublon, bitte hors rangée et plafond sont refusés', () => {
